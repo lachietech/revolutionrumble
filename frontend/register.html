@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Revolution Rumble — Register</title>
+  <meta name="description" content="Player registration for The Revolution Rumble."/>
+  <style>
+    :root{
+      --blue-900:#0a2540; --blue-800:#0f335a; --blue-700:#134b86; --blue-600:#1a65b8; --blue-500:#2e8fdc; --blue-300:#7ac3ff;
+      --black:#0b0b0c; --grey-900:#121316; --grey-800:#181a1f; --grey-700:#23262d; --grey-600:#2d313a; --grey-500:#3a404b;
+      --text:#e9eef7; --muted:#b9c6d8; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--black);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial}
+    a{color:inherit;text-decoration:none}
+    .container{width:min(1000px,92%);margin-inline:auto}
+    .btn{display:inline-block;padding:.9rem 1.25rem;border-radius:999px;background:linear-gradient(90deg,var(--blue-700),var(--blue-500));color:white;font-weight:700;letter-spacing:.2px;box-shadow:var(--shadow);transition:transform .15s ease,opacity .2s ease}
+    .btn:hover{transform:translateY(-2px);opacity:.95}
+    .btn-outline{background:transparent;border:1px solid var(--blue-600);color:var(--text)}
+    .eyebrow{letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-size:.8rem}
+    .h1{font-size:clamp(2rem,4vw,3rem);line-height:1.1;margin:10px 0 8px}
+    .h2{font-size:clamp(1.4rem,3vw,2rem);line-height:1.2;margin:0 0 12px}
+    .sub{color:var(--muted)}
+    .card{background:linear-gradient(180deg,var(--grey-800),var(--grey-700));border:1px solid var(--grey-600);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .section{padding:48px 0}
+
+  header{position:sticky;top:0;z-index:40;background:rgba(18,19,22,.65);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 0;position:relative}
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand h1{font-size:1.1rem;margin:0;font-weight:800;letter-spacing:.4px}
+    .nav-links{display:flex;gap:18px;align-items:center}
+        /* Always-on Hamburger */
+    .hamburger{
+    display:flex; position:relative; width:42px; height:42px;
+    border-radius:12px; border:1px solid var(--grey-600);
+    background:linear-gradient(180deg,var(--grey-800),var(--grey-700));
+    box-shadow:var(--shadow); cursor:pointer; align-items:center; justify-content:center;
+    }
+    .hamburger span{
+    position:absolute; width:20px; height:2px; background:var(--text); transition:.2s ease;
+    }
+    .hamburger span:nth-child(1){ transform:translateY(-6px); }
+    .hamburger span:nth-child(2){ transform:translateY(0); }
+    .hamburger span:nth-child(3){ transform:translateY(6px); }
+    .hamburger.is-open span:nth-child(1){ transform:rotate(45deg); }
+    .hamburger.is-open span:nth-child(2){ opacity:0; }
+    .hamburger.is-open span:nth-child(3){ transform:rotate(-45deg); }
+
+    /* Hide desktop nav on ALL viewports */
+    .desktop-nav{ display:none !important; }
+
+    /* Dropdown panel: anchored under the hamburger, compact on desktop; full-width-only on mobile */
+    .mobile-menu{
+    position:absolute; right:12px; top:calc(100% + 8px);
+    display:grid; gap:10px; padding:12px; width:min(360px,92%);
+    border-radius:12px; border:1px solid rgba(255,255,255,.04);
+    background:rgba(18,19,22,.95); backdrop-filter:blur(8px);
+    box-shadow:0 8px 24px rgba(0,0,0,.45); z-index:60; max-height:calc(100vh - 120px); overflow:auto;
+    left:auto; transform-origin:top right; transition:opacity .18s ease,transform .18s ease;
+    }
+    /* Mobile: full-width (width only), reduce button sizes */
+    @media (max-width: 600px){
+      .mobile-menu{position:fixed; left:0; right:0; top:64px; width:100%; height:auto; border-radius:0; padding:16px 12px; max-height:calc(100vh - 64px); display:grid; gap:12px;}
+      .mobile-menu a{font-size:1.05rem;padding:10px}
+      .mobile-menu .btn{padding:.7rem .9rem;border-radius:10px;width:100%;}
+    }
+    .mobile-menu a{padding:12px; border-radius:12px; border:1px solid var(--grey-600);background:linear-gradient(180deg,var(--grey-800),var(--grey-700));}
+    .mobile-menu[hidden]{display:none !important; opacity:0; pointer-events:none}
+    .mobile-menu:not([hidden]){opacity:1;pointer-events:auto}
+    .mobile-menu .btn{ text-align:center; }
+
+    form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    label{display:block;font-size:.9rem;color:var(--muted);margin-bottom:6px}
+    input,select,textarea{width:100%;background:linear-gradient(180deg,var(--grey-800),var(--grey-700));border:1px solid var(--grey-600);color:var(--text);border-radius:12px;padding:.7rem .9rem}
+    textarea{min-height:110px}
+    .full{grid-column:1 / -1}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .hint{font-size:.85rem;color:var(--muted)}
+    .success{display:none;margin-top:12px;padding:12px;border-radius:12px;background:rgba(46,143,220,.12);border:1px solid rgba(46,143,220,.35)}
+
+    footer{padding:36px 0;background:rgba(18,19,22,.65);color:var(--muted);border-top:1px solid rgba(255,255,255,.06)}
+
+    @media (max-width: 840px){ form{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<header>
+    <div class="container nav">
+        <div class="brand">
+        <h1>Revolution Rumble - Tenpin Tour</h1>
+        </div>
+
+        <!-- Keep this for progressive enhancement (hidden via CSS) -->
+        <nav class="nav-links desktop-nav">
+        <a href="/">Home</a>
+        <a href="/results">Results</a>
+        <a href="/playerstats">Player Stats</a>
+        <a class="btn" href="/register">Register</a>
+        </nav>
+
+    <!-- Hamburger (always visible) -->
+    <button class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+    <span></span><span></span><span></span>
+    </button>
+
+    <!-- Dropdown (moved inside .nav so it anchors to the hamburger) -->
+    <nav id="mobileMenu" class="mobile-menu" hidden>
+      <a href="/">Home</a>
+      <a href="/results">Results</a>
+      <a href="/playerstats">Player Stats</a>
+      <a class="btn" href="/register">Register</a>
+    </nav>
+  </div>
+  </header>
+
+  <section class="section">
+    <div class="container">
+      <div class="eyebrow">Player Entry Form</div>
+      <h1 class="h1">Logan City Cup — 2026</h1>
+      <p class="sub">Complete the form below. You’ll receive a confirmation number on success. Payment step can be linked after form submit.</p>
+
+      <div class="card" style="padding:16px;margin-top:12px">
+        <form id="form" novalidate>
+          <div>
+            <label for="fullName">Full Name *</label>
+            <input id="fullName" required />
+          </div>
+          <div>
+            <label for="email">Email *</label>
+            <input id="email" type="email" required />
+          </div>
+
+          <div>
+            <label for="phone">Phone *</label>
+            <input id="phone" required />
+          </div>
+          <div>
+            <label for="center">Home Centre</label>
+            <input id="center" placeholder="e.g., Logan City Tenpin" />
+          </div>
+
+          <div>
+            <label for="division">Division *</label>
+            <select id="division" required>
+              <option value="">Select…</option>
+              <option value="open">Open</option>
+              <option value="youth">Youth</option>
+              <option value="senior">Senior</option>
+            </select>
+          </div>
+          <div>
+            <label for="hand">Hand</label>
+            <select id="hand">
+              <option value="R">Right</option>
+              <option value="L">Left</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="avg">Entering Average</label>
+            <input id="avg" type="number" min="0" max="300" step="0.1" />
+          </div>
+          <div>
+            <label for="sanction">Sanction ID</label>
+            <input id="sanction" placeholder="TBA/WPBA/etc." />
+          </div>
+
+          <div class="full">
+            <label for="notes">Notes (equipment, squad preference, etc.)</label>
+            <textarea id="notes"></textarea>
+          </div>
+
+          <div class="full">
+            <label class="row" style="gap:8px">
+              <input type="checkbox" id="agree" required />
+              <span>I agree to the event terms and code of conduct *</span>
+            </label>
+          </div>
+
+          <div class="full row" style="justify-content:space-between;margin-top:6px">
+            <div class="hint">Fields marked * are required. Your details are kept private.</div>
+            <button class="btn" type="submit">Submit Entry</button>
+          </div>
+        </form>
+
+        <div id="success" class="success"></div>
+      </div>
+
+      <div class="card" style="padding:14px;margin-top:12px">
+        <div class="eyebrow">After You Register</div>
+        <p class="sub">Squad allocations will be posted on the Results page. Payment can be handled via Stripe or bank transfer — this button can redirect after submit.</p>
+        <button class="btn btn-outline" id="pay">Go to Payment (stub)</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container" style="display:flex;justify-content:center">© 2025 Revolution Bowling Supplies & Nielsen Innovations</div>
+  </footer>
+
+  <script>
+    const form = document.getElementById('form');
+    const success = document.getElementById('success');
+    const payBtn = document.getElementById('pay');
+
+    function genId(){
+      return 'RR-' + Math.random().toString(36).slice(2,7).toUpperCase();
+    }
+
+    form.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const data = {
+        fullName: form.fullName.value.trim(),
+        email: form.email.value.trim(),
+        phone: form.phone.value.trim(),
+        center: form.center.value.trim(),
+        division: form.division.value,
+        hand: form.hand.value,
+        avg: form.avg.value ? Number(form.avg.value) : null,
+        sanction: form.sanction.value.trim(),
+        notes: form.notes.value.trim(),
+        agree: form.agree.checked,
+        createdAt: new Date().toISOString(),
+      };
+
+      // basic validation
+      if(!data.fullName || !data.email || !data.phone || !data.division || !data.agree){
+        success.style.display='block';
+        success.style.borderColor = 'rgba(255,80,80,.45)';
+        success.style.background = 'rgba(255,80,80,.12)';
+        success.textContent = 'Please complete all required fields.';
+        return;
+      }
+
+      const id = genId();
+      const entries = JSON.parse(localStorage.getItem('rr_entries')||'[]');
+      entries.push({...data, id});
+      localStorage.setItem('rr_entries', JSON.stringify(entries));
+
+      success.style.display='block';
+      success.style.borderColor = 'rgba(46,143,220,.35)';
+      success.style.background = 'rgba(46,143,220,.12)';
+      success.innerHTML = `<strong>Entry received!</strong> Your confirmation number is <code>${id}</code>.`;
+      form.reset();
+      form.querySelector('#hand').value='R';
+    });
+
+    payBtn.addEventListener('click',()=>{
+      alert('Stub: integrate Stripe/checkout here or redirect to payment portal.');
+    });
+  </script>
+    <script>
+  (function(){
+  const btn = document.querySelector('.hamburger');
+  const menu = document.getElementById('mobileMenu');
+  if(!btn || !menu) return;
+
+  // Ensure menu starts hidden and aria state is correct
+  menu.hidden = true;
+  btn.classList.remove('is-open');
+  btn.setAttribute('aria-expanded', 'false');
+
+  const toggle = (open) => {
+    // If `open` explicitly provided, use it. Otherwise toggle based on current hidden state.
+    const isOpen = open !== undefined ? Boolean(open) : menu.hidden;
+    btn.classList.toggle('is-open', isOpen);
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    menu.hidden = !isOpen;
+    // only lock body scroll when the panel is open and covers much of the viewport
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  };
+
+  btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+
+  // Close on link click
+  menu.querySelectorAll('a').forEach(a =>
+    a.addEventListener('click', () => toggle(false))
+  );
+
+  // Close on ESC or outside click
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape') toggle(false);
+  });
+  document.addEventListener('click', e => {
+    if(!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)){
+      toggle(false);
+    }
+  });
+  })();
+  </script>
+</body>
+</html>

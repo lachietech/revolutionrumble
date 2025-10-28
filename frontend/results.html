@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Revolution Rumble — Results</title>
+  <meta name="description" content="Live and historical results for The Revolution Rumble."/>
+  <style>
+    /* =====================
+       THEME & RESET (matches Home)
+    ===================== */
+    :root{
+      --blue-900:#0a2540; --blue-800:#0f335a; --blue-700:#134b86; --blue-600:#1a65b8; --blue-500:#2e8fdc; --blue-300:#7ac3ff;
+      --black:#0b0b0c; --grey-900:#121316; --grey-800:#181a1f; --grey-700:#23262d; --grey-600:#2d313a; --grey-500:#3a404b;
+      --text:#e9eef7; --muted:#b9c6d8; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--black);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial}
+    a{color:inherit;text-decoration:none}
+    .container{width:min(1200px,92%);margin-inline:auto}
+    .btn{display:inline-block;padding:.8rem 1.1rem;border-radius:999px;background:linear-gradient(90deg,var(--blue-700),var(--blue-500));color:white;font-weight:700;letter-spacing:.2px;box-shadow:var(--shadow);transition:transform .15s ease,opacity .2s ease}
+    .btn:hover{transform:translateY(-2px);opacity:.95}
+    .btn-outline{background:transparent;border:1px solid var(--blue-600);color:var(--text)}
+    .eyebrow{letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-size:.8rem}
+    .h1{font-size:clamp(2rem,4vw,3rem);line-height:1.1;margin:10px 0 8px}
+    .h2{font-size:clamp(1.4rem,3vw,2rem);line-height:1.2;margin:0 0 12px}
+    .sub{color:var(--muted)}
+    .card{background:linear-gradient(180deg,var(--grey-800),var(--grey-700));border:1px solid var(--grey-600);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .section{padding:48px 0}
+    input,select{background:linear-gradient(180deg,var(--grey-800),var(--grey-700));border:1px solid var(--grey-600);color:var(--text);border-radius:12px;padding:.7rem .9rem}
+
+    /* Header */
+  header{position:sticky;top:0;z-index:40;background:rgba(18,19,22,.65);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 0;position:relative}
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand h1{font-size:1.1rem;margin:0;font-weight:800;letter-spacing:.4px}
+    .nav-links{display:flex;gap:18px;align-items:center}
+    /* Always-on Hamburger */
+    .hamburger{
+    display:flex; position:relative; width:42px; height:42px;
+    border-radius:12px; border:1px solid var(--grey-600);
+    background:linear-gradient(180deg,var(--grey-800),var(--grey-700));
+    box-shadow:var(--shadow); cursor:pointer; align-items:center; justify-content:center;
+    }
+    .hamburger span{
+    position:absolute; width:20px; height:2px; background:var(--text); transition:.2s ease;
+    }
+    .hamburger span:nth-child(1){ transform:translateY(-6px); }
+    .hamburger span:nth-child(2){ transform:translateY(0); }
+    .hamburger span:nth-child(3){ transform:translateY(6px); }
+    .hamburger.is-open span:nth-child(1){ transform:rotate(45deg); }
+    .hamburger.is-open span:nth-child(2){ opacity:0; }
+    .hamburger.is-open span:nth-child(3){ transform:rotate(-45deg); }
+
+    /* Hide desktop nav on ALL viewports */
+    .desktop-nav{ display:none !important; }
+
+    /* Dropdown panel: anchored under the hamburger, compact on desktop; full-width-only on mobile */
+    .mobile-menu{
+    position:absolute; right:12px; top:calc(100% + 8px);
+    display:grid; gap:10px; padding:12px; width:min(360px,92%);
+    border-radius:12px; border:1px solid rgba(255,255,255,.04);
+    background:rgba(18,19,22,.95); backdrop-filter:blur(8px);
+    box-shadow:0 8px 24px rgba(0,0,0,.45); z-index:60; max-height:calc(100vh - 120px); overflow:auto;
+    left:auto; transform-origin:top right; transition:opacity .18s ease,transform .18s ease;
+    }
+    /* Mobile: full-width (width only), reduce button sizes */
+    @media (max-width: 600px){
+      .mobile-menu{position:fixed; left:0; right:0; top:64px; width:100%; height:auto; border-radius:0; padding:16px 12px; max-height:calc(100vh - 64px); display:grid; gap:12px;}
+      .mobile-menu a{font-size:1.05rem;padding:10px}
+      .mobile-menu .btn{padding:.7rem .9rem;border-radius:10px;width:100%;}
+    }
+    .mobile-menu a{padding:12px; border-radius:12px; border:1px solid var(--grey-600);background:linear-gradient(180deg,var(--grey-800),var(--grey-700));}
+    .mobile-menu[hidden]{display:none !important; opacity:0; pointer-events:none}
+    .mobile-menu:not([hidden]){opacity:1;pointer-events:auto}
+    .mobile-menu .btn{ text-align:center; }
+
+    /* Filters Row */
+    .filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .filters .group{display:flex;gap:8px;align-items:center}
+
+    /* Table */
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:12px 10px;border-bottom:1px solid var(--grey-600)}
+    th{color:var(--muted);font-weight:600;text-align:left;user-select:none;cursor:pointer}
+    tr:hover td{background:rgba(255,255,255,.02)}
+    .right{text-align:right}
+
+    /* Pagination */
+    .pager{display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-top:12px}
+
+    footer{padding:36px 0;background:rgba(18,19,22,.65);color:var(--muted);border-top:1px solid rgba(255,255,255,.06)}
+
+    @media (max-width: 980px){
+      .filters{justify-content:stretch}
+      .pager{justify-content:center}
+    }
+  </style>
+</head>
+<body>
+<header>
+    <div class="container nav">
+        <div class="brand">
+        <h1>Revolution Rumble - Tenpin Tour</h1>
+        </div>
+
+        <!-- Keep this for progressive enhancement (hidden via CSS) -->
+        <nav class="nav-links desktop-nav">
+        <a href="/">Home</a>
+        <a href="/results">Results</a>
+        <a href="/playerstats">Player Stats</a>
+        <a class="btn" href="/register">Register</a>
+        </nav>
+
+      <!-- Hamburger (always visible) -->
+        <button class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+        <span></span><span></span><span></span>
+        </button>
+
+        <!-- Dropdown (moved inside .nav so it anchors to the hamburger) -->
+        <nav id="mobileMenu" class="mobile-menu" hidden>
+          <a href="/">Home</a>
+          <a href="/results">Results</a>
+          <a href="/playerstats">Player Stats</a>
+          <a class="btn" href="/register">Register</a>
+        </nav>
+      </div>
+      </header>
+
+  <section class="section">
+    <div class="container">
+      <div class="eyebrow">Event Results</div>
+      <h1 class="h1">Logan City Cup — 2026</h1>
+      <p class="sub">Filter by stage, squad, or search a player. Click table headers to sort. Download CSV for sharing.</p>
+
+      <div class="card" style="padding:16px 16px 6px;margin-top:14px">
+        <div class="filters" style="margin-bottom:12px">
+          <div class="group">
+            <label for="year" class="sub">Season</label>
+            <select id="year">
+              <option>2026</option>
+              <option>2025</option>
+              <option>2024</option>
+            </select>
+          </div>
+          <div class="group">
+            <label for="stage" class="sub">Stage</label>
+            <select id="stage">
+              <option value="qualifying">Qualifying</option>
+              <option value="match">Match Play</option>
+              <option value="finals">Finals</option>
+            </select>
+          </div>
+          <div class="group">
+            <label for="squad" class="sub">Squad</label>
+            <select id="squad">
+              <option value="all">All</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+            </select>
+          </div>
+          <div class="group" style="flex:1">
+            <input id="query" placeholder="Search player name…" style="width:100%"/>
+          </div>
+          <button id="download" class="btn btn-outline" title="Download CSV">Download CSV</button>
+        </div>
+
+        <div style="overflow:auto;border-radius:12px">
+          <table id="table">
+            <thead>
+              <tr>
+                <th data-key="pos">#</th>
+                <th data-key="name">Player</th>
+                <th data-key="games" class="right">Games</th>
+                <th data-key="avg" class="right">Average</th>
+                <th data-key="pins" class="right">Total Pins</th>
+                <th data-key="high" class="right">High</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="pager">
+          <button class="btn btn-outline" id="prev">Prev</button>
+          <span class="sub" id="pageLabel">Page 1</span>
+          <button class="btn" id="next">Next</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container" style="display:flex;justify-content:center">© 2025 Revolution Bowling Supplies & Nielsen Innovations</div>
+  </footer>
+
+  <script>
+    // ===== Mock Data (extend/replace with real feed) =====
+    const BASE = [
+      {name:'Jordan Carter', games:12, avg:226.3, pins:2716, high:279, squad:'A'},
+      {name:'Lachlan Nielsen', games:12, avg:223.9, pins:2687, high:278, squad:'B'},
+      {name:'Maria Diaz', games:12, avg:221.1, pins:2653, high:276, squad:'A'},
+      {name:'Arjun Singh', games:12, avg:219.5, pins:2634, high:274, squad:'B'},
+      {name:'Kai Tan', games:12, avg:218.0, pins:2616, high:268, squad:'A'},
+      {name:'Ethan Park', games:12, avg:217.2, pins:2606, high:266, squad:'B'},
+      {name:'Sofia Rossi', games:12, avg:216.7, pins:2600, high:265, squad:'A'},
+      {name:'Noah Kim', games:12, avg:215.4, pins:2585, high:264, squad:'B'},
+      {name:'Ava Patel', games:12, avg:214.9, pins:2579, high:263, squad:'A'},
+      {name:'Lucas Meyer', games:12, avg:214.3, pins:2572, high:262, squad:'B'}
+    ];
+    const STAGES = {
+      qualifying: BASE,
+      match: BASE.map((x,i)=>({...x, games:20, avg:+(x.avg-2).toFixed(1), pins:x.pins+800, high:Math.max(x.high-3,240)})),
+      finals: BASE.slice(0,5).map((x,i)=>({...x, games:24, avg:+(x.avg-1.5).toFixed(1), pins:x.pins+1400, high:Math.max(x.high-5,235)}))
+    };
+
+    const tbody = document.getElementById('tbody');
+    const year = document.getElementById('year');
+    const stage = document.getElementById('stage');
+    const squad = document.getElementById('squad');
+    const query = document.getElementById('query');
+    const pageLabel = document.getElementById('pageLabel');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+
+    let PAGE = 1, PER = 10, SORT = {key:'pos', dir:'asc'};
+
+    function getData(){
+      const list = [...STAGES[stage.value]];
+      // add positions according to current sort base (pins desc default)
+      list.sort((a,b)=> b.pins - a.pins);
+      list.forEach((x,i)=> x.pos = i+1);
+      // filter by squad
+      const f1 = squad.value==='all' ? list : list.filter(x=>x.squad===squad.value);
+      // filter by search
+      const q = query.value.trim().toLowerCase();
+      const f2 = q ? f1.filter(x=>x.name.toLowerCase().includes(q)) : f1;
+      return f2;
+    }
+
+    function sortData(rows){
+      const {key,dir} = SORT;
+      const mult = dir==='asc' ? 1 : -1;
+      return rows.sort((a,b)=>{
+        const A = a[key]; const B = b[key];
+        if (typeof A === 'string') return A.localeCompare(B)*mult;
+        return (A-B)*mult;
+      });
+    }
+
+    function render(){
+      const data = sortData(getData());
+      const total = data.length; const pages = Math.max(1, Math.ceil(total/PER));
+      PAGE = Math.min(PAGE, pages);
+      const start = (PAGE-1)*PER; const view = data.slice(start, start+PER);
+      tbody.innerHTML = view.map(r=> `
+        <tr>
+          <td>${r.pos}</td>
+          <td>${r.name}</td>
+          <td class="right">${r.games}</td>
+          <td class="right">${r.avg.toFixed(1)}</td>
+          <td class="right">${r.pins}</td>
+          <td class="right">${r.high}</td>
+        </tr>`).join('');
+      pageLabel.textContent = `Page ${PAGE} / ${pages}`;
+      prevBtn.disabled = PAGE<=1; nextBtn.disabled = PAGE>=pages;
+    }
+
+    // Table sorting
+    document.querySelectorAll('th').forEach(th=>{
+      th.addEventListener('click',()=>{
+        const key = th.dataset.key; if(!key) return;
+        SORT.dir = (SORT.key===key && SORT.dir==='asc') ? 'desc' : 'asc';
+        SORT.key = key; render();
+      })
+    });
+
+    // Filters & paging
+    [stage,squad,query].forEach(el=> el.addEventListener('input',()=>{ PAGE=1; render(); }));
+    prevBtn.addEventListener('click',()=>{ PAGE=Math.max(1,PAGE-1); render(); });
+    nextBtn.addEventListener('click',()=>{ PAGE=PAGE+1; render(); });
+
+    // CSV download
+    document.getElementById('download').addEventListener('click',()=>{
+      const rows = sortData(getData());
+      const head = ['pos','name','games','avg','pins','high'];
+      const csv = [head.join(','), ...rows.map(r=> head.map(k=> r[k]).join(','))].join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `results_${stage.value}_${year?.value||'2026'}.csv`; a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    render();
+  </script>
+    <script>
+  (function(){
+  const btn = document.querySelector('.hamburger');
+  const menu = document.getElementById('mobileMenu');
+  if(!btn || !menu) return;
+
+  // Ensure menu starts hidden and aria state is correct
+  menu.hidden = true;
+  btn.classList.remove('is-open');
+  btn.setAttribute('aria-expanded', 'false');
+
+  const toggle = (open) => {
+    // If `open` explicitly provided, use it. Otherwise toggle based on current hidden state.
+    const isOpen = open !== undefined ? Boolean(open) : menu.hidden;
+    btn.classList.toggle('is-open', isOpen);
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    menu.hidden = !isOpen;
+    // only lock body scroll when the panel is open and covers much of the viewport
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  };
+
+  btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+
+  // Close on link click
+  menu.querySelectorAll('a').forEach(a =>
+    a.addEventListener('click', () => toggle(false))
+  );
+
+  // Close on ESC or outside click
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape') toggle(false);
+  });
+  document.addEventListener('click', e => {
+    if(!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)){
+      toggle(false);
+    }
+  });
+  })();
+  </script>
+</body>
+</html>

@@ -48,11 +48,64 @@
        HEADER
     ===================== */
     header{position:sticky;top:0;z-index:50;background:rgba(18,19,22,.65);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
-    .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 0;position:relative}
     .brand{display:flex;align-items:center;gap:10px}
     .brand h1{font-size:1.1rem;margin:0;font-weight:800;letter-spacing:.4px}
     .nav a{color:var(--muted)}
     .nav-links{display:flex;gap:18px;align-items:center}
+
+    /* Always-on Hamburger */
+    .hamburger{
+    display:flex; position:relative; width:42px; height:42px;
+    border-radius:12px; border:1px solid var(--grey-600);
+    background:linear-gradient(180deg,var(--grey-800),var(--grey-700));
+    box-shadow:var(--shadow); cursor:pointer; align-items:center; justify-content:center;
+    }
+    .hamburger span{
+    position:absolute; width:20px; height:2px; background:var(--text); transition:.2s ease;
+    }
+    .hamburger span:nth-child(1){ transform:translateY(-6px); }
+    .hamburger span:nth-child(2){ transform:translateY(0); }
+    .hamburger span:nth-child(3){ transform:translateY(6px); }
+    .hamburger.is-open span:nth-child(1){ transform:rotate(45deg); }
+    .hamburger.is-open span:nth-child(2){ opacity:0; }
+    .hamburger.is-open span:nth-child(3){ transform:rotate(-45deg); }
+
+    /* Hide desktop nav on ALL viewports */
+    .desktop-nav{ display:none !important; }
+
+  /* Dropdown panel: compact, anchored under header (not fullscreen) */
+    .mobile-menu{
+    /* Desktop/tablet dropdown: anchored under the hamburger (absolute to .nav) */
+    position:absolute; right:12px; top:calc(100% + 8px);
+    display:grid; gap:10px; padding:12px; width:min(360px,92%);
+    border-radius:12px; border:1px solid rgba(255,255,255,.04);
+    background:rgba(18,19,22,.95); backdrop-filter:blur(8px);
+    box-shadow:0 8px 24px rgba(0,0,0,.45); z-index:60; max-height:calc(100vh - 120px); overflow:auto;
+    left:auto;
+    transform-origin:top right; transform:translateY(0); transition:opacity .18s ease,transform .18s ease;
+    }
+
+    /* Mobile: full-width (width only), not full-height; reduce button padding to avoid oversized buttons */
+    @media (max-width: 600px){
+      /* Anchor under header on mobile — adjust top if your header height differs */
+      .mobile-menu{position:fixed; left:0; right:0; top:64px; width:100%; height:auto; border-radius:0; padding:16px 12px; max-height:calc(100vh - 64px); display:grid; gap:12px;}
+      .mobile-menu a{font-size:1.05rem;padding:10px}
+      .mobile-menu .btn{padding:.7rem .9rem;border-radius:10px;width:100%;}
+    }
+    .mobile-menu a{
+    padding:12px; border-radius:12px; border:1px solid var(--grey-600);
+    background:linear-gradient(180deg,var(--grey-800),var(--grey-700));
+    }
+    /* Ensure the hidden attribute actually hides the panel (override any resets) */
+    .mobile-menu[hidden]{
+      display:none !important;
+      opacity:0;pointer-events:none;
+    }
+    .mobile-menu:not([hidden]){
+      opacity:1;pointer-events:auto;
+    }
+    .mobile-menu .btn{ text-align:center; }
 
     /* =====================
        HERO
@@ -110,18 +163,34 @@
 </head>
 <body>
   <!-- ===================== HEADER ===================== -->
-  <header>
+    <header>
     <div class="container nav">
-      <div class="brand">
+        <div class="brand">
         <h1>Revolution Rumble - Tenpin Tour</h1>
-      </div>
-      <nav class="nav-links">
-        <a href="#partners">Player Stats</a>
-        <a href="#latest">Results</a>
-        <a class="btn" href="#register">Register</a>
-      </nav>
-    </div>
-  </header>
+        </div>
+
+        <!-- Keep this for progressive enhancement (hidden via CSS) -->
+        <nav class="nav-links desktop-nav">
+        <a href="/">Home</a>
+        <a href="/results">Results</a>
+        <a href="/playerstats">Player Stats</a>
+        <a class="btn" href="/register">Register</a>
+        </nav>
+
+    <!-- Hamburger (always visible) -->
+    <button class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+    <span></span><span></span><span></span>
+    </button>
+
+    <!-- Dropdown (moved inside .nav so it anchors to the hamburger) -->
+    <nav id="mobileMenu" class="mobile-menu" hidden>
+      <a href="/">Home</a>
+      <a href="/results">Results</a>
+      <a href="/playerstats">Player Stats</a>
+      <a class="btn" href="/register">Register</a>
+    </nav>
+  </div>
+    </header>
 
   <!-- ===================== HERO ===================== -->
   <section class="hero">
@@ -205,6 +274,46 @@
       <span>©2025 Revolution Bowling Supplies & Nielsen Innovations</span>
     </div>
   </footer>
+    <script>
+  (function(){
+  const btn = document.querySelector('.hamburger');
+  const menu = document.getElementById('mobileMenu');
+  if(!btn || !menu) return;
+
+  // Ensure menu starts hidden and aria state is correct
+  menu.hidden = true;
+  btn.classList.remove('is-open');
+  btn.setAttribute('aria-expanded', 'false');
+
+  const toggle = (open) => {
+    // If `open` explicitly provided, use it. Otherwise toggle based on current hidden state.
+    // Use menu.hidden so that when hidden=true (menu closed) toggle() opens it (isOpen=true).
+    const isOpen = open !== undefined ? Boolean(open) : menu.hidden;
+    btn.classList.toggle('is-open', isOpen);
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    menu.hidden = !isOpen;
+    // only lock body scroll when the panel is open and covers much of the viewport
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  };
+
+  btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+
+  // Close on link click
+  menu.querySelectorAll('a').forEach(a =>
+    a.addEventListener('click', () => toggle(false))
+  );
+
+  // Close on ESC or outside click
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape') toggle(false);
+  });
+  document.addEventListener('click', e => {
+    if(!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)){
+      toggle(false);
+    }
+  });
+  })();
+  </script>
 
   <script>
     // ===== Countdown =====
@@ -234,5 +343,6 @@
     // Year in footer
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>
+
 </body>
 </html>

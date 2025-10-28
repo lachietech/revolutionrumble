@@ -1,34 +1,29 @@
 import express from 'express';
-import mongoose from 'mongoose';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import session from 'express-session';
+import path from 'path';
+import bodyParser from 'body-parser';
+import mainroutes from'./routes/mainroutes.js';
+import mongoose from 'mongoose';
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const app = express();
-const PORT = process.env.PORT || 3000;
-// Connect to MongoDB
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+mongoose.connect(process.env.MONGO_URI).then(() => console.log('✅ MongoDB connected')).catch(err => console.error('MongoDB connection error:', err));
 
-// Serve frontend static assets from /static
-app.use('/static', express.static(path.join(__dirname, '..', 'frontend', 'static')));
+app.use(express.static(path.join(import.meta.dirname , "../frontend")))
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(session({
+    secret: process.env.SECRET_KEY,
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // true if HTTPS
+}));
 
+// Routes
+app.use('/', mainroutes);
 
-// index route send index.html
-
-
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
-});
-
-//run
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(5000, () => {
+    console.log("Server started at http://localhost:5000");
 });
