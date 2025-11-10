@@ -6,31 +6,54 @@
   <title>The Revolution Rumble — Register</title>
   <meta name="description" content="Player registration for The Revolution Rumble."/>
   <style>
+    /* =====================
+       THEME & RESET
+    ===================== */
     :root{
-      --blue-900:#0a2540; --blue-800:#0f335a; --blue-700:#134b86; --blue-600:#1a65b8; --blue-500:#2e8fdc; --blue-300:#7ac3ff;
-      --black:#0b0b0c; --grey-900:#121316; --grey-800:#181a1f; --grey-700:#23262d; --grey-600:#2d313a; --grey-500:#3a404b;
-      --text:#e9eef7; --muted:#b9c6d8; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;
+      --blue-900:#0a2540;
+      --blue-800:#0f335a;
+      --blue-700:#134b86; /* primary */
+      --blue-600:#1a65b8;
+      --blue-500:#2e8fdc; /* accents */
+      --blue-300:#7ac3ff; /* light accents */
+      --black:#0b0b0c;
+      --grey-900:#121316;
+      --grey-800:#181a1f;
+      --grey-700:#23262d;
+      --grey-600:#2d313a;
+      --grey-500:#3a404b;
+      --text:#e9eef7;
+      --muted:#b9c6d8;
+      --success:#2ecc71;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
     }
     *,*::before,*::after{box-sizing:border-box}
-    html,body{margin:0;height:100%;background:var(--black);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial}
+    html,body{margin:0;height:100%;background:var(--black);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial,'Apple Color Emoji','Segoe UI Emoji';}
     a{color:inherit;text-decoration:none}
-    .container{width:min(1000px,92%);margin-inline:auto}
-    .btn{display:inline-block;padding:.9rem 1.25rem;border-radius:999px;background:linear-gradient(90deg,var(--blue-700),var(--blue-500));color:white;font-weight:700;letter-spacing:.2px;box-shadow:var(--shadow);transition:transform .15s ease,opacity .2s ease}
+    img{max-width:100%;display:block}
+    .container{width:min(1200px,92%);margin-inline:auto}
+    .btn{display:inline-block;padding:.9rem 1.25rem;border-radius:999px;background:linear-gradient(90deg,var(--blue-700),var(--blue-500));color:white;font-weight:700;letter-spacing:.2px;box-shadow:var(--shadow);transition:transform .15s ease,opacity .2s ease;}
     .btn:hover{transform:translateY(-2px);opacity:.95}
-    .btn-outline{background:transparent;border:1px solid var(--blue-600);color:var(--text)}
+    .btn-outline{background:transparent;border:1px solid var(--blue-600)}
+    .pill{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .7rem;border:1px solid var(--grey-600);border-radius:999px;color:var(--muted);font-size:.85rem}
     .eyebrow{letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-size:.8rem}
-    .h1{font-size:clamp(2rem,4vw,3rem);line-height:1.1;margin:10px 0 8px}
-    .h2{font-size:clamp(1.4rem,3vw,2rem);line-height:1.2;margin:0 0 12px}
-    .sub{color:var(--muted)}
+    .h1{font-size:clamp(2.1rem,4vw,3.4rem);line-height:1.1;margin:10px 0 10px}
+    .h2{font-size:clamp(1.6rem,3vw,2.2rem);line-height:1.2;margin:0 0 18px}
+    .sub{color:var(--muted);text-align: center;}
     .card{background:linear-gradient(180deg,var(--grey-800),var(--grey-700));border:1px solid var(--grey-600);border-radius:var(--radius);box-shadow:var(--shadow)}
-    .section{padding:48px 0}
 
-  header{position:sticky;top:0;z-index:40;background:rgba(18,19,22,.65);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
-  .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 0;position:relative}
+    /* =====================
+       HEADER
+    ===================== */
+    header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,var(--grey-700),var(--black));backdrop-filter:blur(10px);}
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 0;position:relative}
     .brand{display:flex;align-items:center;gap:10px}
     .brand h1{font-size:1.1rem;margin:0;font-weight:800;letter-spacing:.4px}
+    .nav a{color:var(--muted)}
     .nav-links{display:flex;gap:18px;align-items:center}
-        /* Always-on Hamburger */
+
+    /* Always-on Hamburger */
     .hamburger{
     display:flex; position:relative; width:42px; height:42px;
     border-radius:12px; border:1px solid var(--grey-600);
@@ -50,24 +73,37 @@
     /* Hide desktop nav on ALL viewports */
     .desktop-nav{ display:none !important; }
 
-    /* Dropdown panel: anchored under the hamburger, compact on desktop; full-width-only on mobile */
+    /* Dropdown panel: compact, anchored under header (not fullscreen) */
     .mobile-menu{
+    /* Desktop/tablet dropdown: anchored under the hamburger (absolute to .nav) */
     position:absolute; right:12px; top:calc(100% + 8px);
     display:grid; gap:10px; padding:12px; width:min(360px,92%);
     border-radius:12px; border:1px solid rgba(255,255,255,.04);
     background:rgba(18,19,22,.95); backdrop-filter:blur(8px);
     box-shadow:0 8px 24px rgba(0,0,0,.45); z-index:60; max-height:calc(100vh - 120px); overflow:auto;
-    left:auto; transform-origin:top right; transition:opacity .18s ease,transform .18s ease;
+    left:auto;
+    transform-origin:top right; transform:translateY(0); transition:opacity .18s ease,transform .18s ease;
     }
-    /* Mobile: full-width (width only), reduce button sizes */
+
+    /* Mobile: full-width (width only), not full-height; reduce button padding to avoid oversized buttons */
     @media (max-width: 600px){
+      /* Anchor under header on mobile — adjust top if your header height differs */
       .mobile-menu{position:fixed; left:0; right:0; top:64px; width:100%; height:auto; border-radius:0; padding:16px 12px; max-height:calc(100vh - 64px); display:grid; gap:12px;}
       .mobile-menu a{font-size:1.05rem;padding:10px}
       .mobile-menu .btn{padding:.7rem .9rem;border-radius:10px;width:100%;}
     }
-    .mobile-menu a{padding:12px; border-radius:12px; border:1px solid var(--grey-600);background:linear-gradient(180deg,var(--grey-800),var(--grey-700));}
-    .mobile-menu[hidden]{display:none !important; opacity:0; pointer-events:none}
-    .mobile-menu:not([hidden]){opacity:1;pointer-events:auto}
+    .mobile-menu a{
+    padding:12px; border-radius:12px; border:1px solid var(--grey-600);
+    background:linear-gradient(180deg,var(--grey-800),var(--grey-700));
+    }
+    /* Ensure the hidden attribute actually hides the panel (override any resets) */
+    .mobile-menu[hidden]{
+      display:none !important;
+      opacity:0;pointer-events:none;
+    }
+    .mobile-menu:not([hidden]){
+      opacity:1;pointer-events:auto;
+    }
     .mobile-menu .btn{ text-align:center; }
 
     form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
@@ -78,9 +114,6 @@
     .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
     .hint{font-size:.85rem;color:var(--muted)}
     .success{display:none;margin-top:12px;padding:12px;border-radius:12px;background:rgba(46,143,220,.12);border:1px solid rgba(46,143,220,.35)}
-
-    footer{padding:36px 0;background:rgba(18,19,22,.65);color:var(--muted);border-top:1px solid rgba(255,255,255,.06)}
-
     @media (max-width: 840px){ form{grid-template-columns:1fr} }
   </style>
 </head>
@@ -196,7 +229,9 @@
   </section>
 
   <footer>
-    <div class="container" style="display:flex;justify-content:center">© 2025 Revolution Bowling Supplies & Nielsen Innovations</div>
+    <div style="bottom: 0; text-align:center;padding:8px 0;color:var(--muted);font-size:.9rem">
+      <span>©2025 Revolution Bowling Supplies & Nielsen Innovations</span>
+    </div>
   </footer>
 
   <script>
