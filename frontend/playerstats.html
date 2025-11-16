@@ -1,353 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Revolution Rumble — Player Statistics</title>
-  <meta name="description" content="Player statistics, profiles, and comparisons for The Revolution Rumble."/>
-  <style>
-    /* =====================
-       THEME & RESET
-    ===================== */
-    :root{
-      --blue-900:#0a2540;
-      --blue-800:#0f335a;
-      --blue-700:#134b86; /* primary */
-      --blue-600:#1a65b8;
-      --blue-500:#2e8fdc; /* accents */
-      --blue-300:#7ac3ff; /* light accents */
-      --black:#0b0b0c;
-      --grey-900:#121316;
-      --grey-800:#181a1f;
-      --grey-700:#23262d;
-      --grey-600:#2d313a;
-      --grey-500:#3a404b;
-      --text:#e9eef7;
-      --muted:#b9c6d8;
-      --success:#2ecc71;
-      --shadow:0 10px 30px rgba(0,0,0,.35);
-      --radius:18px;
-    }
-    *,*::before,*::after{box-sizing:border-box}
-    html,body{margin:0;height:100%;background:var(--black);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial,'Apple Color Emoji','Segoe UI Emoji';}
-    a{color:inherit;text-decoration:none}
-    img{max-width:100%;display:block}
-    .container{width:min(1200px,92%);margin-inline:auto}
-    .btn{display:inline-block;padding:.9rem 1.25rem;border-radius:999px;background:linear-gradient(90deg,var(--blue-700),var(--blue-500));color:white;font-weight:700;letter-spacing:.2px;box-shadow:var(--shadow);transition:transform .15s ease,opacity .2s ease;}
-    .btn:hover{transform:translateY(-2px);opacity:.95}
-    .btn-outline{background:transparent;border:1px solid var(--blue-600)}
-    .pill{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .7rem;border:1px solid var(--grey-600);border-radius:999px;color:var(--muted);font-size:.85rem}
-    .eyebrow{letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-size:.8rem}
-    .h1{font-size:clamp(2.1rem,4vw,3.4rem);line-height:1.1;margin:10px 0 10px}
-    .h2{font-size:clamp(1.6rem,3vw,2.2rem);line-height:1.2;margin:0 0 18px}
-    .sub{color:var(--muted);text-align: center;}
-    .card{background:linear-gradient(180deg,var(--grey-800),var(--grey-700));border:1px solid var(--grey-600);border-radius:var(--radius);box-shadow:var(--shadow)}
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>The Revolution Rumble — Player Statistics</title>
+        <meta name="description" content="Player statistics, profiles, and comparisons for The Revolution Rumble."/>
+        <link rel="stylesheet" href="static/css/packages/navbar.css" />
+        <link rel="stylesheet" href="static/css/packages/presets.css" />
+        <link rel="stylesheet" href="static/css/mainfiles/playerstats.css" />
+    </head>
+    <body>
+        <!-- ===================== HEADER ===================== -->
+        <special-header></special-header>
 
-    /* =====================
-       HEADER
-    ===================== */
-    header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,var(--grey-700),var(--black));backdrop-filter:blur(10px);}
-    .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 0;position:relative}
-    .brand{display:flex;align-items:center;gap:10px}
-    .brand h1{font-size:1.1rem;margin:0;font-weight:800;letter-spacing:.4px}
-    .nav a{color:var(--muted)}
-    .nav-links{display:flex;gap:18px;align-items:center}
+        <section class="section">
+            <div class="container grid">
+                <div>
+                    <div class="eyebrow">Browse Players</div>
+                    <h1 class="h1">Season 2026</h1>
+                    <div class="card" style="padding:14px">
+                        <div class="row" style="margin-bottom:10px">
+                            <input id="q" placeholder="Search player name…" style="flex:1" />
+                            <select id="division">
+                                <option value="all">All Divisions</option>
+                                <option value="open">Open</option>
+                                <option value="youth">Youth</option>
+                                <option value="senior">Senior</option>
+                            </select>
+                            <select id="hand">
+                                <option value="all">Hand: Any</option>
+                                <option value="R">Right</option>
+                                <option value="L">Left</option>
+                            </select>
+                        </div>
+                        <div class="list" id="list"></div>
+                    </div>
+                </div>
 
-    /* Always-on Hamburger */
-    .hamburger{
-    display:flex; position:relative; width:42px; height:42px;
-    border-radius:12px; border:1px solid var(--grey-600);
-    background:linear-gradient(180deg,var(--grey-800),var(--grey-700));
-    box-shadow:var(--shadow); cursor:pointer; align-items:center; justify-content:center;
-    }
-    .hamburger span{
-    position:absolute; width:20px; height:2px; background:var(--text); transition:.2s ease;
-    }
-    .hamburger span:nth-child(1){ transform:translateY(-6px); }
-    .hamburger span:nth-child(2){ transform:translateY(0); }
-    .hamburger span:nth-child(3){ transform:translateY(6px); }
-    .hamburger.is-open span:nth-child(1){ transform:rotate(45deg); }
-    .hamburger.is-open span:nth-child(2){ opacity:0; }
-    .hamburger.is-open span:nth-child(3){ transform:rotate(-45deg); }
+                <aside>
+                    <div class="eyebrow">Player Profile</div>
+                    <div id="profile" class="card" style="padding:14px">
+                        <div class="row" style="align-items:center">
+                            <div class="avatar" id="pAvatar">P</div>
+                            <div>
+                                <div class="h2" id="pName">Select a player</div>
+                                <div class="sub" id="pMeta">—</div>
+                            </div>
+                        </div>
+                        <div class="kpis">
+                            <div class="kpi">
+                                <div class="sub">Average</div>
+                                <div class="big" id="kAvg">—</div>
+                            </div>
+                            <div class="kpi">
+                                <div class="sub">High Game</div>
+                                <div class="big" id="kHigh">—</div>
+                            </div>
+                            <div class="kpi">
+                                <div class="sub">Strike %</div>
+                                <div class="bar">
+                                    <span id="kStrike" style="width:0%"></span>
+                                </div>
+                            </div>
+                            <div class="kpi">
+                                <div class="sub">Spare %</div>
+                                <div class="bar">
+                                    <span id="kSpare" style="width:0%"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="kpi" style="margin-top:12px">
+                            <div class="sub">Events this season</div>
+                            <div class="big" id="kEvents">—</div>
+                        </div>
 
-    /* Hide desktop nav on ALL viewports */
-    .desktop-nav{ display:none !important; }
+                        <div style="margin-top:14px" class="row">
+                            <button class="btn btn-outline" id="addCompare">Add to Compare</button>
+                            <button class="btn" id="clearCompare">Clear Compare</button>
+                        </div>
+                    </div>
 
-    /* Dropdown panel: compact, anchored under header (not fullscreen) */
-    .mobile-menu{
-    /* Desktop/tablet dropdown: anchored under the hamburger (absolute to .nav) */
-    position:absolute; right:12px; top:calc(100% + 8px);
-    display:grid; gap:10px; padding:12px; width:min(360px,92%);
-    border-radius:12px; border:1px solid rgba(255,255,255,.04);
-    background:rgba(18,19,22,.95); backdrop-filter:blur(8px);
-    box-shadow:0 8px 24px rgba(0,0,0,.45); z-index:60; max-height:calc(100vh - 120px); overflow:auto;
-    left:auto;
-    transform-origin:top right; transform:translateY(0); transition:opacity .18s ease,transform .18s ease;
-    }
-
-    /* Mobile: full-width (width only), not full-height; reduce button padding to avoid oversized buttons */
-    @media (max-width: 600px){
-      /* Anchor under header on mobile — adjust top if your header height differs */
-      .mobile-menu{position:fixed; left:0; right:0; top:64px; width:100%; height:auto; border-radius:0; padding:16px 12px; max-height:calc(100vh - 64px); display:grid; gap:12px;}
-      .mobile-menu a{font-size:1.05rem;padding:10px}
-      .mobile-menu .btn{padding:.7rem .9rem;border-radius:10px;width:100%;}
-    }
-    .mobile-menu a{
-    padding:12px; border-radius:12px; border:1px solid var(--grey-600);
-    background:linear-gradient(180deg,var(--grey-800),var(--grey-700));
-    }
-    /* Ensure the hidden attribute actually hides the panel (override any resets) */
-    .mobile-menu[hidden]{
-      display:none !important;
-      opacity:0;pointer-events:none;
-    }
-    .mobile-menu:not([hidden]){
-      opacity:1;pointer-events:auto;
-    }
-    .mobile-menu .btn{ text-align:center; }
-
-    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:22px}
-    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-
-    .list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
-    .player{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;border:1px solid var(--grey-600);background:linear-gradient(180deg,var(--grey-800),var(--grey-700));cursor:pointer}
-    .player:hover{outline:2px solid rgba(46,143,220,.25)}
-    .avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(180deg,var(--blue-600),var(--blue-500));display:grid;place-items:center;font-weight:800}
-
-    .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
-    .kpi{padding:12px;border-radius:12px;border:1px solid var(--grey-600);background:linear-gradient(180deg,var(--grey-800),var(--grey-700))}
-    .kpi .big{font-size:1.8rem;font-weight:800}
-    .bar{height:10px;border-radius:999px;background:var(--grey-600);overflow:hidden}
-    .bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--blue-700),var(--blue-500))}
-
-    .compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
-    .cmp-card{padding:12px;border-radius:12px;border:1px solid var(--grey-600);background:linear-gradient(180deg,var(--grey-800),var(--grey-700))}
-
-    @media (max-width: 980px){ .grid,.list{grid-template-columns:1fr} }
-  </style>
-</head>
-<body>
-<header>
-    <div class="container nav">
-        <div class="brand">
-        <h1>Revolution Rumble - Tenpin Tour</h1>
-        </div>
-
-        <!-- Keep this for progressive enhancement (hidden via CSS) -->
-        <nav class="nav-links desktop-nav">
-        <a href="/">Home</a>
-        <a href="/results">Results</a>
-        <a href="/playerstats">Player Stats</a>
-        <a class="btn" href="/register">Register</a>
-        </nav>
-
-    <!-- Hamburger (always visible) -->
-    <button class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
-    <span></span><span></span><span></span>
-    </button>
-
-    <!-- Dropdown (moved inside .nav so it anchors to the hamburger) -->
-    <nav id="mobileMenu" class="mobile-menu" hidden>
-      <a href="/">Home</a>
-      <a href="/results">Results</a>
-      <a href="/playerstats">Player Stats</a>
-      <a class="btn" href="/register">Register</a>
-    </nav>
-  </div>
-  </header>
-
-  <section class="section">
-    <div class="container grid">
-      <div>
-        <div class="eyebrow">Browse Players</div>
-        <h1 class="h1">Season 2026</h1>
-        <div class="card" style="padding:14px">
-          <div class="row" style="margin-bottom:10px">
-            <input id="q" placeholder="Search player name…" style="flex:1" />
-            <select id="division">
-              <option value="all">All Divisions</option>
-              <option value="open">Open</option>
-              <option value="youth">Youth</option>
-              <option value="senior">Senior</option>
-            </select>
-            <select id="hand">
-              <option value="all">Hand: Any</option>
-              <option value="R">Right</option>
-              <option value="L">Left</option>
-            </select>
-          </div>
-          <div class="list" id="list"></div>
-        </div>
-      </div>
-
-      <aside>
-        <div class="eyebrow">Player Profile</div>
-        <div id="profile" class="card" style="padding:14px">
-          <div class="row" style="align-items:center">
-            <div class="avatar" id="pAvatar">P</div>
-            <div>
-              <div class="h2" id="pName">Select a player</div>
-              <div class="sub" id="pMeta">—</div>
+                    <div class="eyebrow" style="margin-top:18px">Compare Players</div>
+                    <div id="compare" class="compare">
+                        <!-- two compare cards injected here -->
+                    </div>
+                </aside>
             </div>
-          </div>
-          <div class="kpis">
-            <div class="kpi"><div class="sub">Average</div><div class="big" id="kAvg">—</div></div>
-            <div class="kpi"><div class="sub">High Game</div><div class="big" id="kHigh">—</div></div>
-            <div class="kpi"><div class="sub">Strike %</div><div class="bar"><span id="kStrike" style="width:0%"></span></div></div>
-            <div class="kpi"><div class="sub">Spare %</div><div class="bar"><span id="kSpare" style="width:0%"></span></div></div>
-          </div>
-          <div class="kpi" style="margin-top:12px">
-            <div class="sub">Events this season</div>
-            <div class="big" id="kEvents">—</div>
-          </div>
+        </section>
 
-          <div style="margin-top:14px" class="row">
-            <button class="btn btn-outline" id="addCompare">Add to Compare</button>
-            <button class="btn" id="clearCompare">Clear Compare</button>
-          </div>
-        </div>
-
-        <div class="eyebrow" style="margin-top:18px">Compare Players</div>
-        <div id="compare" class="compare">
-          <!-- two compare cards injected here -->
-        </div>
-      </aside>
-    </div>
-  </section>
-
-  <footer>
-    <div style="bottom: 0; text-align:center;padding:8px 0;color:var(--muted);font-size:.9rem">
-      <span>©2025 Revolution Bowling Supplies & Nielsen Innovations</span>
-    </div>
-  </footer>
-
-  <script>
-    // ===== Mock Roster =====
-    const ROSTER = [
-      {id:1, name:'Jordan Carter', division:'open', hand:'R', avg:226.3, high:279, strike:0.61, spare:0.78, events:5},
-      {id:2, name:'Lachlan Nielsen', division:'open', hand:'R', avg:223.9, high:278, strike:0.59, spare:0.77, events:6},
-      {id:3, name:'Maria Diaz', division:'open', hand:'R', avg:221.1, high:276, strike:0.58, spare:0.77, events:4},
-      {id:4, name:'Arjun Singh', division:'open', hand:'R', avg:219.5, high:274, strike:0.57, spare:0.76, events:5},
-      {id:5, name:'Kai Tan', division:'youth', hand:'R', avg:218.0, high:268, strike:0.56, spare:0.74, events:3},
-      {id:6, name:'Noah Kim', division:'senior', hand:'L', avg:215.4, high:264, strike:0.55, spare:0.75, events:5},
-      {id:7, name:'Ava Patel', division:'youth', hand:'R', avg:214.9, high:263, strike:0.54, spare:0.73, events:2},
-      {id:8, name:'Lucas Meyer', division:'open', hand:'L', avg:214.3, high:262, strike:0.53, spare:0.72, events:3}
-    ];
-
-    const list = document.getElementById('list');
-    const q = document.getElementById('q');
-    const division = document.getElementById('division');
-    const hand = document.getElementById('hand');
-
-    const pName = document.getElementById('pName');
-    const pMeta = document.getElementById('pMeta');
-    const pAvatar = document.getElementById('pAvatar');
-    const kAvg = document.getElementById('kAvg');
-    const kHigh = document.getElementById('kHigh');
-    const kStrike = document.getElementById('kStrike');
-    const kSpare = document.getElementById('kSpare');
-    const kEvents = document.getElementById('kEvents');
-
-    const compare = document.getElementById('compare');
-    const addCompare = document.getElementById('addCompare');
-    const clearCompare = document.getElementById('clearCompare');
-
-    let SELECTED = null;
-    let COMPARE = [];
-
-    function renderList(){
-      const qv = q.value.trim().toLowerCase();
-      const rows = ROSTER.filter(p =>
-        (division.value==='all' || p.division===division.value) &&
-        (hand.value==='all' || p.hand===hand.value) &&
-        (!qv || p.name.toLowerCase().includes(qv))
-      );
-      list.innerHTML = rows.map(p => `
-        <div class="player" data-id="${p.id}">
-          <div class="avatar">${p.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
-          <div>
-            <div><strong>${p.name}</strong></div>
-            <div class="sub">${p.division[0].toUpperCase()+p.division.slice(1)} • ${p.hand==='R'?'Right':'Left'} • Avg ${p.avg.toFixed(1)}</div>
-          </div>
-        </div>`).join('');
-      list.querySelectorAll('.player').forEach(el=> el.addEventListener('click',()=> select(+el.dataset.id)));
-    }
-
-    function select(id){
-      const p = ROSTER.find(x=>x.id===id); if(!p) return;
-      SELECTED = p;
-      pName.textContent = p.name;
-      pMeta.textContent = `${p.division[0].toUpperCase()+p.division.slice(1)} • ${p.hand==='R'?'Right':'Left'} • ${p.events} events`;
-      pAvatar.textContent = p.name.split(' ').map(w=>w[0]).join('').slice(0,2);
-      kAvg.textContent = p.avg.toFixed(1);
-      kHigh.textContent = p.high;
-      kStrike.style.width = (p.strike*100).toFixed(0)+'%';
-      kSpare.style.width = (p.spare*100).toFixed(0)+'%';
-      kEvents.textContent = p.events;
-    }
-
-    function renderCompare(){
-      compare.innerHTML = COMPARE.slice(0,2).map(p=> `
-        <div class="cmp-card">
-          <div class="row" style="align-items:center;margin-bottom:8px">
-            <div class="avatar">${p.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
-            <div>
-              <div><strong>${p.name}</strong></div>
-              <div class="sub">Avg ${p.avg.toFixed(1)} • High ${p.high}</div>
-            </div>
-          </div>
-          <div class="row"><span class="sub" style="width:100px">Strike%</span><div class="bar" style="flex:1"><span style="width:${(p.strike*100).toFixed(0)}%"></span></div></div>
-          <div class="row"><span class="sub" style="width:100px">Spare%</span><div class="bar" style="flex:1"><span style="width:${(p.spare*100).toFixed(0)}%"></span></div></div>
-        </div>`).join('');
-    }
-
-    addCompare.addEventListener('click',()=>{ if(SELECTED && !COMPARE.find(p=>p.id===SELECTED.id)){ COMPARE.push(SELECTED); renderCompare(); } });
-    clearCompare.addEventListener('click',()=>{ COMPARE = []; renderCompare(); });
-
-    [q,division,hand].forEach(el=> el.addEventListener('input', renderList));
-
-    renderList();
-    select(1);
-    renderCompare();
-  </script>
-    <script>
-  (function(){
-  const btn = document.querySelector('.hamburger');
-  const menu = document.getElementById('mobileMenu');
-  if(!btn || !menu) return;
-
-  // Ensure menu starts hidden and aria state is correct
-  menu.hidden = true;
-  btn.classList.remove('is-open');
-  btn.setAttribute('aria-expanded', 'false');
-
-  const toggle = (open) => {
-    // If `open` explicitly provided, use it. Otherwise toggle based on current hidden state.
-    const isOpen = open !== undefined ? Boolean(open) : menu.hidden;
-    btn.classList.toggle('is-open', isOpen);
-    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    menu.hidden = !isOpen;
-    // only lock body scroll when the panel is open and covers much of the viewport
-    document.body.style.overflow = isOpen ? 'hidden' : '';
-  };
-
-  btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
-
-  // Close on link click
-  menu.querySelectorAll('a').forEach(a =>
-    a.addEventListener('click', () => toggle(false))
-  );
-
-  // Close on ESC or outside click
-  document.addEventListener('keydown', e => {
-    if(e.key === 'Escape') toggle(false);
-  });
-  document.addEventListener('click', e => {
-    if(!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)){
-      toggle(false);
-    }
-  });
-  })();
-  </script>
-</body>
+        <special-footer></special-footer>
+        <!-- ===================== JS ===================== -->
+        <script src="js/global/headerfooter.js"></script>
+        <script src="js/playerstats/playerstats.js"></script>
+        <script src="js/global/navbar.js"></script>
+    </body>
 </html>

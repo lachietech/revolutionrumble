@@ -1,4 +1,4 @@
-import express from'express';
+import express from 'express';
 import path from 'path';
 
 const router = express.Router();
@@ -19,6 +19,5 @@ router.get('/playerstats', (req, res) => {
 router.get('/results', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/results.html'));
 });
-
 
 export default router;

@@ -1,0 +1,53 @@
+/* Filters Row */
+.filters{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    flex-wrap:wrap;
+}
+.filters .group{
+    display:flex;
+    gap:8px;
+    align-items:center;
+}
+
+/* Table */
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+th,td{
+    padding:12px 10px;
+    border-bottom:1px solid var(--grey-600);
+}
+th{
+    color:var(--muted);
+    font-weight:600;
+    text-align:left;
+    user-select:none;
+    cursor:pointer;
+}
+tr:hover td{
+    background:rgba(255,255,255,.02);
+}
+.right{
+    text-align:right;
+}
+
+/* Pagination */
+.pager{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    justify-content:flex-end;
+    margin-top:12px;
+}
+
+@media (max-width: 980px){
+    .filters{
+        justify-content:stretch;
+    }
+    .pager{
+        justify-content:center;
+    }
+}
