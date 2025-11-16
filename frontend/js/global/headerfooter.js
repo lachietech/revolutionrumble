@@ -4,15 +4,16 @@ class SpecialHeader extends HTMLElement {
         <header>
             <div class="container nav">
                 <div class="brand">
-                    <h1>Revolution Rumble - Tenpin Tour</h1>
+                    <h1>Revolution Rumble Tenpin Tour</h1>
                 </div>
 
                 <!-- Keep this for progressive enhancement (hidden via CSS) -->
-                <nav class="nav-links desktop-nav">
+                <nav id="desktopMenu" class="nav-links desktop-nav" hidden>
                     <a href="/">Home</a>
+                    <a href="/">Events</a>
                     <a href="/results">Results</a>
                     <a href="/playerstats">Player Stats</a>
-                    <a class="btn" href="/register">Register</a>
+                    <a href="/register">Register</a>
                 </nav>
 
                 <!-- Hamburger (always visible) -->
@@ -25,9 +26,10 @@ class SpecialHeader extends HTMLElement {
                 <!-- Dropdown (moved inside .nav so it anchors to the hamburger) -->
                 <nav id="mobileMenu" class="mobile-menu" hidden>
                     <a href="/">Home</a>
+                    <a href="/">Events</a>
                     <a href="/results">Results</a>
                     <a href="/playerstats">Player Stats</a>
-                    <a class="btn" href="/register">Register</a>
+                    <a href="/register">Register</a>
                 </nav>
             </div>
         </header>

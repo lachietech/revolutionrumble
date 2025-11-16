@@ -39,7 +39,9 @@ header {
     gap: 18px;
     align-items: center;
 }
-
+button {
+  all: unset;
+}
 /* Always-on Hamburger */
 .hamburger {
     display: flex;
@@ -47,24 +49,24 @@ header {
     width: 42px;
     height: 42px;
     border-radius: 12px;
-    border: 1px solid var(--grey-600);
-    background: linear-gradient(180deg, var(--grey-800), var(--grey-700));
-    box-shadow: var(--shadow);
+    background: transparent;
     cursor: pointer;
     align-items: center;
     justify-content: center;
+    
 }
 
 .hamburger span {
     position: absolute;
-    width: 20px;
-    height: 2px;
+    width: 24px;
+    height: 3px;
+    border-radius: 1px;
     background: var(--text);
     transition: .2s ease;
 }
 
 .hamburger span:nth-child(1) {
-    transform: translateY(-6px);
+    transform: translateY(-8px);
 }
 
 .hamburger span:nth-child(2) {
@@ -72,7 +74,7 @@ header {
 }
 
 .hamburger span:nth-child(3) {
-    transform: translateY(6px);
+    transform: translateY(8px);
 }
 
 .hamburger.is-open span:nth-child(1) {
@@ -86,10 +88,30 @@ header {
 .hamburger.is-open span:nth-child(3) {
     transform: rotate(-45deg);
 }
-
-/* Hide desktop nav on ALL viewports */
+/* =====================
+DESKTOP MENU
+===================== */
+/* Ensure the hidden attribute actually hides the panel (override any resets) */
 .desktop-nav {
-    display: none !important;
+    /* allow animate in/out via opacity & transform
+       do not use display:none here so transitions can run when hidden attribute toggles */
+    transition: opacity .22s ease, transform .22s ease, visibility .22s;
+    transform-origin: top right;
+}
+
+.desktop-nav[hidden] {
+    /* keep in flow but invisible and non-interactive so transition can animate */
+    display: hidden;
+    opacity: 0;
+    transform: translateY(-8px) scale(.995);
+    pointer-events: none;
+}
+
+.desktop-nav:not([hidden]) {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
 }
 
 /* Dropdown panel: compact, anchored under header (not fullscreen) */
@@ -100,12 +122,12 @@ header {
     top: calc(100% + 8px);
     display: grid;
     gap: 10px;
-    padding: 12px;
+    padding: 8px;
     width: min(360px, 92%);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, .04);
-    background: rgba(18, 19, 22, .95);
-    backdrop-filter: blur(8px);
+    border-radius: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    background: linear-gradient(180deg, var(--black), var(--grey-800));
+    backdrop-filter: blur(10px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
     z-index: 60;
     max-height: calc(100vh - 120px);
@@ -115,9 +137,10 @@ header {
     transform: translateY(0);
     transition: opacity .18s ease, transform .18s ease;
 }
-
-/* Mobile: full-width (width only), not full-height; reduce button padding to avoid oversized buttons */
-@media (max-width: 600px) {
+@media (max-width: 900px) {
+    .desktop-nav {
+        display: none;
+    }
     /* Anchor under header on mobile — adjust top if your header height differs */
     .mobile-menu {
         position: fixed;
@@ -146,10 +169,10 @@ header {
 }
 
 .mobile-menu a {
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid var(--grey-600);
-    background: linear-gradient(180deg, var(--grey-800), var(--grey-700));
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: linear-gradient(180deg, var(--black), var(--grey-900));
 }
 
 /* Ensure the hidden attribute actually hides the panel (override any resets) */
