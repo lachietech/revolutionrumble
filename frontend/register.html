@@ -3,97 +3,678 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>The Revolution Rumble — Register</title>
-        <meta name="description" content="Player registration for The Revolution Rumble."/>
+        <title>Register — Revolution Rumble</title>
+        <meta name="description" content="Register for Revolution Rumble tournaments."/>
         <link rel="stylesheet" href="static/css/packages/navbar.css" />
         <link rel="stylesheet" href="static/css/packages/presets.css" />
-        <link rel="stylesheet" href="static/css/mainfiles/register.css" />
+        <style>
+            body {
+                background: var(--black);
+                color: var(--text);
+                margin: 0;
+                font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", 'Helvetica Neue', Arial;
+            }
+
+            .page-header {
+                padding: 60px 0 40px;
+                text-align: center;
+                background: linear-gradient(180deg, var(--grey-900), var(--black));
+            }
+
+            .page-header h1 {
+                font-size: clamp(2.5rem, 5vw, 4rem);
+                margin: 0 0 12px;
+                font-weight: 800;
+            }
+
+            .page-header p {
+                color: var(--muted);
+                font-size: 1.1rem;
+                margin: 0;
+            }
+
+            .tournament-section {
+                max-width: 900px;
+                margin: 40px auto;
+                padding: 0 20px;
+            }
+
+            .tournament-card {
+                background: linear-gradient(180deg, var(--grey-800), var(--grey-700));
+                border: 1px solid var(--grey-600);
+                border-radius: 16px;
+                padding: 32px;
+                margin-bottom: 32px;
+                box-shadow: 0 4px 12px rgba(0,0,0,.3);
+            }
+
+            .tournament-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 24px;
+                flex-wrap: wrap;
+                gap: 16px;
+            }
+
+            .tournament-info h2 {
+                font-size: 1.8rem;
+                margin: 0 0 8px;
+                color: var(--text);
+            }
+
+            .tournament-meta {
+                display: flex;
+                gap: 20px;
+                color: var(--muted);
+                font-size: .9rem;
+                flex-wrap: wrap;
+            }
+
+            .meta-item {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .spots-info {
+                background: rgba(46, 143, 220, .1);
+                border: 1px solid rgba(46, 143, 220, .3);
+                padding: 12px 20px;
+                border-radius: 8px;
+                text-align: center;
+                min-width: 140px;
+            }
+
+            .spots-count {
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: var(--blue-500);
+            }
+
+            .spots-label {
+                font-size: .75rem;
+                color: var(--muted);
+                text-transform: uppercase;
+                letter-spacing: .5px;
+            }
+
+            .reg-form {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 16px;
+                margin-top: 24px;
+                padding-top: 24px;
+                border-top: 1px solid var(--grey-600);
+            }
+
+            .form-group {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .form-group.full-width {
+                grid-column: 1 / -1;
+            }
+
+            label {
+                font-size: .85rem;
+                font-weight: 600;
+                margin-bottom: 6px;
+                color: var(--muted);
+            }
+
+            input, select, textarea {
+                padding: 10px 14px;
+                background: var(--grey-900);
+                border: 1px solid var(--grey-600);
+                border-radius: 8px;
+                color: var(--text);
+                font-size: .95rem;
+                transition: border-color .2s ease;
+            }
+
+            input:focus, select:focus, textarea:focus {
+                outline: none;
+                border-color: var(--blue-500);
+            }
+
+            textarea {
+                resize: vertical;
+                min-height: 80px;
+                font-family: inherit;
+            }
+
+            .submit-btn {
+                grid-column: 1 / -1;
+                padding: 14px 32px;
+                background: linear-gradient(90deg, var(--blue-700), var(--blue-500));
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: all .2s ease;
+            }
+
+            .submit-btn:hover:not(:disabled) {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(46, 143, 220, .4);
+            }
+
+            .submit-btn:disabled {
+                background: var(--grey-600);
+                cursor: not-allowed;
+                opacity: .6;
+            }
+
+            .success-message, .error-message {
+                padding: 16px;
+                border-radius: 8px;
+                margin-top: 16px;
+                font-weight: 500;
+            }
+
+            .success-message {
+                background: rgba(46, 204, 113, .2);
+                border: 1px solid rgba(46, 204, 113, .3);
+                color: #51cf66;
+            }
+
+            .error-message {
+                background: rgba(220, 53, 69, .2);
+                border: 1px solid rgba(220, 53, 69, .3);
+                color: #ff6b6b;
+            }
+
+            .empty-state {
+                text-align: center;
+                padding: 80px 20px;
+                color: var(--muted);
+            }
+
+            .empty-state-icon {
+                font-size: 4rem;
+                margin-bottom: 16px;
+                opacity: .3;
+            }
+
+            .deadline-warning {
+                background: rgba(255, 193, 7, .1);
+                border: 1px solid rgba(255, 193, 7, .3);
+                color: #ffc107;
+                padding: 12px 16px;
+                border-radius: 8px;
+                font-size: .9rem;
+                margin-bottom: 16px;
+            }
+
+            .closed-notice {
+                background: rgba(220, 53, 69, .2);
+                border: 1px solid rgba(220, 53, 69, .3);
+                color: #ff6b6b;
+                padding: 20px;
+                border-radius: 8px;
+                text-align: center;
+                font-weight: 500;
+            }
+
+            .squad-selection {
+                border-top: 1px solid var(--grey-600);
+                padding-top: 24px;
+                margin-top: 24px;
+            }
+
+            .squad-requirement {
+                background: rgba(46, 143, 220, .1);
+                border: 1px solid rgba(46, 143, 220, .3);
+                color: var(--blue-500);
+                padding: 10px 14px;
+                border-radius: 6px;
+                font-size: .9rem;
+                margin-bottom: 12px;
+            }
+
+            .squad-list {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .squad-option {
+                background: var(--grey-800);
+                border: 2px solid var(--grey-600);
+                border-radius: 8px;
+                padding: 14px;
+                transition: all .2s;
+            }
+
+            .squad-option:not(.disabled):hover {
+                border-color: var(--blue-500);
+                background: rgba(46, 143, 220, .05);
+            }
+
+            .squad-option.disabled {
+                opacity: .4;
+                cursor: not-allowed;
+            }
+
+            .squad-option label {
+                display: flex;
+                gap: 12px;
+                cursor: pointer;
+                margin: 0;
+                align-items: flex-start;
+            }
+
+            .squad-option.disabled label {
+                cursor: not-allowed;
+            }
+
+            .squad-option input[type="checkbox"] {
+                margin-top: 3px;
+                width: 18px;
+                height: 18px;
+                cursor: pointer;
+                flex-shrink: 0;
+            }
+
+            .squad-option.disabled input[type="checkbox"] {
+                cursor: not-allowed;
+            }
+
+            .squad-info {
+                flex: 1;
+            }
+
+            .squad-name {
+                font-weight: 600;
+                margin-bottom: 4px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .qualifying-badge {
+                background: rgba(46, 204, 113, .2);
+                border: 1px solid rgba(46, 204, 113, .4);
+                color: #51cf66;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: .75rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: .5px;
+            }
+
+            .squad-details {
+                font-size: .85rem;
+                color: var(--muted);
+            }
+
+            @media (max-width: 768px) {
+                .reg-form {
+                    grid-template-columns: 1fr;
+                }
+
+                .tournament-header {
+                    flex-direction: column;
+                }
+
+                .spots-info {
+                    width: 100%;
+                }
+            }
+        </style>
     </head>
     <body>
-        <!-- ===================== HEADER ===================== -->
         <special-header></special-header>
 
-        <section class="section">
+        <div class="page-header">
             <div class="container">
-                <div class="eyebrow">Player Entry Form</div>
-                <h1 class="h1">Logan City Cup — 2026</h1>
-                <p class="sub">Complete the form below. You’ll receive a confirmation number on success. Payment step can be linked after form submit.</p>
-
-                <div class="card" style="padding:16px;margin-top:12px">
-                    <form id="form" novalidate>
-                        <div>
-                            <label for="fullName">Full Name *</label>
-                            <input id="fullName" required />
-                        </div>
-                        <div>
-                            <label for="email">Email *</label>
-                            <input id="email" type="email" required />
-                        </div>
-                        <div>
-                            <label for="phone">Phone *</label>
-                            <input id="phone" required />
-                        </div>
-                        <div>
-                            <label for="center">Home Centre</label>
-                            <input id="center" placeholder="e.g., Logan City Tenpin" />
-                        </div>
-
-                        <div>
-                            <label for="division">Division *</label>
-                            <select id="division" required>
-                                <option value="">Select…</option>
-                                <option value="open">Open</option>
-                                <option value="youth">Youth</option>
-                                <option value="senior">Senior</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="hand">Hand</label>
-                            <select id="hand">
-                                <option value="R">Right</option>
-                                <option value="L">Left</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label for="avg">Entering Average</label>
-                            <input id="avg" type="number" min="0" max="300" step="0.1" />
-                        </div>
-                        <div>
-                            <label for="sanction">Sanction ID</label>
-                            <input id="sanction" placeholder="TBA/WPBA/etc." />
-                        </div>
-
-                        <div class="full">
-                            <label for="notes">Notes (equipment, squad preference, etc.)</label>
-                            <textarea id="notes"></textarea>
-                        </div>
-                        <div class="full">
-                            <label class="row" style="gap:8px">
-                                <input type="checkbox" id="agree" required />
-                                <span>I agree to the event terms and code of conduct *</span>
-                            </label>
-                        </div>
-                        <div class="full row" style="justify-content:space-between;margin-top:6px">
-                            <div class="hint">Fields marked * are required. Your details are kept private.</div>
-                            <button class="btn" type="submit">Submit Entry</button>
-                        </div>
-                    </form>
-                    <div id="success" class="success"></div>
-                </div>
+                <h1>Tournament Registration</h1>
+                <p>Register for upcoming Revolution Rumble tournaments</p>
             </div>
-            <div class="card" style="padding:14px;margin-top:12px">
-                <div class="eyebrow">After You Register</div>
-                    <p class="sub">Squad allocations will be posted on the Results page. Payment can be handled via Stripe or bank transfer — this button can redirect after submit.</p>
-                    <button class="btn btn-outline" id="pay">Go to Payment (stub)</button>
-                </div>
+        </div>
+
+        <main class="container">
+            <div id="tournaments-container"></div>
+            
+            <div id="empty-state" class="empty-state" style="display:none">
+                <div class="empty-state-icon">📋</div>
+                <h3>No Open Registrations</h3>
+                <p>There are currently no tournaments accepting registrations.</p>
+                <p style="margin-top:12px"><a href="/events" style="color:var(--blue-500)">View all events →</a></p>
             </div>
-        </section>
+        </main>
 
         <special-footer></special-footer>
-        <!-- ===================== JS ===================== -->
+
         <script src="js/global/headerfooter.js"></script>
-        <script src="js/register/register.js"></script>
         <script src="js/global/navbar.js"></script>
+        <script>
+            async function loadTournaments() {
+                try {
+                    const response = await fetch('/api/tournaments');
+                    const tournaments = await response.json();
+
+                    // Filter for upcoming tournaments that accept registrations
+                    const now = new Date();
+                    const openTournaments = tournaments.filter(t => {
+                        if (t.status !== 'upcoming') return false;
+                        if (t.registrationDeadline && new Date(t.registrationDeadline) < now) return false;
+                        return true;
+                    });
+
+                    // Sort by date
+                    openTournaments.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                    if (openTournaments.length === 0) {
+                        document.getElementById('empty-state').style.display = 'block';
+                        return;
+                    }
+
+                    // Load registration counts and squad availability for each tournament
+                    const tournamentsWithCounts = await Promise.all(
+                        openTournaments.map(async (tournament) => {
+                            try {
+                                const countRes = await fetch(`/api/tournaments/${tournament._id}/registrations/count`);
+                                const { count } = await countRes.json();
+                                
+                                // Fetch squad availability
+                                let squadsData = null;
+                                if (tournament.squads && tournament.squads.length > 0) {
+                                    const squadsRes = await fetch(`/api/tournaments/${tournament._id}/squads/availability`);
+                                    squadsData = await squadsRes.json();
+                                }
+                                
+                                return { ...tournament, registrationCount: count, squadsData };
+                            } catch (e) {
+                                return { ...tournament, registrationCount: 0, squadsData: null };
+                            }
+                        })
+                    );
+
+                    // Render tournament cards
+                    const container = document.getElementById('tournaments-container');
+                    container.innerHTML = tournamentsWithCounts.map(renderTournamentCard).join('');
+
+                    // Attach form handlers
+                    tournamentsWithCounts.forEach(tournament => {
+                        const form = document.getElementById(`form-${tournament._id}`);
+                        if (form) {
+                            form.addEventListener('submit', (e) => handleSubmit(e, tournament));
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Failed to load tournaments:', error);
+                    document.getElementById('empty-state').style.display = 'block';
+                }
+            }
+
+            function renderSquadSelection(tournament) {
+                if (!tournament.squadsData || !tournament.squadsData.squads || tournament.squadsData.squads.length === 0) {
+                    return '';
+                }
+
+                const squads = tournament.squadsData.squads;
+                const requiredQualifying = tournament.squadsData.tournament.squadsRequiredToQualify || 0;
+
+                let requirementText = '';
+                if (requiredQualifying > 0) {
+                    requirementText = `<div class="squad-requirement">* Must select at least ${requiredQualifying} qualifying squad${requiredQualifying > 1 ? 's' : ''}</div>`;
+                }
+
+                const squadCheckboxes = squads.map(squad => {
+                    const isDisabled = squad.available <= 0;
+                    const disabledAttr = isDisabled ? 'disabled' : '';
+                    const disabledClass = isDisabled ? 'disabled' : '';
+                    
+                    const squadDate = new Date(squad.date);
+                    const dateStr = squadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const timeStr = squad.time || '';
+                    
+                    return `
+                        <div class="squad-option ${disabledClass}">
+                            <label>
+                                <input 
+                                    type="checkbox" 
+                                    name="squads" 
+                                    value="${squad._id}" 
+                                    data-is-qualifying="${squad.isQualifying}"
+                                    ${disabledAttr}
+                                />
+                                <div class="squad-info">
+                                    <div class="squad-name">
+                                        ${squad.name}
+                                        ${squad.isQualifying ? '<span class="qualifying-badge">QUALIFYING</span>' : ''}
+                                    </div>
+                                    <div class="squad-details">
+                                        ${dateStr} ${timeStr ? `• ${timeStr}` : ''} • ${squad.available}/${squad.capacity} spots available
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="form-group full-width squad-selection">
+                        <label>Select Squad(s) *</label>
+                        ${requirementText}
+                        <div class="squad-list" id="squad-list-${tournament._id}">
+                            ${squadCheckboxes}
+                        </div>
+                    </div>
+                `;
+            }
+
+            function renderTournamentCard(tournament) {
+                const date = new Date(tournament.date);
+                const formattedDate = date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+
+                const spotsLeft = tournament.maxParticipants 
+                    ? tournament.maxParticipants - tournament.registrationCount 
+                    : '∞';
+                
+                const isFull = tournament.maxParticipants && tournament.registrationCount >= tournament.maxParticipants;
+
+                let deadlineWarning = '';
+                if (tournament.registrationDeadline) {
+                    const deadline = new Date(tournament.registrationDeadline);
+                    const daysUntil = Math.ceil((deadline - new Date()) / (1000 * 60 * 60 * 24));
+                    if (daysUntil <= 7 && daysUntil > 0) {
+                        deadlineWarning = `<div class="deadline-warning">⏰ Registration closes in ${daysUntil} day${daysUntil !== 1 ? 's' : ''} - ${deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>`;
+                    }
+                }
+
+                if (isFull) {
+                    return `
+                        <div class="tournament-section">
+                            <div class="tournament-card">
+                                <div class="tournament-header">
+                                    <div class="tournament-info">
+                                        <h2>${tournament.name}</h2>
+                                        <div class="tournament-meta">
+                                            <div class="meta-item">📅 ${formattedDate}</div>
+                                            <div class="meta-item">📍 ${tournament.location}</div>
+                                        </div>
+                                    </div>
+                                    <div class="spots-info">
+                                        <div class="spots-count">FULL</div>
+                                        <div class="spots-label">Registration Closed</div>
+                                    </div>
+                                </div>
+                                ${tournament.description ? `<p style="color:var(--muted);margin-top:16px">${tournament.description}</p>` : ''}
+                                <div class="closed-notice">
+                                    This tournament has reached maximum capacity.
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="tournament-section">
+                        <div class="tournament-card">
+                            <div class="tournament-header">
+                                <div class="tournament-info">
+                                    <h2>${tournament.name}</h2>
+                                    <div class="tournament-meta">
+                                        <div class="meta-item">📅 ${formattedDate}</div>
+                                        <div class="meta-item">📍 ${tournament.location}</div>
+                                        ${tournament.registrationDeadline ? `<div class="meta-item">⏰ Register by ${new Date(tournament.registrationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
+                                    </div>
+                                </div>
+                                ${tournament.maxParticipants ? `
+                                    <div class="spots-info">
+                                        <div class="spots-count">${spotsLeft}</div>
+                                        <div class="spots-label">Spots Left</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+
+                            ${tournament.description ? `<p style="color:var(--muted);margin-top:16px">${tournament.description}</p>` : ''}
+                            ${deadlineWarning}
+
+                            <form id="form-${tournament._id}" class="reg-form">
+                                <div class="form-group">
+                                    <label for="name-${tournament._id}">Full Name *</label>
+                                    <input id="name-${tournament._id}" name="playerName" required />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="email-${tournament._id}">Email *</label>
+                                    <input id="email-${tournament._id}" name="email" type="email" required />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="phone-${tournament._id}">Phone *</label>
+                                    <input id="phone-${tournament._id}" name="phone" type="tel" required />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="average-${tournament._id}">Average Score</label>
+                                    <input id="average-${tournament._id}" name="averageScore" type="number" min="0" max="300" placeholder="e.g., 180" />
+                                </div>
+
+                                ${renderSquadSelection(tournament)}
+
+                                <div class="form-group full-width">
+                                    <label for="notes-${tournament._id}">Additional Notes</label>
+                                    <textarea id="notes-${tournament._id}" name="notes" placeholder="Any special requirements or information..."></textarea>
+                                </div>
+
+                                <button type="submit" class="submit-btn">Register for ${tournament.name}</button>
+                                
+                                <div id="message-${tournament._id}"></div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+
+            async function handleSubmit(e, tournament) {
+                e.preventDefault();
+                const form = e.target;
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const messageDiv = document.getElementById(`message-${tournament._id}`);
+
+                // Disable submit button
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+                messageDiv.innerHTML = '';
+
+                // Gather form data
+                const formData = new FormData(form);
+                
+                // Collect selected squads
+                const selectedSquads = [];
+                const squadCheckboxes = form.querySelectorAll('input[name="squads"]:checked');
+                squadCheckboxes.forEach(cb => selectedSquads.push(cb.value));
+
+                // Validate squad selection if tournament has squads
+                if (tournament.squadsData && tournament.squadsData.squads && tournament.squadsData.squads.length > 0) {
+                    if (selectedSquads.length === 0) {
+                        messageDiv.innerHTML = `<div class="error-message">❌ Please select at least one squad</div>`;
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = `Register for ${tournament.name}`;
+                        return;
+                    }
+
+                    // Validate qualifying squad requirement
+                    const requiredQualifying = tournament.squadsData.tournament.squadsRequiredToQualify || 0;
+                    if (requiredQualifying > 0) {
+                        const qualifyingSelected = Array.from(squadCheckboxes)
+                            .filter(cb => cb.dataset.isQualifying === 'true')
+                            .length;
+                        
+                        if (qualifyingSelected < requiredQualifying) {
+                            messageDiv.innerHTML = `<div class="error-message">❌ Must select at least ${requiredQualifying} qualifying squad${requiredQualifying > 1 ? 's' : ''}</div>`;
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = `Register for ${tournament.name}`;
+                            return;
+                        }
+                    }
+                }
+
+                const data = {
+                    tournamentId: tournament._id,
+                    playerName: formData.get('playerName'),
+                    email: formData.get('email'),
+                    phone: formData.get('phone'),
+                    averageScore: formData.get('averageScore') ? parseInt(formData.get('averageScore')) : null,
+                    notes: formData.get('notes'),
+                    assignedSquads: selectedSquads
+                };
+
+                try {
+                    const response = await fetch('/api/registrations', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Registration failed');
+                    }
+
+                    // Success
+                    const squadInfo = selectedSquads.length > 0 ? ` for ${selectedSquads.length} squad${selectedSquads.length > 1 ? 's' : ''}` : '';
+                    messageDiv.innerHTML = `
+                        <div class="success-message">
+                            ✅ Registration successful! You're registered for ${tournament.name}${squadInfo}. 
+                            A confirmation email will be sent to ${data.email}.
+                        </div>
+                    `;
+                    form.reset();
+
+                    // Reload tournaments to update counts
+                    setTimeout(() => loadTournaments(), 2000);
+
+                } catch (error) {
+                    messageDiv.innerHTML = `
+                        <div class="error-message">
+                            ❌ ${error.message}
+                        </div>
+                    `;
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = `Register for ${tournament.name}`;
+                }
+            }
+
+            // Load tournaments on page load
+            loadTournaments();
+        </script>
     </body>
 </html>

@@ -26,6 +26,10 @@ router.get('/results', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/results.html'));
 });
 
+router.get('/events', (req, res) => {
+    res.sendFile(path.join(import.meta.dirname, '../../frontend/events.html'));
+});
+
 // Admin login page
 router.get('/admin/login', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-login.html'));

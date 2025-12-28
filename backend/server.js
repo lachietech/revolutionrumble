@@ -4,6 +4,8 @@ import session from 'express-session';
 import path from 'path';
 import bodyParser from 'body-parser';
 import mainroutes from'./routes/mainroutes.js';
+import tournamentRoutes from './routes/tournamentRoutes.js';
+import registrationRoutes from './routes/registrationRoutes.js';
 import mongoose from 'mongoose';
 
 dotenv.config();
@@ -20,9 +22,11 @@ app.use(session({
     saveUninitialized: true,
     cookie: { secure: false } // true if HTTPS
 }));
-
 // Routes
 app.use('/', mainroutes);
+app.use('/api', tournamentRoutes);
+app.use('/api', registrationRoutes);
+app.use('/api', tournamentRoutes);
 
 app.listen(5000, () => {
     console.log("Server started at http://localhost:5000");

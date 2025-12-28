@@ -10,7 +10,7 @@ class SpecialHeader extends HTMLElement {
                 <!-- Keep this for progressive enhancement (hidden via CSS) -->
                 <nav id="desktopMenu" class="nav-links desktop-nav" hidden>
                     <a href="/">Home</a>
-                    <a href="/">Events</a>
+                    <a href="/events">Events</a>
                     <a href="/results">Results</a>
                     <a href="/playerstats">Player Stats</a>
                     <a href="/register">Register</a>
@@ -26,7 +26,7 @@ class SpecialHeader extends HTMLElement {
                 <!-- Dropdown (moved inside .nav so it anchors to the hamburger) -->
                 <nav id="mobileMenu" class="mobile-menu" hidden>
                     <a href="/">Home</a>
-                    <a href="/">Events</a>
+                    <a href="/events">Events</a>
                     <a href="/results">Results</a>
                     <a href="/playerstats">Player Stats</a>
                     <a href="/register">Register</a>
