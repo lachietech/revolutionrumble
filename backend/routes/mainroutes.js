@@ -26,10 +26,6 @@ router.get('/results', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/results.html'));
 });
 
-router.get('/tournamentresults', (req, res) => {
-    res.sendFile(path.join(import.meta.dirname, '../../frontend/tournamentresults.html'));
-});
-
 router.get('/events', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/events.html'));
 });
@@ -52,7 +48,7 @@ router.post('/admin/login', (req, res) => {
     }
     if (pw === process.env.ADMIN_PASS) {
         req.session.isAdmin = true;
-        return res.redirect('/admin');
+        return res.redirect('/admin/tournaments');
     }
     return res.status(401).send('Invalid password');
 });
@@ -61,11 +57,6 @@ router.post('/admin/login', (req, res) => {
 router.get('/admin/logout', (req, res) => {
     req.session.isAdmin = false;
     req.session.destroy?.(() => res.redirect('/'));
-});
-
-// Admin dashboard (protected)
-router.get('/admin', requireAdmin, (req, res) => {
-    res.sendFile(path.join(import.meta.dirname, '../../frontend/admin.html'));
 });
 
 // Admin sub-pages (protected)

@@ -1,0 +1,205 @@
+body {
+    background: var(--black);
+    color: var(--text);
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", 'Helvetica Neue', Arial;
+}
+
+.page-header {
+    padding: 60px 0 40px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--grey-900), var(--black));
+}
+
+.page-header h1 {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    margin: 0 0 12px;
+    font-weight: 800;
+}
+
+.page-header p {
+    color: var(--muted);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.tournament-info {
+    background: linear-gradient(180deg, var(--grey-800), var(--grey-700));
+    border: 1px solid var(--grey-600);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+
+.tournament-info h2 {
+    font-size: 1.8rem;
+    margin: 0 0 12px;
+}
+
+.tournament-meta {
+    display: flex;
+    gap: 20px;
+    color: var(--muted);
+    font-size: .95rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.squads-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+.squad-card {
+    background: linear-gradient(180deg, var(--grey-800), var(--grey-700));
+    border: 1px solid var(--grey-600);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+
+.squad-header {
+    border-bottom: 1px solid var(--grey-600);
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+}
+
+.squad-title {
+    font-size: 1.4rem;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.qualifying-badge {
+    background: rgba(46, 204, 113, .2);
+    border: 1px solid rgba(46, 204, 113, .4);
+    color: #51cf66;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.squad-details {
+    display: flex;
+    gap: 16px;
+    font-size: .9rem;
+    color: var(--muted);
+    flex-wrap: wrap;
+}
+
+.capacity-info {
+    background: rgba(46, 143, 220, .1);
+    border: 1px solid rgba(46, 143, 220, .3);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.capacity-info.full {
+    background: rgba(220, 53, 69, .1);
+    border-color: rgba(220, 53, 69, .3);
+}
+
+.capacity-label {
+    font-size: .85rem;
+    color: var(--muted);
+}
+
+.capacity-count {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--blue-500);
+}
+
+.capacity-info.full .capacity-count {
+    color: #ff6b6b;
+}
+
+.bowlers-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.bowler-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bowler-item:last-child {
+    border-bottom: none;
+}
+
+.bowler-item:nth-child(odd) {
+    background: rgba(255,255,255,.02);
+}
+
+.bowler-name {
+    font-weight: 500;
+}
+
+.bowler-name a {
+    color: var(--text);
+    text-decoration: none;
+    transition: color .2s;
+}
+
+.bowler-name a:hover {
+    color: var(--blue-500);
+}
+
+.bowler-avg {
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+.empty-squad {
+    text-align: center;
+    padding: 20px;
+    color: var(--muted);
+    font-style: italic;
+}
+
+.loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+}
+
+.error {
+    text-align: center;
+    padding: 60px 20px;
+    color: #ff6b6b;
+}
+
+@media (max-width: 768px) {
+    .squads-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,367 @@
+body {
+    background: var(--black);
+    color: var(--text);
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", 'Helvetica Neue', Arial;
+}
+
+.page-header {
+    padding: 60px 0 40px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--grey-900), var(--black));
+}
+
+.page-header h1 {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    margin: 0 0 12px;
+    font-weight: 800;
+}
+
+.page-header p {
+    color: var(--muted);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.container.wide {
+    max-width: 1400px;
+}
+
+.layout-grid {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+.card {
+    background: linear-gradient(180deg, var(--grey-800), var(--grey-700));
+    border: 1px solid var(--grey-600);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+
+.email-form {
+    text-align: center;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.email-form input {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    border: 1px solid var(--grey-600);
+    border-radius: 8px;
+    background: var(--grey-900);
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+.email-form button {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    background: var(--blue-500);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .2s;
+}
+
+.email-form button:hover {
+    background: var(--blue-600);
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.profile-info h2 {
+    font-size: 1.8rem;
+    margin: 0 0 8px;
+}
+
+.profile-nickname {
+    color: var(--muted);
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.profile-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: .9rem;
+    color: var(--muted);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+}
+
+.stat-box {
+    background: rgba(46, 143, 220, .1);
+    border: 1px solid rgba(46, 143, 220, .3);
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--blue-500);
+}
+
+.stat-label {
+    font-size: .85rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.edit-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 6px;
+    font-size: .9rem;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 10px 12px;
+    border: 1px solid var(--grey-600);
+    border-radius: 6px;
+    background: var(--grey-900);
+    color: var(--text);
+    font-size: .95rem;
+}
+
+.form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.btn {
+    padding: 12px 24px;
+    font-size: .95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .2s;
+}
+
+.btn-primary {
+    background: var(--blue-500);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--blue-600);
+}
+
+.btn-secondary {
+    background: var(--grey-700);
+    color: var(--text);
+    border: 1px solid var(--grey-600);
+}
+
+.btn-secondary:hover {
+    background: var(--grey-600);
+}
+
+.tournament-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.tournament-item {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.tournament-item:last-child {
+    border-bottom: none;
+}
+
+.tournament-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.tournament-date {
+    font-size: .85rem;
+    color: var(--muted);
+}
+
+.tournament-score {
+    text-align: right;
+}
+
+.score-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--blue-500);
+}
+
+.score-label {
+    font-size: .75rem;
+    color: var(--muted);
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-registered {
+    background: rgba(255, 193, 7, .2);
+    border: 1px solid rgba(255, 193, 7, .4);
+    color: #ffc107;
+}
+
+.message {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 16px 0;
+    font-size: .9rem;
+}
+
+.message-success {
+    background: rgba(46, 204, 113, .2);
+    border: 1px solid rgba(46, 204, 113, .3);
+    color: #51cf66;
+}
+
+.message-error {
+    background: rgba(220, 53, 69, .2);
+    border: 1px solid rgba(220, 53, 69, .3);
+    color: #ff6b6b;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+}
+
+.search-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.search-filter input,
+.search-filter select {
+    padding: 10px 12px;
+    border: 1px solid var(--grey-600);
+    border-radius: 6px;
+    background: var(--grey-900);
+    color: var(--text);
+    font-size: .9rem;
+}
+
+.bowler-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.bowler-card {
+    padding: 14px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    cursor: pointer;
+    transition: all .2s;
+}
+
+.bowler-card:hover {
+    background: rgba(46, 143, 220, .05);
+    border-left: 3px solid var(--blue-500);
+}
+
+.bowler-card.active {
+    background: rgba(46, 143, 220, .1);
+    border-left: 3px solid var(--blue-500);
+}
+
+.bowler-card-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.bowler-card-stats {
+    display: flex;
+    gap: 12px;
+    font-size: .85rem;
+    color: var(--muted);
+}
+
+.claim-profile-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 10px;
+    background: rgba(255, 193, 7, .2);
+    border: 1px solid rgba(255, 193, 7, .4);
+    color: #ffc107;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all .2s;
+}
+
+.claim-profile-btn:hover {
+    background: rgba(255, 193, 7, .3);
+}
+
+@media (max-width: 1024px) {
+    .layout-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .profile-header {
+        flex-direction: column;
+    }
+}
