@@ -13,7 +13,7 @@ function requireAdmin(req, res, next) {
 // GET all tournaments
 router.get('/tournaments', async (req, res) => {
     try {
-        const tournaments = await Tournament.find().sort({ date: 1 });
+        const tournaments = await Tournament.find().sort({ startDate: 1 });
         res.json(tournaments);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -110,6 +110,67 @@ router.get('/tournaments/:id/squads/availability', async (req, res) => {
                 squadsRequiredToQualify: tournament.squadsRequiredToQualify
             },
             squads: squadsWithAvailability
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET squad lists with bowler names (public)
+router.get('/tournaments/:id/squads/list', async (req, res) => {
+    try {
+        const tournament = await Tournament.findById(req.params.id);
+        if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+
+        // Get all confirmed registrations for this tournament
+        const registrations = await Registration.find({
+            tournament: req.params.id,
+            status: { $in: ['pending', 'confirmed'] }
+        }).select('playerName averageScore assignedSquads bowler').populate('bowler', '_id');
+
+        // Organize bowlers by squad
+        const squadData = tournament.squads.map(squad => {
+            const bowlers = registrations
+                .filter(reg => reg.assignedSquads && reg.assignedSquads.some(sid => sid.toString() === squad._id.toString()))
+                .map(reg => ({
+                    name: reg.playerName,
+                    averageScore: reg.averageScore,
+                    bowlerId: reg.bowler?._id
+                }))
+                .sort((a, b) => {
+                    // Sort by average score descending, then by name
+                    if (b.averageScore && a.averageScore) {
+                        return b.averageScore - a.averageScore;
+                    }
+                    if (b.averageScore) return 1;
+                    if (a.averageScore) return -1;
+                    return a.name.localeCompare(b.name);
+                });
+
+            return {
+                _id: squad._id,
+                name: squad.name,
+                date: squad.date,
+                time: squad.time,
+                capacity: squad.capacity,
+                isQualifying: squad.isQualifying,
+                registered: bowlers.length,
+                spotsRemaining: squad.capacity - bowlers.length,
+                bowlers: bowlers
+            };
+        });
+
+        res.json({
+            tournament: {
+                _id: tournament._id,
+                name: tournament.name,
+                startDate: tournament.startDate,
+                endDate: tournament.endDate,
+                date: tournament.date || tournament.startDate, // Fallback for backwards compatibility
+                location: tournament.location,
+                squadsRequiredToQualify: tournament.squadsRequiredToQualify
+            },
+            squads: squadData
         });
     } catch (error) {
         res.status(500).json({ error: error.message });

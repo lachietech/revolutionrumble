@@ -19,15 +19,23 @@ router.get('/register', (req, res) => {
 });
 
 router.get('/playerstats', (req, res) => {
-    res.sendFile(path.join(import.meta.dirname, '../../frontend/playerstats.html'));
+    res.sendFile(path.join(import.meta.dirname, '../../frontend/bowlerstats.html'));
 });
 
 router.get('/results', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/results.html'));
 });
 
+router.get('/tournamentresults', (req, res) => {
+    res.sendFile(path.join(import.meta.dirname, '../../frontend/tournamentresults.html'));
+});
+
 router.get('/events', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/events.html'));
+});
+
+router.get('/squads', (req, res) => {
+    res.sendFile(path.join(import.meta.dirname, '../../frontend/squads.html'));
 });
 
 // Admin login page
@@ -58,6 +66,19 @@ router.get('/admin/logout', (req, res) => {
 // Admin dashboard (protected)
 router.get('/admin', requireAdmin, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin.html'));
+});
+
+// Admin sub-pages (protected)
+router.get('/admin/tournaments', requireAdmin, (req, res) => {
+    res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-tournaments.html'));
+});
+
+router.get('/admin/registrations', requireAdmin, (req, res) => {
+    res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-registrations.html'));
+});
+
+router.get('/admin/results', requireAdmin, (req, res) => {
+    res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-results.html'));
 });
 
 export default router;

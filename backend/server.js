@@ -6,6 +6,7 @@ import bodyParser from 'body-parser';
 import mainroutes from'./routes/mainroutes.js';
 import tournamentRoutes from './routes/tournamentRoutes.js';
 import registrationRoutes from './routes/registrationRoutes.js';
+import bowlerRoutes from './routes/bowlerRoutes.js';
 import mongoose from 'mongoose';
 
 dotenv.config();
@@ -26,6 +27,7 @@ app.use(session({
 app.use('/', mainroutes);
 app.use('/api', tournamentRoutes);
 app.use('/api', registrationRoutes);
+app.use('/api', bowlerRoutes);
 app.use('/api', tournamentRoutes);
 
 app.listen(5000, () => {

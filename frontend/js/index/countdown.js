@@ -16,12 +16,12 @@ async function loadNextTournament() {
         // Filter upcoming tournaments and find the nearest one
         const now = new Date();
         const upcoming = tournaments
-            .filter(t => new Date(t.date) > now && t.status === 'upcoming')
-            .sort((a, b) => new Date(a.date) - new Date(b.date));
+            .filter(t => new Date(t.startDate || t.date) > now && t.status === 'upcoming')
+            .sort((a, b) => new Date(a.startDate || a.date) - new Date(b.startDate || b.date));
         
         if (upcoming.length > 0) {
             const nextTournament = upcoming[0];
-            eventDate = new Date(nextTournament.date);
+            eventDate = new Date(nextTournament.startDate || nextTournament.date);
             eventName = nextTournament.name;
             
             // Update tournament name in UI

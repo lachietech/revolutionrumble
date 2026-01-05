@@ -2,13 +2,9 @@
 <html lang="en">
     <head>
         <meta charset="utf-8" />
-        <meta http-equiv="refresh" content="0; url=/admin/tournaments" />
-        <title>Admin — Revolution Rumble</title>
-    </head>
-    <body>
-        <p>Redirecting to admin panel...</p>
-    </body>
-</html>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Tournament Management — Admin — Revolution Rumble</title>
+        <style>
             body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#070709;color:#e9eef7;margin:0}
             header{padding:14px 20px;background:#0f1520}
             .container{width:min(1100px,94%);margin:20px auto}
@@ -41,23 +37,21 @@
     <body>
         <header>
             <div class="container row">
-                <h1 style="margin:0;font-size:1.1rem">Admin Dashboard</h1>
+                <h1 style="margin:0;font-size:1.1rem">Tournament Management</h1>
                 <div style="margin-left:auto"><a class="button" href="/admin/logout">Sign out</a></div>
             </div>
         </header>
 
-        <main class="container">
-            <div class="card">
-                <h2 style="margin-top:0">Site administration</h2>
-                <p class="muted">This is a lightweight admin dashboard. Add functionality as needed (manage entries, view logs, etc.).</p>
-                <section style="margin-top:12px">
-                    <h3>Actions</h3>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap">
-                        <a class="button" href="/results">Open Results page</a>
-                        <a class="button" href="/playerstats">Player stats</a>
-                    </div>
-                </section>
+        <nav style="background:#141a22;border-bottom:1px solid rgba(255,255,255,.08);padding:12px 0">
+            <div class="container" style="display:flex;gap:16px;align-items:center">
+                <a href="/admin/tournaments" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:white;background:#3b82f6">🏆 Tournaments</a>
+                <a href="/admin/registrations" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">📋 Registrations</a>
+                <a href="/admin/results" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">🎯 Scores</a>
+                <div style="margin-left:auto"><a href="/" style="text-decoration:none;color:#b9c6d8">← Back to Site</a></div>
             </div>
+        </nav>
+
+        <main class="container" style="margin-top:20px">
 
             <!-- Tournament Management -->
             <div class="card">
@@ -74,8 +68,12 @@
                             <input type="text" id="name" name="name" required placeholder="Logan City Cup 2026">
                         </div>
                         <div class="form-group">
-                            <label for="date">Date *</label>
-                            <input type="date" id="date" name="date" required>
+                            <label for="startDate">Start Date *</label>
+                            <input type="date" id="startDate" name="startDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="endDate">End Date *</label>
+                            <input type="date" id="endDate" name="endDate" required>
                         </div>
                         <div class="form-group">
                             <label for="location">Location *</label>
@@ -100,6 +98,14 @@
                         <div class="form-group">
                             <label for="squadsRequiredToQualify">Squads Required to Qualify</label>
                             <input type="number" id="squadsRequiredToQualify" name="squadsRequiredToQualify" min="1" value="1">
+                            <small style="display:block;margin-top:4px;color:#b9c6d8">Minimum number of squads a bowler must bowl to qualify</small>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:flex;align-items:center;gap:8px;margin-top:8px">
+                                <input type="checkbox" id="allowReentry" name="allowReentry" style="width:auto;margin:0">
+                                <span>Allow Re-entry (Bowlers can bowl more squads than required)</span>
+                            </label>
+                            <small style="display:block;margin-top:4px;color:#b9c6d8">If disabled, bowlers can only register for the exact number of squads required to qualify</small>
                         </div>
                         <div class="form-group full">
                             <label for="description">Description</label>
@@ -110,38 +116,75 @@
                     <!-- Tournament Format Configuration -->
                     <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)">
                         <h4 style="margin:0 0 8px 0;color:var(--blue-500)">⚙️ Tournament Format</h4>
-                        <p style="margin:0 0 16px;font-size:.85rem;color:#b9c6d8">Define the stages, games, carryover rules, and scoring system</p>
+                        <p style="margin:0 0 16px;font-size:.85rem;color:#b9c6d8">Choose a tournament style and customize as needed</p>
                         
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-                            <div class="form-group" style="margin:0">
-                                <label for="scoringMethod">Scoring Method</label>
-                                <select id="scoringMethod">
-                                    <option value="total-pinfall">Total Pinfall</option>
-                                    <option value="match-play">Match Play</option>
-                                    <option value="head-to-head">Head to Head</option>
-                                    <option value="points">Points System</option>
+                        <!-- Tournament Type Selector -->
+                        <div class="form-group" style="margin-bottom:20px">
+                            <label for="tournamentType" style="font-weight:600;font-size:.95rem">Tournament Type</label>
+                            <select id="tournamentType" onchange="applyTournamentPreset()" style="font-size:.95rem;padding:10px">
+                                <option value="single-block">Single Block (Simple qualifying, one block of games)</option>
+                                <option value="multi-block">Multi-Block Qualifying (Multiple qualifying blocks)</option>
+                                <option value="qualifying-finals">Qualifying + Finals (Cut to top bowlers for finals)</option>
+                                <option value="triple-crown">Triple Crown (Qualifying → Semifinals → Finals)</option>
+                                <option value="match-play">Match Play Tournament (Head-to-head matches)</option>
+                                <option value="round-robin">Round Robin (Everyone plays everyone)</option>
+                                <option value="bracket-single">Single Elimination Bracket (Win or go home)</option>
+                                <option value="bracket-double">Double Elimination Bracket (2 lives)</option>
+                                <option value="stepladder">Stepladder Finals (TV-style top 5)</option>
+                                <option value="stepladder-extended">Extended Stepladder (Top 8)</option>
+                                <option value="full-tournament">Full Tournament (Qualifying → Finals → Match Play → Stepladder)</option>
+                                <option value="team-baker">Team Baker Format (Team game format)</option>
+                                <option value="custom">Custom (Build your own)</option>
+                            </select>
+                            <small style="display:block;margin-top:6px;color:#b9c6d8" id="typeDescription">
+                                Simple tournament with one block of games for all bowlers
+                            </small>
+                        </div>
+
+                        <!-- Format Details Summary -->
+                        <div id="formatSummary" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);padding:12px;border-radius:8px;margin-bottom:16px;display:none">
+                            <h5 style="margin:0 0 8px;color:var(--blue-500);font-size:.9rem">📋 Format Preview</h5>
+                            <div id="formatSummaryContent" style="font-size:.85rem;color:#b9c6d8"></div>
+                        </div>
+
+                        <!-- Match Play Settings (when match play is included) -->
+                        <div id="matchPlaySettings" style="display:none;background:rgba(255,255,255,.02);padding:12px;border-radius:8px;margin-bottom:12px">
+                            <h5 style="margin:0 0 12px;font-size:.9rem;font-weight:600">Match Play Configuration</h5>
+                            <div class="form-group" style="margin-bottom:12px">
+                                <label for="matchPlayFormat">Match Format</label>
+                                <select id="matchPlayFormat" onchange="updateMatchPlayDetails()">
+                                    <option value="best-of-3">Best of 3 Games</option>
+                                    <option value="best-of-5">Best of 5 Games</option>
+                                    <option value="single-game">Single Game Eliminations</option>
+                                    <option value="total-pinfall-2">Total Pinfall (2 games)</option>
+                                    <option value="total-pinfall-3">Total Pinfall (3 games)</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="margin:0">
-                                <label style="display:flex;align-items:center;gap:8px;margin-top:28px">
-                                    <input type="checkbox" id="hasStages" style="width:auto;margin:0">
-                                    <span>Multi-Stage Tournament (Qualifying → Finals → Stepladder)</span>
-                                </label>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                                <div class="form-group" style="margin:0">
+                                    <label for="pointsForWin" style="font-size:.85rem">Points for Win</label>
+                                    <input type="number" id="pointsForWin" value="30" min="0">
+                                </div>
+                                <div class="form-group" style="margin:0">
+                                    <label for="pointsForTie" style="font-size:.85rem">Points for Tie</label>
+                                    <input type="number" id="pointsForTie" value="15" min="0">
+                                </div>
+                                <div class="form-group" style="margin:0">
+                                    <label for="pointsForLoss" style="font-size:.85rem">Points for Loss</label>
+                                    <input type="number" id="pointsForLoss" value="0" min="0">
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Stages Configuration -->
-                        <div id="stagesSection" style="display:none;margin-bottom:16px">
-                            <h5 style="margin:0 0 8px;font-size:.9rem;color:var(--blue-500);display:flex;align-items:center;gap:8px">
-                                <span>📊 Tournament Stages</span>
-                                <span style="font-size:.75rem;color:#b9c6d8;font-weight:400">(e.g., Qualifying → Top 16 → Top 5 → Stepladder)</span>
-                            </h5>
-                            <div id="stagesList" style="display:grid;gap:8px;margin-bottom:8px"></div>
+                        <!-- Custom Stages (only for custom type) -->
+                        <div id="customStagesSection" style="display:none;margin-bottom:16px">
+                            <h5 style="margin:0 0 12px;font-size:.9rem;color:var(--blue-500)">📊 Custom Tournament Stages</h5>
+                            <div id="stagesList" style="display:grid;gap:8px;margin-bottom:12px"></div>
                             <div style="background:#141a22;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,.05)">
                                 <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
                                     <div class="form-group" style="margin:0">
                                         <label style="font-size:.8rem">Stage Name</label>
-                                        <input type="text" id="stageName" placeholder="e.g., Qualifying, Finals, Stepladder" style="padding:6px 8px;font-size:.9rem">
+                                        <input type="text" id="stageName" placeholder="e.g., Qualifying, Finals" style="padding:6px 8px;font-size:.9rem">
                                     </div>
                                     <div class="form-group" style="margin:0">
                                         <label style="font-size:.8rem">Games</label>
@@ -161,80 +204,105 @@
                                             <span style="white-space:nowrap">Carryover</span>
                                         </label>
                                     </div>
-                                    <button type="button" class="button" onclick="addStage()" style="padding:6px 12px;font-size:.85rem;white-space:nowrap">+ Add Stage</button>
+                                    <button type="button" class="button" onclick="addStage()" style="padding:6px 12px;font-size:.85rem;white-space:nowrap">+ Add</button>
                                 </div>
-                                <p style="margin:8px 0 0;font-size:.75rem;color:#b9c6d8">
-                                    💡 Tip: Add stages in order (Qualifying first, then Finals, Match Play, Stepladder, etc.)
-                                </p>
                             </div>
                         </div>
 
-                        <!-- Simple Format (when no stages) -->
-                        <div id="simpleFormatSection" style="margin-bottom:16px">
-                            <div class="form-group">
-                                <label for="gamesPerBowler">Total Games Per Bowler</label>
-                                <input type="number" id="gamesPerBowler" min="1" value="6" placeholder="e.g., 6">
-                                <small style="display:block;margin-top:4px;color:#b9c6d8">For single-stage tournaments without qualifying/finals structure</small>
+                        <!-- Quick Settings (for preset formats) -->
+                        <div id="quickSettings" style="margin-bottom:16px">
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+                                <div class="form-group" style="margin:0">
+                                    <label for="qualifyingGames">Qualifying Games</label>
+                                    <input type="number" id="qualifyingGames" min="1" value="6">
+                                </div>
+                                <div class="form-group" style="margin:0">
+                                    <label for="advancingBowlers">Bowlers Advancing</label>
+                                    <input type="number" id="advancingBowlers" min="1" value="16">
+                                </div>
+                                <div class="form-group" style="margin:0">
+                                    <label for="finalsGames">Finals Games</label>
+                                    <input type="number" id="finalsGames" min="1" value="6">
+                                </div>
                             </div>
+                            <button type="button" class="button" onclick="applyTournamentPreset()" style="width:100%;padding:8px;font-size:.9rem;background:var(--blue-600)">
+                                🔄 Update Format with New Values
+                            </button>
+                            <small style="display:block;margin-top:6px;color:#b9c6d8;text-align:center">Adjust the values above and click to update the tournament stages</small>
                         </div>
 
-                        <!-- Handicap Configuration -->
+                        <!-- Multi-Block Settings (for multi-block format) -->
+                        <div id="multiBlockSettings" style="display:none;margin-bottom:16px">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                                <div class="form-group" style="margin:0">
+                                    <label for="numberOfBlocks">Number of Qualifying Blocks</label>
+                                    <input type="number" id="numberOfBlocks" min="2" max="10" value="3">
+                                    <small style="display:block;margin-top:4px;color:#b9c6d8">Each block will have the same number of games</small>
+                                </div>
+                                <div class="form-group" style="margin:0">
+                                    <label for="qualifyingGamesMulti">Games Per Block</label>
+                                    <input type="number" id="qualifyingGamesMulti" min="1" value="6">
+                                </div>
+                            </div>
+                            <button type="button" class="button" onclick="applyTournamentPreset()" style="width:100%;padding:8px;font-size:.9rem;background:var(--blue-600)">
+                                🔄 Update Format with New Values
+                            </button>
+                            <small style="display:block;margin-top:6px;color:#b9c6d8;text-align:center">Adjust the values above and click to update the tournament blocks</small>
+                        </div>
+
+                        <!-- Advanced Options -->
                         <div style="background:rgba(255,255,255,.02);padding:12px;border-radius:8px;margin-bottom:12px">
-                            <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600">
-                                <input type="checkbox" id="useHandicap" style="width:auto;margin:0">
-                                <span>Use Handicap Scoring</span>
-                            </label>
-                            <div id="handicapOptions" style="display:none;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
-                                <div class="form-group" style="margin:0">
-                                    <label for="handicapBase" style="font-size:.85rem">Handicap Base</label>
-                                    <input type="number" id="handicapBase" value="200" min="100" max="300">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label for="handicapPercentage" style="font-size:.85rem">Handicap % (0-100)</label>
-                                    <input type="number" id="handicapPercentage" value="90" min="0" max="100">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Bonus Points Configuration -->
-                        <div style="background:rgba(255,255,255,.02);padding:12px;border-radius:8px;margin-bottom:12px">
-                            <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600">
-                                <input type="checkbox" id="bonusPointsEnabled" style="width:auto;margin:0">
-                                <span>Award Bonus Points</span>
-                            </label>
-                            <div id="bonusPointsOptions" style="display:none;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
-                                <div class="form-group" style="margin:0">
-                                    <label for="bonusPerGame" style="font-size:.85rem">Bonus Per Game (e.g., 250+)</label>
-                                    <input type="number" id="bonusPerGame" value="0" min="0">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label for="bonusPerSeries" style="font-size:.85rem">Bonus Per Series (e.g., 700+)</label>
-                                    <input type="number" id="bonusPerSeries" value="0" min="0">
+                            <h5 style="margin:0 0 12px;font-weight:600">⚙️ Advanced Options</h5>
+                            
+                            <!-- Handicap Configuration -->
+                            <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+                                <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600">
+                                    <input type="checkbox" id="useHandicap" style="width:auto;margin:0">
+                                    <span>Use Handicap Scoring</span>
+                                </label>
+                                <div id="handicapOptions" style="display:none;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+                                    <div class="form-group" style="margin:0">
+                                        <label for="handicapBase" style="font-size:.85rem">Handicap Base</label>
+                                        <input type="number" id="handicapBase" value="200" min="100" max="300">
+                                    </div>
+                                    <div class="form-group" style="margin:0">
+                                        <label for="handicapPercentage" style="font-size:.85rem">Handicap % (0-100)</label>
+                                        <input type="number" id="handicapPercentage" value="90" min="0" max="100">
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Match Play Configuration -->
-                        <div id="matchPlayOptions" style="display:none;background:rgba(255,255,255,.02);padding:12px;border-radius:8px;margin-bottom:12px">
-                            <h5 style="margin:0 0 8px;font-size:.9rem">Match Play Points</h5>
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px">
-                                <div class="form-group" style="margin:0">
-                                    <label for="pointsForWin" style="font-size:.85rem">Win</label>
-                                    <input type="number" id="pointsForWin" value="30" min="0">
+                            <!-- Gender Division Configuration -->
+                            <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+                                <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600">
+                                    <input type="checkbox" id="separateDivisions" style="width:auto;margin:0">
+                                    <span>Separate Male/Female Divisions</span>
+                                </label>
+                                <small style="display:block;margin-bottom:8px;color:#b9c6d8">If disabled, females receive a pin handicap instead</small>
+                                <div id="genderDivisionOptions" style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px">
+                                    <div class="form-group" style="margin:0">
+                                        <label for="femaleHandicapPins" style="font-size:.85rem">Female Pin Handicap (when combined division)</label>
+                                        <input type="number" id="femaleHandicapPins" value="8" min="0" max="50">
+                                        <small style="display:block;margin-top:4px;color:#b9c6d8">Pins added to female scores when not using separate divisions (standard: 8 pins)</small>
+                                    </div>
                                 </div>
-                                <div class="form-group" style="margin:0">
-                                    <label for="pointsForTie" style="font-size:.85rem">Tie</label>
-                                    <input type="number" id="pointsForTie" value="15" min="0">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label for="pointsForLoss" style="font-size:.85rem">Loss</label>
-                                    <input type="number" id="pointsForLoss" value="0" min="0">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label style="display:flex;align-items:center;gap:4px;margin-top:22px;font-size:.85rem">
-                                        <input type="checkbox" id="includePinfall" checked style="width:auto;margin:0">
-                                        <span>Include Pinfall</span>
-                                    </label>
+                            </div>
+
+                            <!-- Bonus Points Configuration -->
+                            <div style="margin-bottom:0">
+                                <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600">
+                                    <input type="checkbox" id="bonusPointsEnabled" style="width:auto;margin:0">
+                                    <span>Award Bonus Points</span>
+                                </label>
+                                <div id="bonusPointsOptions" style="display:none;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+                                    <div class="form-group" style="margin:0">
+                                        <label for="bonusPerGame" style="font-size:.85rem">Bonus Per Game (e.g., 250+)</label>
+                                        <input type="number" id="bonusPerGame" value="0" min="0">
+                                    </div>
+                                    <div class="form-group" style="margin:0">
+                                        <label for="bonusPerSeries" style="font-size:.85rem">Bonus Per Series (e.g., 700+)</label>
+                                        <input type="number" id="bonusPerSeries" value="0" min="0">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -264,12 +332,8 @@
                                     <label style="font-size:.8rem">Capacity</label>
                                     <input type="number" id="squadCapacity" min="1" placeholder="24" style="padding:6px 8px;font-size:.9rem">
                                 </div>
-                                <div style="display:flex;flex-direction:column;gap:4px">
-                                    <label style="font-size:.75rem;display:flex;align-items:center;gap:4px;margin:0">
-                                        <input type="checkbox" id="squadIsQualifying" checked style="width:auto;margin:0">
-                                        <span>Qualifying</span>
-                                    </label>
-                                    <button type="button" class="button" onclick="addSquad()" style="padding:6px 12px;font-size:.85rem;white-space:nowrap">+ Add Squad</button>
+                                <div>
+                                    <button type="button" class="button" onclick="addSquad()" style="padding:6px 12px;font-size:.85rem;white-space:nowrap;margin-top:18px">+ Add Squad</button>
                                 </div>
                             </div>
                         </div>
@@ -287,46 +351,6 @@
                     <div id="tournamentList" class="tournament-list">
                         <p style="color:#b9c6d8;text-align:center">Loading tournaments...</p>
                     </div>
-                </div>
-            </div>
-
-            <!-- Registration Management -->
-            <div class="card">
-                <h2 style="margin-top:0">📋 Registration Management</h2>
-                
-                <div class="form-group" style="margin-bottom:16px">
-                    <label for="regTournamentFilter">Filter by Tournament</label>
-                    <select id="regTournamentFilter" style="max-width:400px">
-                        <option value="">All Tournaments</option>
-                    </select>
-                </div>
-
-                <div style="margin-top:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-                    <h3 style="margin:0">Registrations (<span id="regCount">0</span>)</h3>
-                    <div style="display:flex;gap:8px">
-                        <button class="button" style="font-size:.85rem;padding:6px 12px" onclick="loadRegistrations()">Refresh</button>
-                        <button class="button" style="font-size:.85rem;padding:6px 12px" onclick="exportRegistrations()">Export CSV</button>
-                    </div>
-                </div>
-
-                <div id="registrationList" style="max-height:500px;overflow-y:auto">
-                    <p style="color:#b9c6d8;text-align:center">Loading registrations...</p>
-                </div>
-            </div>
-
-            <!-- Results Management -->
-            <div class="card">
-                <h2 style="margin-top:0">🏆 Results & Scores</h2>
-                
-                <div class="form-group" style="margin-bottom:16px">
-                    <label for="resultsTournamentFilter">Select Tournament</label>
-                    <select id="resultsTournamentFilter" onchange="loadTournamentResults()" style="max-width:400px">
-                        <option value="">Choose a tournament...</option>
-                    </select>
-                </div>
-
-                <div id="resultsContainer">
-                    <p style="color:#b9c6d8;text-align:center">Select a tournament to manage results</p>
                 </div>
             </div>
         </main>
@@ -347,7 +371,16 @@
             loadTournaments();
             loadRegistrations();
             renderSquadsList(); // Initialize empty squad list
+            applyTournamentPreset(); // Initialize with default preset
             
+            // Auto-fill squad date from tournament start date
+            document.getElementById('startDate').addEventListener('change', (e) => {
+                const squadDateInput = document.getElementById('squadDate');
+                if (!squadDateInput.value) {
+                    squadDateInput.value = e.target.value;
+                }
+            });
+
             // Toggle options based on checkboxes
             document.getElementById('useHandicap').addEventListener('change', (e) => {
                 document.getElementById('handicapOptions').style.display = e.target.checked ? 'grid' : 'none';
@@ -355,17 +388,6 @@
             
             document.getElementById('bonusPointsEnabled').addEventListener('change', (e) => {
                 document.getElementById('bonusPointsOptions').style.display = e.target.checked ? 'grid' : 'none';
-            });
-            
-            document.getElementById('hasStages').addEventListener('change', (e) => {
-                const hasStages = e.target.checked;
-                document.getElementById('stagesSection').style.display = hasStages ? 'block' : 'none';
-                document.getElementById('simpleFormatSection').style.display = hasStages ? 'none' : 'block';
-            });
-            
-            document.getElementById('scoringMethod').addEventListener('change', (e) => {
-                document.getElementById('matchPlayOptions').style.display = 
-                    (e.target.value === 'match-play' || e.target.value === 'head-to-head') ? 'block' : 'none';
             });
 
             // Handle form submission
@@ -375,15 +397,22 @@
                 const editingId = document.getElementById('editingTournamentId').value;
                 const isEditing = !!editingId;
                 
+                // Calculate total games from stages
+                const totalGames = currentStages.length > 0 
+                    ? currentStages.reduce((sum, stage) => sum + stage.games, 0)
+                    : 6;
+                
                 const formData = {
                     name: form.name.value,
-                    date: form.date.value,
+                    startDate: form.startDate.value,
+                    endDate: form.endDate.value,
                     location: form.location.value,
                     status: form.status.value,
                     description: form.description.value,
                     maxParticipants: form.maxParticipants.value ? Number(form.maxParticipants.value) : null,
                     registrationDeadline: form.registrationDeadline.value || null,
                     squadsRequiredToQualify: form.squadsRequiredToQualify.value ? Number(form.squadsRequiredToQualify.value) : 1,
+                    allowReentry: document.getElementById('allowReentry').checked,
                     squads: currentSquads.map(s => {
                         const squad = {
                             name: s.name,
@@ -399,26 +428,25 @@
                         return squad;
                     }),
                     format: {
-                        // If multi-stage, gamesPerBowler is sum of all stage games, otherwise use the input field
-                        gamesPerBowler: document.getElementById('hasStages').checked 
-                            ? currentStages.reduce((sum, stage) => sum + stage.games, 0)
-                            : Number(document.getElementById('gamesPerBowler').value) || 6,
-                        hasStages: document.getElementById('hasStages').checked,
+                        gamesPerBowler: totalGames,
+                        hasStages: currentStages.length > 1,
                         stages: currentStages,
                         useHandicap: document.getElementById('useHandicap').checked,
                         handicapBase: Number(document.getElementById('handicapBase').value) || 200,
                         handicapPercentage: Number(document.getElementById('handicapPercentage').value) || 90,
+                        separateDivisions: document.getElementById('separateDivisions').checked,
+                        femaleHandicapPins: Number(document.getElementById('femaleHandicapPins').value) || 8,
                         bonusPoints: {
                             enabled: document.getElementById('bonusPointsEnabled').checked,
                             perGame: Number(document.getElementById('bonusPerGame').value) || 0,
                             perSeries: Number(document.getElementById('bonusPerSeries').value) || 0
                         },
-                        scoringMethod: document.getElementById('scoringMethod').value,
+                        scoringMethod: 'total-pinfall', // Default scoring method
                         matchPlay: {
                             pointsForWin: Number(document.getElementById('pointsForWin').value) || 30,
                             pointsForTie: Number(document.getElementById('pointsForTie').value) || 15,
                             pointsForLoss: Number(document.getElementById('pointsForLoss').value) || 0,
-                            includePinfall: document.getElementById('includePinfall').checked
+                            includePinfall: true
                         }
                     }
                 };
@@ -436,17 +464,23 @@
                     if (response.ok) {
                         form.reset();
                         currentSquads = [];
+                        currentStages = [];
                         renderSquadsList();
+                        renderStagesList();
                         cancelEdit();
                         loadTournaments();
                         loadRegistrations();
+                        // Reset tournament type dropdown
+                        document.getElementById('tournamentType').value = 'single-block';
+                        applyTournamentPreset();
                         alert(isEditing ? 'Tournament updated successfully!' : 'Tournament added successfully!');
                     } else {
                         const error = await response.json();
-                        alert('Error: ' + error.error);
+                        alert('Error: ' + error.error + '\n\nYour form data has been preserved.');
                     }
                 } catch (error) {
-                    alert('Failed to save tournament: ' + error.message);
+                    alert('Failed to save tournament: ' + error.message + '\n\nYour form data has been preserved.');
+                    // Don't reset form - keep user's data
                 }
             });
 
@@ -458,7 +492,6 @@
                 const date = document.getElementById('squadDate').value;
                 const time = document.getElementById('squadTime').value;
                 const capacity = document.getElementById('squadCapacity').value;
-                const isQualifying = document.getElementById('squadIsQualifying').checked;
 
                 if (!name || !date || !time || !capacity) {
                     alert('Please fill in all squad fields');
@@ -470,7 +503,7 @@
                     date,
                     time,
                     capacity: Number(capacity),
-                    isQualifying
+                    isQualifying: true
                 };
 
                 if (editingSquadIndex !== null) {
@@ -492,11 +525,590 @@
                 document.getElementById('squadDate').value = '';
                 document.getElementById('squadTime').value = '';
                 document.getElementById('squadCapacity').value = '';
-                document.getElementById('squadIsQualifying').checked = false;
 
                 renderSquadsList();
             }
             
+            // Tournament preset configurations
+            function applyTournamentPreset() {
+                const type = document.getElementById('tournamentType').value;
+                const descriptions = {
+                    'single-block': 'Simple tournament with one block of games for all bowlers',
+                    'multi-block': 'Multiple qualifying blocks (e.g., Block 1, Block 2, Block 3) with combined standings',
+                    'qualifying-finals': 'Qualifying round with top bowlers advancing to a final block',
+                    'triple-crown': 'Three-stage tournament: Qualifying → Semifinals → Finals (common in majors)',
+                    'match-play': 'Head-to-head matches with points awarded for wins/ties/losses',
+                    'round-robin': 'Round robin format where each bowler plays every other bowler',
+                    'bracket-single': 'Single elimination bracket - lose once and you\'re eliminated',
+                    'bracket-double': 'Double elimination - you get a second chance in losers bracket',
+                    'stepladder': 'TV-style elimination: 5th vs 4th, winner vs 3rd, etc.',
+                    'stepladder-extended': 'Extended stepladder with top 8 bowlers (7v8, 6vW, 5vW, etc.)',
+                    'full-tournament': 'Complete format: Qualifying → Finals → Match Play → Stepladder',
+                    'team-baker': 'Team Baker format with alternating bowlers per frame',
+                    'custom': 'Build your own tournament with custom stages'
+                };
+
+                document.getElementById('typeDescription').textContent = descriptions[type] || '';
+
+                // Reset everything
+                currentStages = [];
+                renderStagesList();
+                
+                // Hide/show sections based on type
+                document.getElementById('customStagesSection').style.display = type === 'custom' ? 'block' : 'none';
+                document.getElementById('quickSettings').style.display = type !== 'custom' ? 'block' : 'none';
+                document.getElementById('multiBlockSettings').style.display = type === 'multi-block' ? 'block' : 'none';
+                document.getElementById('matchPlaySettings').style.display = 
+                    ['match-play', 'round-robin', 'bracket-single', 'bracket-double', 'full-tournament'].includes(type) ? 'block' : 'none';
+                document.getElementById('formatSummary').style.display = type !== 'custom' ? 'block' : 'none';
+
+                // Apply preset stages based on type
+                switch(type) {
+                    case 'single-block':
+                        applySingleBlockPreset();
+                        break;
+                    case 'multi-block':
+                        applyMultiBlockPreset();
+                        break;
+                    case 'qualifying-finals':
+                        applyQualifyingFinalsPreset();
+                        break;
+                    case 'triple-crown':
+                        applyTripleCrownPreset();
+                        break;
+                    case 'match-play':
+                        applyMatchPlayPreset();
+                        break;
+                    case 'round-robin':
+                        applyRoundRobinPreset();
+                        break;
+                    case 'bracket-single':
+                        applySingleEliminationPreset();
+                        break;
+                    case 'bracket-double':
+                        applyDoubleEliminationPreset();
+                        break;
+                    case 'stepladder':
+                        applyStepladderPreset();
+                        break;
+                    case 'stepladder-extended':
+                        applyExtendedStepladderPreset();
+                        break;
+                    case 'full-tournament':
+                        applyFullTournamentPreset();
+                        break;
+                    case 'team-baker':
+                        applyTeamBakerPreset();
+                        break;
+                }
+
+                renderStagesList();
+            }
+
+            function applySingleBlockPreset() {
+                const games = document.getElementById('qualifyingGames')?.value || 6;
+                currentStages = [{
+                    name: 'Qualifying',
+                    games: Number(games),
+                    advancingBowlers: null,
+                    carryoverPinfall: false,
+                    carryoverPercentage: 0
+                }];
+                updateFormatSummary();
+            }
+
+            function applyMultiBlockPreset() {
+                const qualGames = Number(document.getElementById('qualifyingGamesMulti')?.value) || Number(document.getElementById('qualifyingGames')?.value) || 6;
+                const numBlocks = Number(document.getElementById('numberOfBlocks')?.value) || 3;
+                
+                currentStages = [];
+                for (let i = 1; i <= numBlocks; i++) {
+                    currentStages.push({
+                        name: `Block ${i}`,
+                        games: qualGames,
+                        advancingBowlers: null,
+                        carryoverPinfall: true,
+                        carryoverPercentage: 100
+                    });
+                }
+                updateFormatSummary();
+            }
+
+            function applyTripleCrownPreset() {
+                const qualGames = Number(document.getElementById('qualifyingGames')?.value) || 6;
+                const advancing = Number(document.getElementById('advancingBowlers')?.value) || 24;
+                const finalsGames = Number(document.getElementById('finalsGames')?.value) || 6;
+
+                currentStages = [
+                    {
+                        name: 'Qualifying',
+                        games: qualGames,
+                        advancingBowlers: advancing,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Semifinals',
+                        games: finalsGames,
+                        advancingBowlers: Math.floor(advancing / 2),
+                        carryoverPinfall: true,
+                        carryoverPercentage: 100
+                    },
+                    {
+                        name: 'Finals',
+                        games: finalsGames,
+                        advancingBowlers: null,
+                        carryoverPinfall: true,
+                        carryoverPercentage: 100
+                    }
+                ];
+                updateFormatSummary();
+            }
+
+            function applyRoundRobinPreset() {
+                const qualGames = Number(document.getElementById('qualifyingGames')?.value) || 6;
+                const advancing = Number(document.getElementById('advancingBowlers')?.value) || 16;
+                const format = document.getElementById('matchPlayFormat')?.value || 'single-game';
+                const formatGames = {
+                    'best-of-3': 3,
+                    'best-of-5': 5,
+                    'single-game': 1,
+                    'total-pinfall-2': 2,
+                    'total-pinfall-3': 3
+                };
+
+                // For round robin: n-1 matches per player
+                const matchesPerPlayer = advancing - 1;
+
+                currentStages = [
+                    {
+                        name: 'Qualifying',
+                        games: qualGames,
+                        advancingBowlers: advancing,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: `Round Robin (${matchesPerPlayer} matches per player)`,
+                        games: formatGames[format] || 1,
+                        advancingBowlers: null,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    }
+                ];
+                updateFormatSummary();
+            }
+
+            function applySingleEliminationPreset() {
+                const qualGames = Number(document.getElementById('qualifyingGames')?.value) || 6;
+                const advancing = Number(document.getElementById('advancingBowlers')?.value) || 16;
+                const format = document.getElementById('matchPlayFormat')?.value || 'single-game';
+                const formatGames = {
+                    'best-of-3': 3,
+                    'best-of-5': 5,
+                    'single-game': 1,
+                    'total-pinfall-2': 2,
+                    'total-pinfall-3': 3
+                };
+
+                currentStages = [
+                    {
+                        name: 'Qualifying',
+                        games: qualGames,
+                        advancingBowlers: advancing,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Round of 16',
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 8,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Quarterfinals',
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 4,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Semifinals',
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 2,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Championship',
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    }
+                ];
+                updateFormatSummary();
+            }
+
+            function applyDoubleEliminationPreset() {
+                const qualGames = Number(document.getElementById('qualifyingGames')?.value) || 6;
+                const advancing = Math.max(8, Number(document.getElementById('advancingBowlers')?.value) || 8);
+                const format = document.getElementById('matchPlayFormat')?.value || 'single-game';
+                const formatGames = {
+                    'best-of-3': 3,
+                    'best-of-5': 5,
+                    'single-game': 1,
+                    'total-pinfall-2': 2,
+                    'total-pinfall-3': 3
+                };
+
+                currentStages = [
+                    {
+                        name: 'Qualifying',
+                        games: qualGames,
+                        advancingBowlers: advancing,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winners Round 1 (4 matches)',
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 4,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Losers Round 1 (2 matches)',
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 2,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winners Semifinals (2 matches)',
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 2,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Losers Round 2 (2 matches)',
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 2,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winners Final',
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Losers Final',
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Grand Final',
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    }
+                ];
+                updateFormatSummary();
+            }
+
+            function applyExtendedStepladderPreset() {
+                const qualGames = Number(document.getElementById('qualifyingGames')?.value) || 6;
+                currentStages = [
+                    {
+                        name: 'Qualifying',
+                        games: qualGames,
+                        advancingBowlers: 8,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: '#8 vs #7',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winner vs #6',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winner vs #5',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winner vs #4',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winner vs #3',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winner vs #2',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Championship (#1 vs Winner)',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    }
+                ];
+                updateFormatSummary();
+            }
+
+            function applyTeamBakerPreset() {
+                const qualGames = Number(document.getElementById('qualifyingGames')?.value) || 6;
+                currentStages = [
+                    {
+                        name: 'Baker Qualifying',
+                        games: qualGames,
+                        advancingBowlers: null,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    }
+                ];
+                updateFormatSummary();
+            }
+
+            function applyQualifyingFinalsPreset() {
+                const qualGames = Number(document.getElementById('qualifyingGames')?.value) || 6;
+                const advancing = Number(document.getElementById('advancingBowlers')?.value) || 16;
+                const finalsGames = Number(document.getElementById('finalsGames')?.value) || 6;
+
+                currentStages = [
+                    {
+                        name: 'Qualifying',
+                        games: qualGames,
+                        advancingBowlers: advancing,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Finals',
+                        games: finalsGames,
+                        advancingBowlers: null,
+                        carryoverPinfall: true,
+                        carryoverPercentage: 100
+                    }
+                ];
+                updateFormatSummary();
+            }
+
+            function applyMatchPlayPreset() {
+                const qualGames = Number(document.getElementById('qualifyingGames')?.value) || 6;
+                const advancing = Number(document.getElementById('advancingBowlers')?.value) || 16;
+                const format = document.getElementById('matchPlayFormat')?.value || 'best-of-3';
+                const formatGames = {
+                    'best-of-3': 3,
+                    'best-of-5': 5,
+                    'single-game': 1,
+                    'total-pinfall-2': 2,
+                    'total-pinfall-3': 3
+                };
+
+                // For match play: n-1 matches per player
+                const matchesPerPlayer = advancing - 1;
+
+                currentStages = [
+                    {
+                        name: 'Qualifying',
+                        games: qualGames,
+                        advancingBowlers: advancing,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: `Match Play (${matchesPerPlayer} matches per player)`,
+                        games: formatGames[format] || 3,
+                        advancingBowlers: null,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    }
+                ];
+                updateFormatSummary();
+            }
+
+            function applyStepladderPreset() {
+                const qualGames = Number(document.getElementById('qualifyingGames')?.value) || 6;
+                currentStages = [
+                    {
+                        name: 'Qualifying',
+                        games: qualGames,
+                        advancingBowlers: 5,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: '#5 vs #4',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winner vs #3',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winner vs #2',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Championship (#1 vs Winner)',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    }
+                ];
+                updateFormatSummary();
+            }
+
+            function applyFullTournamentPreset() {
+                const qualGames = Number(document.getElementById('qualifyingGames')?.value) || 6;
+                const advancing = Number(document.getElementById('advancingBowlers')?.value) || 16;
+                const finalsGames = Number(document.getElementById('finalsGames')?.value) || 6;
+                const format = document.getElementById('matchPlayFormat')?.value || 'best-of-3';
+                const formatGames = {
+                    'best-of-3': 3,
+                    'best-of-5': 5,
+                    'single-game': 1,
+                    'total-pinfall-2': 2,
+                    'total-pinfall-3': 3
+                };
+
+                // For round robin: 8 players = 7 matches per player
+                const roundRobinPlayers = 8;
+                const matchesPerPlayer = roundRobinPlayers - 1;
+
+                currentStages = [
+                    {
+                        name: 'Qualifying',
+                        games: qualGames,
+                        advancingBowlers: advancing,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Finals',
+                        games: finalsGames,
+                        advancingBowlers: roundRobinPlayers,
+                        carryoverPinfall: true,
+                        carryoverPercentage: 100
+                    },
+                    {
+                        name: `Round Robin (${matchesPerPlayer} matches per player)`,
+                        games: formatGames[format] || 1,
+                        advancingBowlers: 5,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: '#5 vs #4',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winner vs #3',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Winner vs #2',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    },
+                    {
+                        name: 'Championship (#1 vs Winner)',
+                        games: 1,
+                        advancingBowlers: 1,
+                        carryoverPinfall: false,
+                        carryoverPercentage: 0
+                    }
+                ];
+                updateFormatSummary();
+            }
+
+            function updateFormatSummary() {
+                const content = document.getElementById('formatSummaryContent');
+                if (currentStages.length === 0) {
+                    content.innerHTML = '<p style="color:#888">No stages configured</p>';
+                    return;
+                }
+
+                const summary = currentStages.map((stage, i) => 
+                    `<div style="margin-bottom:6px">
+                        <strong>Stage ${i + 1}:</strong> ${stage.name} (${stage.games} games)
+                        ${stage.advancingBowlers ? ` → Top ${stage.advancingBowlers} advance` : ''}
+                        ${stage.carryoverPinfall ? ` with ${stage.carryoverPercentage}% carryover` : ''}
+                    </div>`
+                ).join('');
+
+                content.innerHTML = summary;
+            }
+
+            function updateMatchPlayDetails() {
+                const format = document.getElementById('matchPlayFormat').value;
+                const descriptions = {
+                    'best-of-3': 'Best of 3 games - first to win 2 games advances',
+                    'best-of-5': 'Best of 5 games - first to win 3 games advances',
+                    'single-game': 'Single elimination - higher score advances',
+                    'total-pinfall-2': 'Total pinfall across 2 games - higher total advances',
+                    'total-pinfall-3': 'Total pinfall across 3 games - higher total advances'
+                };
+
+                // Update preset if format requires match play configuration
+                const type = document.getElementById('tournamentType').value;
+                const matchPlayTypes = ['match-play', 'round-robin', 'bracket-single', 'bracket-double', 'full-tournament'];
+                
+                if (matchPlayTypes.includes(type)) {
+                    applyTournamentPreset();
+                }
+            }
+
             function addStage() {
                 const name = document.getElementById('stageName').value;
                 const games = document.getElementById('stageGames').value;
@@ -540,15 +1152,73 @@
                 }
                 
                 container.innerHTML = currentStages.map((stage, i) => `
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:6px">
-                        <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:6px;gap:8px">
+                        <div style="flex:1">
                             <strong>${stage.name}</strong> • ${stage.games} games
                             ${stage.advancingBowlers ? ` • Top ${stage.advancingBowlers} advance` : ''}
                             ${stage.carryoverPinfall ? ` • ${stage.carryoverPercentage}% carryover` : ''}
                         </div>
-                        <button onclick="removeStage(${i})" class="button" style="padding:4px 8px;font-size:.75rem;background:#c92a2a">Remove</button>
+                        <div style="display:flex;gap:4px">
+                            <button onclick="editStage(${i})" class="button" style="padding:4px 8px;font-size:.75rem;background:var(--blue-600)">Edit</button>
+                            <button onclick="removeStage(${i})" class="button" style="padding:4px 8px;font-size:.75rem;background:#c92a2a">Remove</button>
+                        </div>
                     </div>
                 `).join('');
+            }
+
+            let editingStageIndex = null;
+
+            function editStage(index) {
+                const stage = currentStages[index];
+                document.getElementById('stageName').value = stage.name;
+                document.getElementById('stageGames').value = stage.games;
+                document.getElementById('stageAdvancing').value = stage.advancingBowlers || '';
+                document.getElementById('stageCarryover').checked = stage.carryoverPinfall;
+                document.getElementById('stageCarryoverPct').value = stage.carryoverPercentage || 100;
+                
+                editingStageIndex = index;
+                const addButton = document.querySelector('button[onclick="addStage()"]');
+                addButton.textContent = 'Update Stage';
+                addButton.onclick = function() { updateStage(); };
+                
+                // Scroll to stage form
+                document.getElementById('stageName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function updateStage() {
+                const name = document.getElementById('stageName').value;
+                const games = document.getElementById('stageGames').value;
+                const advancing = document.getElementById('stageAdvancing').value;
+                const carryover = document.getElementById('stageCarryover').checked;
+                const carryoverPct = document.getElementById('stageCarryoverPct').value;
+
+                if (!name || !games) {
+                    alert('Please fill in stage name and games');
+                    return;
+                }
+
+                currentStages[editingStageIndex] = {
+                    name,
+                    games: Number(games),
+                    advancingBowlers: advancing ? Number(advancing) : null,
+                    carryoverPinfall: carryover,
+                    carryoverPercentage: Number(carryoverPct) || 100
+                };
+
+                // Reset form
+                document.getElementById('stageName').value = '';
+                document.getElementById('stageGames').value = '6';
+                document.getElementById('stageAdvancing').value = '';
+                document.getElementById('stageCarryover').checked = true;
+                document.getElementById('stageCarryoverPct').value = '100';
+                
+                editingStageIndex = null;
+                const addButton = document.querySelector('button[onclick="updateStage()"]');
+                addButton.textContent = '+ Add';
+                addButton.onclick = function() { addStage(); };
+
+                renderStagesList();
+                updateFormatSummary();
             }
 
             function editSquad(index) {
@@ -596,7 +1266,6 @@
                                 <strong style="font-size:.9rem">${squad.name}</strong>
                                 <span style="color:#b9c6d8;font-size:.85rem;margin-left:8px">
                                     ${squadDate} @ ${squad.time} • Capacity: ${squad.capacity}
-                                    ${squad.isQualifying ? ' • <span style="color:#51cf66">Qualifying</span>' : ''}
                                 </span>
                             </div>
                             <div style="display:flex;gap:6px">
@@ -619,13 +1288,15 @@
 
                         // Fill form
                         form.name.value = tournament.name;
-                        form.date.value = tournament.date.split('T')[0];
+                        form.startDate.value = (tournament.startDate || tournament.date).split('T')[0];
+                        form.endDate.value = (tournament.endDate || tournament.date).split('T')[0];
                         form.location.value = tournament.location;
                         form.status.value = tournament.status;
                         form.description.value = tournament.description || '';
                         form.maxParticipants.value = tournament.maxParticipants || '';
                         form.registrationDeadline.value = tournament.registrationDeadline ? tournament.registrationDeadline.split('T')[0] : '';
                         form.squadsRequiredToQualify.value = tournament.squadsRequiredToQualify || 1;
+                        document.getElementById('allowReentry').checked = tournament.allowReentry !== false; // Default to true for existing tournaments
 
                         // Load squads
                         currentSquads = tournament.squads || [];
@@ -641,6 +1312,8 @@
                         document.getElementById('useHandicap').checked = format.useHandicap || false;
                         document.getElementById('handicapBase').value = format.handicapBase || 200;
                         document.getElementById('handicapPercentage').value = format.handicapPercentage || 90;
+                        document.getElementById('separateDivisions').checked = format.separateDivisions || false;
+                        document.getElementById('femaleHandicapPins').value = format.femaleHandicapPins || 8;
                         document.getElementById('bonusPointsEnabled').checked = format.bonusPoints?.enabled || false;
                         document.getElementById('bonusPerGame').value = format.bonusPoints?.perGame || 0;
                         document.getElementById('bonusPerSeries').value = format.bonusPoints?.perSeries || 0;
@@ -652,10 +1325,6 @@
                         // Show/hide sections based on settings
                         document.getElementById('handicapOptions').style.display = format.useHandicap ? 'grid' : 'none';
                         document.getElementById('bonusPointsOptions').style.display = format.bonusPoints?.enabled ? 'grid' : 'none';
-                        document.getElementById('stagesSection').style.display = hasStages ? 'block' : 'none';
-                        document.getElementById('simpleFormatSection').style.display = hasStages ? 'none' : 'block';
-                        document.getElementById('matchPlayOptions').style.display = 
-                            (format.scoringMethod === 'match-play' || format.scoringMethod === 'head-to-head') ? 'block' : 'none';
                         
                         // Load stages
                         currentStages = format.stages || [];
@@ -681,31 +1350,47 @@
                 renderStagesList();
                 
                 // Reset format options
-                document.getElementById('gamesPerBowler').value = '6';
-                document.getElementById('scoringMethod').value = 'total-pinfall';
-                document.getElementById('hasStages').checked = false;
                 document.getElementById('useHandicap').checked = false;
                 document.getElementById('bonusPointsEnabled').checked = false;
                 document.getElementById('handicapOptions').style.display = 'none';
                 document.getElementById('bonusPointsOptions').style.display = 'none';
-                document.getElementById('stagesSection').style.display = 'none';
-                document.getElementById('simpleFormatSection').style.display = 'block';
-                document.getElementById('matchPlayOptions').style.display = 'none';
+                document.getElementById('matchPlaySettings').style.display = 'none';
+                
+                // Reset tournament type to default
+                document.getElementById('tournamentType').value = 'single-block';
+                applyTournamentPreset();
             }
 
             // Load and display tournaments
             async function loadTournaments() {
                 try {
                     const response = await fetch('/api/tournaments');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const tournaments = await response.json();
 
-                    // Update registration filter dropdown
-                    regFilterSelect.innerHTML = '<option value="">All Tournaments</option>' + 
-                        tournaments.map(t => `<option value="${t._id}">${t.name} (${new Date(t.date).toLocaleDateString()})</option>`).join('');
+                    // Update registration filter dropdown (if it exists)
+                    if (regFilterSelect) {
+                        regFilterSelect.innerHTML = '<option value="">All Tournaments</option>' + 
+                            tournaments.map(t => {
+                                const startDate = new Date(t.startDate || t.date).toLocaleDateString();
+                                const endDate = new Date(t.endDate || t.date).toLocaleDateString();
+                                const dateRange = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
+                                return `<option value="${t._id}">${t.name} (${dateRange})</option>`;
+                            }).join('');
+                    }
 
-                    // Update results tournament filter dropdown
-                    resultsTournamentFilter.innerHTML = '<option value="">Choose a tournament...</option>' + 
-                        tournaments.map(t => `<option value="${t._id}">${t.name} (${new Date(t.date).toLocaleDateString()})</option>`).join('');
+                    // Update results tournament filter dropdown (if it exists)
+                    if (resultsTournamentFilter) {
+                        resultsTournamentFilter.innerHTML = '<option value="">Choose a tournament...</option>' + 
+                            tournaments.map(t => {
+                                const startDate = new Date(t.startDate || t.date).toLocaleDateString();
+                                const endDate = new Date(t.endDate || t.date).toLocaleDateString();
+                                const dateRange = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
+                                return `<option value="${t._id}">${t.name} (${dateRange})</option>`;
+                            }).join('');
+                    }
 
                     if (tournaments.length === 0) {
                         listContainer.innerHTML = '<p style="color:#b9c6d8;text-align:center">No tournaments scheduled yet.</p>';
@@ -713,9 +1398,11 @@
                     }
 
                     listContainer.innerHTML = tournaments.map(t => {
-                        const date = new Date(t.date).toLocaleDateString('en-US', { 
-                            year: 'numeric', month: 'long', day: 'numeric' 
-                        });
+                        const startDate = new Date(t.startDate || t.date);
+                        const endDate = new Date(t.endDate || t.date);
+                        const dateStr = startDate.toDateString() === endDate.toDateString()
+                            ? startDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                            : `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
                         const statusClass = `status-${t.status}`;
                         const squadCount = t.squads ? t.squads.length : 0;
                         
@@ -741,7 +1428,7 @@
                             <div class="tournament-item">
                                 <div class="tournament-info">
                                     <h4>${t.name}</h4>
-                                    <p>${date} • ${t.location} • <span class="status-badge ${statusClass}">${t.status}</span></p>
+                                    <p>${dateStr} • ${t.location} • <span class="status-badge ${statusClass}">${t.status}</span></p>
                                     ${t.description ? `<p style="margin-top:4px">${t.description}</p>` : ''}
                                     ${squadCount > 0 ? `<p style="margin-top:4px;font-size:.85rem;color:#b9c6d8">📅 ${squadCount} squad${squadCount !== 1 ? 's' : ''} configured</p>` : ''}
                                     ${formatInfo}
@@ -754,7 +1441,8 @@
                         `;
                     }).join('');
                 } catch (error) {
-                    listContainer.innerHTML = '<p style="color:#c92a2a;text-align:center">Failed to load tournaments</p>';
+                    console.error('Error loading tournaments:', error);
+                    listContainer.innerHTML = `<p style="color:#c92a2a;text-align:center">Failed to load tournaments: ${error.message}</p>`;
                 }
             }
 

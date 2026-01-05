@@ -335,15 +335,17 @@
             }
 
             function renderEventCard(tournament) {
-                const date = new Date(tournament.date);
-                const day = date.getDate();
-                const month = date.toLocaleDateString('en-US', { month: 'short' });
-                const year = date.getFullYear();
-                const fullDate = date.toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                });
+                const startDate = new Date(tournament.startDate || tournament.date);
+                const endDate = new Date(tournament.endDate || tournament.date);
+                
+                const day = startDate.getDate();
+                const month = startDate.toLocaleDateString('en-US', { month: 'short' });
+                const year = startDate.getFullYear();
+                
+                // Format date range
+                const fullDate = startDate.toDateString() === endDate.toDateString()
+                    ? startDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                    : `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
 
                 const statusClass = `status-${tournament.status}`;
                 const statusText = tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1);
@@ -353,6 +355,8 @@
                 const isOngoing = tournament.status === 'ongoing';
                 const canRegister = tournament.status === 'upcoming' && 
                     (!tournament.registrationDeadline || new Date(tournament.registrationDeadline) > now);
+                
+                const hasSquads = tournament.squads && tournament.squads.length > 0;
 
                 let metaItems = [];
                 if (tournament.maxParticipants) {
@@ -364,6 +368,9 @@
                         day: 'numeric' 
                     });
                     metaItems.push(`<div class="event-meta-item">⏰ Register by ${regDate}</div>`);
+                }
+                if (hasSquads) {
+                    metaItems.push(`<div class="event-meta-item">🎯 ${tournament.squads.length} squad${tournament.squads.length > 1 ? 's' : ''}</div>`);
                 }
 
                 return `
@@ -385,14 +392,14 @@
                         
                         <div class="event-actions">
                             ${isPast 
-                                ? `<a href="/results" class="btn-action btn-primary">View Results</a>`
+                                ? `<a href="/results?id=${tournament._id}" class="btn-action btn-primary">View Results</a>`
                                 : isOngoing
-                                    ? `<a href="/results" class="btn-action btn-primary">Live Results</a>`
+                                    ? `<a href="/results?id=${tournament._id}" class="btn-action btn-primary">Live Results</a>`
                                     : canRegister
                                         ? `<a href="/register" class="btn-action btn-primary">Register Now</a>`
                                         : `<button class="btn-action btn-disabled" disabled>Registration Closed</button>`
                             }
-                            <a href="/playerstats" class="btn-action btn-secondary">Player Stats</a>
+                            ${hasSquads ? `<a href="/squads?id=${tournament._id}" class="btn-action btn-secondary">View Squads</a>` : `<a href="/playerstats" class="btn-action btn-secondary">Player Stats</a>`}
                         </div>
                     </div>
                 `;

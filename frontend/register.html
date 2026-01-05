@@ -415,6 +415,23 @@
                 }
             }
 
+            function validateSquadSelection(checkbox) {
+                const allowReentry = checkbox.dataset.allowReentry === 'true';
+                const requiredQualifying = parseInt(checkbox.dataset.requiredQualifying) || 0;
+                
+                if (!allowReentry && requiredQualifying > 0) {
+                    // Get all qualifying checkboxes in the same form
+                    const form = checkbox.closest('.registration-form');
+                    const qualifyingCheckboxes = form.querySelectorAll('input[name="squads"][data-is-qualifying="true"]:checked');
+                    
+                    // If user tries to select more than allowed, uncheck this one
+                    if (qualifyingCheckboxes.length > requiredQualifying) {
+                        checkbox.checked = false;
+                        alert(`Re-entry is not allowed for this tournament. You can only select ${requiredQualifying} qualifying squad${requiredQualifying > 1 ? 's' : ''}.`);
+                    }
+                }
+            }
+
             function renderSquadSelection(tournament) {
                 if (!tournament.squadsData || !tournament.squadsData.squads || tournament.squadsData.squads.length === 0) {
                     return '';
@@ -422,10 +439,15 @@
 
                 const squads = tournament.squadsData.squads;
                 const requiredQualifying = tournament.squadsData.tournament.squadsRequiredToQualify || 0;
+                const allowReentry = tournament.squadsData.tournament.allowReentry !== false; // Default to true
 
                 let requirementText = '';
                 if (requiredQualifying > 0) {
-                    requirementText = `<div class="squad-requirement">* Must select at least ${requiredQualifying} qualifying squad${requiredQualifying > 1 ? 's' : ''}</div>`;
+                    if (allowReentry) {
+                        requirementText = `<div class="squad-requirement">* Must select at least ${requiredQualifying} qualifying squad${requiredQualifying > 1 ? 's' : ''} (re-entry allowed - bowl as many as you want!)</div>`;
+                    } else {
+                        requirementText = `<div class="squad-requirement">* Must select exactly ${requiredQualifying} qualifying squad${requiredQualifying > 1 ? 's' : ''} (re-entry NOT allowed)</div>`;
+                    }
                 }
 
                 const squadCheckboxes = squads.map(squad => {
@@ -445,7 +467,10 @@
                                     name="squads" 
                                     value="${squad._id}" 
                                     data-is-qualifying="${squad.isQualifying}"
+                                    data-allow-reentry="${allowReentry}"
+                                    data-required-qualifying="${requiredQualifying}"
                                     ${disabledAttr}
+                                    onchange="validateSquadSelection(this)"
                                 />
                                 <div class="squad-info">
                                     <div class="squad-name">
@@ -473,12 +498,11 @@
             }
 
             function renderTournamentCard(tournament) {
-                const date = new Date(tournament.date);
-                const formattedDate = date.toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                });
+                const startDate = new Date(tournament.startDate || tournament.date);
+                const endDate = new Date(tournament.endDate || tournament.date);
+                const formattedDate = startDate.toDateString() === endDate.toDateString()
+                    ? startDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                    : `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
 
                 const spotsLeft = tournament.maxParticipants 
                     ? tournament.maxParticipants - tournament.registrationCount 
@@ -543,6 +567,14 @@
 
                             ${tournament.description ? `<p style="color:var(--muted);margin-top:16px">${tournament.description}</p>` : ''}
                             ${deadlineWarning}
+                            
+                            ${tournament.squadsData && tournament.squadsData.squads && tournament.squadsData.squads.length > 0 ? `
+                                <div style="text-align:center;margin:16px 0">
+                                    <a href="/squads?id=${tournament._id}" style="color:var(--blue-500);text-decoration:none;font-size:.9rem">
+                                        📋 View Squad Lists & Availability →
+                                    </a>
+                                </div>
+                            ` : ''}
 
                             <form id="form-${tournament._id}" class="reg-form">
                                 <div class="form-group">
@@ -558,6 +590,15 @@
                                 <div class="form-group">
                                     <label for="phone-${tournament._id}">Phone *</label>
                                     <input id="phone-${tournament._id}" name="phone" type="tel" required />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="gender-${tournament._id}">Gender *</label>
+                                    <select id="gender-${tournament._id}" name="gender" required style="padding:10px;font-size:1rem;border:1px solid rgba(255,255,255,.1);background:#1a1f2e;color:#fff;border-radius:8px;width:100%">
+                                        <option value="">Select...</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
                                 </div>
 
                                 <div class="form-group">
@@ -611,16 +652,29 @@
 
                     // Validate qualifying squad requirement
                     const requiredQualifying = tournament.squadsData.tournament.squadsRequiredToQualify || 0;
+                    const allowReentry = tournament.squadsData.tournament.allowReentry !== false;
+                    
                     if (requiredQualifying > 0) {
                         const qualifyingSelected = Array.from(squadCheckboxes)
                             .filter(cb => cb.dataset.isQualifying === 'true')
                             .length;
                         
-                        if (qualifyingSelected < requiredQualifying) {
-                            messageDiv.innerHTML = `<div class="error-message">❌ Must select at least ${requiredQualifying} qualifying squad${requiredQualifying > 1 ? 's' : ''}</div>`;
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = `Register for ${tournament.name}`;
-                            return;
+                        if (allowReentry) {
+                            // Re-entry allowed - just need minimum
+                            if (qualifyingSelected < requiredQualifying) {
+                                messageDiv.innerHTML = `<div class="error-message">❌ Must select at least ${requiredQualifying} qualifying squad${requiredQualifying > 1 ? 's' : ''}</div>`;
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = `Register for ${tournament.name}`;
+                                return;
+                            }
+                        } else {
+                            // Re-entry NOT allowed - must select exact number
+                            if (qualifyingSelected !== requiredQualifying) {
+                                messageDiv.innerHTML = `<div class="error-message">❌ Must select exactly ${requiredQualifying} qualifying squad${requiredQualifying > 1 ? 's' : ''} (re-entry not allowed)</div>`;
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = `Register for ${tournament.name}`;
+                                return;
+                            }
                         }
                     }
                 }
@@ -630,6 +684,7 @@
                     playerName: formData.get('playerName'),
                     email: formData.get('email'),
                     phone: formData.get('phone'),
+                    gender: formData.get('gender'),
                     averageScore: formData.get('averageScore') ? parseInt(formData.get('averageScore')) : null,
                     notes: formData.get('notes'),
                     assignedSquads: selectedSquads

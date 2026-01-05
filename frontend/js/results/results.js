@@ -1,118 +1,243 @@
-// ===== Mock Data (extend/replace with real feed) =====
-const BASE = [
-    { name: 'Jordan Carter', games: 12, avg: 226.3, pins: 2716, high: 279, squad: 'A' },
-    { name: 'Lachlan Nielsen', games: 12, avg: 223.9, pins: 2687, high: 278, squad: 'B' },
-    { name: 'Maria Diaz', games: 12, avg: 221.1, pins: 2653, high: 276, squad: 'A' },
-    { name: 'Arjun Singh', games: 12, avg: 219.5, pins: 2634, high: 274, squad: 'B' },
-    { name: 'Kai Tan', games: 12, avg: 218.0, pins: 2616, high: 268, squad: 'A' },
-    { name: 'Ethan Park', games: 12, avg: 217.2, pins: 2606, high: 266, squad: 'B' },
-    { name: 'Sofia Rossi', games: 12, avg: 216.7, pins: 2600, high: 265, squad: 'A' },
-    { name: 'Noah Kim', games: 12, avg: 215.4, pins: 2585, high: 264, squad: 'B' },
-    { name: 'Ava Patel', games: 12, avg: 214.9, pins: 2579, high: 263, squad: 'A' },
-    { name: 'Lucas Meyer', games: 12, avg: 214.3, pins: 2572, high: 262, squad: 'B' }
-];
+// ===== Tournament Results with Stage-Based Leaderboards =====
+let currentTournamentData = null;
 
-const STAGES = {
-    qualifying: BASE,
-    match: BASE.map((x) => ({ ...x, games: 20, avg: +(x.avg - 2).toFixed(1), pins: x.pins + 800, high: Math.max(x.high - 3, 240) })),
-    finals: BASE.slice(0, 5).map((x) => ({ ...x, games: 24, avg: +(x.avg - 1.5).toFixed(1), pins: x.pins + 1400, high: Math.max(x.high - 5, 235) }))
-};
+const tournamentSelect = document.getElementById('tournamentSelect');
+const tournamentTitle = document.getElementById('tournamentTitle');
+const tournamentSubtitle = document.getElementById('tournamentSubtitle');
+const resultsContainer = document.getElementById('resultsContainer');
 
-const tbody = document.getElementById('tbody');
-const year = document.getElementById('year');
-const stage = document.getElementById('stage');
-const squad = document.getElementById('squad');
-const query = document.getElementById('query');
-const pageLabel = document.getElementById('pageLabel');
-const prevBtn = document.getElementById('prev');
-const nextBtn = document.getElementById('next');
-
-let PAGE = 1;
-const PER = 10;
-let SORT = { key: 'pos', dir: 'asc' };
-
-function getData() {
-    const list = [...STAGES[stage.value]];
-    // add positions according to current sort base (pins desc default)
-    list.sort((a, b) => b.pins - a.pins);
-    list.forEach((x, i) => (x.pos = i + 1));
-
-    // filter by squad
-    const f1 = squad.value === 'all' ? list : list.filter((x) => x.squad === squad.value);
-
-    // filter by search
-    const q = (query.value || '').trim().toLowerCase();
-    const f2 = q ? f1.filter((x) => x.name.toLowerCase().includes(q)) : f1;
-    return f2;
+// Initialize
+async function init() {
+    await loadTournaments();
+    
+    // Check URL parameter for tournament ID
+    const urlParams = new URLSearchParams(window.location.search);
+    const tournamentId = urlParams.get('id');
+    if (tournamentId) {
+        tournamentSelect.value = tournamentId;
+        await loadTournamentResults();
+    }
+    
+    // Event listeners
+    tournamentSelect.addEventListener('change', loadTournamentResults);
 }
 
-function sortData(rows) {
-    const { key, dir } = SORT;
-    const mult = dir === 'asc' ? 1 : -1;
-    return rows.sort((a, b) => {
-        const A = a[key];
-        const B = b[key];
-        if (typeof A === 'string') return A.localeCompare(B) * mult;
-        return (A - B) * mult;
-    });
+async function loadTournaments() {
+    try {
+        const response = await fetch('/api/tournaments');
+        const tournaments = await response.json();
+        
+        // Sort by date descending
+        tournaments.sort((a, b) => new Date(b.startDate || b.date) - new Date(a.startDate || a.date));
+        
+        tournamentSelect.innerHTML = '<option value="">Choose a tournament...</option>';
+        tournaments.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t._id;
+            const date = new Date(t.startDate || t.date).toLocaleDateString();
+            opt.textContent = `${t.name} - ${date}`;
+            tournamentSelect.appendChild(opt);
+        });
+    } catch (error) {
+        console.error('Error loading tournaments:', error);
+    }
 }
 
-function render() {
-    const data = sortData(getData());
-    const total = data.length;
-    const pages = Math.max(1, Math.ceil(total / PER));
-    PAGE = Math.min(PAGE, pages);
-    const start = (PAGE - 1) * PER;
-    const view = data.slice(start, start + PER);
-
-    tbody.innerHTML = view
-    .map((r) => `
-    <tr>
-        <td>${r.pos}</td>
-        <td>${r.name}</td>
-        <td class="right">${r.games}</td>
-        <td class="right">${r.avg.toFixed(1)}</td>
-        <td class="right">${r.pins}</td>
-        <td class="right">${r.high}</td>
-    </tr>`)
-    .join('');
-
-    pageLabel.textContent = `Page ${PAGE} / ${pages}`;
-    prevBtn.disabled = PAGE <= 1;
-    nextBtn.disabled = PAGE >= pages;
+async function loadTournamentResults() {
+    const tournamentId = tournamentSelect.value;
+    
+    if (!tournamentId) {
+        tournamentTitle.textContent = 'Select a Tournament';
+        tournamentSubtitle.textContent = 'Choose a tournament to view complete results and leaderboards.';
+        resultsContainer.innerHTML = '<div style="text-align:center;padding:48px;color:#888"><p>Please select a tournament to view results</p></div>';
+        return;
+    }
+    
+    resultsContainer.innerHTML = '<div style="text-align:center;padding:48px;color:#888"><p>Loading results...</p></div>';
+    
+    try {
+        const response = await fetch(`/api/tournaments/${tournamentId}/results`);
+        if (!response.ok) throw new Error('Failed to load results');
+        
+        currentTournamentData = await response.json();
+        
+        // Update tournament title
+        tournamentTitle.textContent = currentTournamentData.tournament.name;
+        const date = new Date(currentTournamentData.tournament.date).toLocaleDateString('en-US', { 
+            year: 'numeric', month: 'long', day: 'numeric' 
+        });
+        tournamentSubtitle.textContent = `${date} • ${currentTournamentData.tournament.location}`;
+        
+        // Render results
+        renderResults();
+        
+        // Update URL
+        const url = new URL(window.location);
+        url.searchParams.set('id', tournamentId);
+        window.history.replaceState({}, '', url);
+        
+    } catch (error) {
+        console.error('Error loading results:', error);
+        resultsContainer.innerHTML = '<div style="text-align:center;padding:48px;color:#c92a2a"><p>Failed to load results. Please try again.</p></div>';
+    }
 }
 
-// Table sorting
-document.querySelectorAll('th').forEach((th) => {
-    th.addEventListener('click', () => {
-        const key = th.dataset.key;
-        if (!key) return;
-        SORT.dir = SORT.key === key && SORT.dir === 'asc' ? 'desc' : 'asc';
-        SORT.key = key;
-        render();
-    });
-});
+function renderResults() {
+    if (!currentTournamentData) return;
+    
+    let html = '';
+    
+    if (currentTournamentData.hasStages) {
+        // Multi-stage tournament
+        currentTournamentData.stages.forEach((stage, index) => {
+            if (stage.players.length === 0) {
+                // Stage not started yet
+                html += renderEmptyStage(stage, index);
+            } else {
+                html += renderStageLeaderboard(stage, stage.players, index);
+            }
+        });
+    } else {
+        // Single stage tournament
+        if (currentTournamentData.players?.length === 0) {
+            html = '<div style="text-align:center;padding:48px;color:#888"><p>No results available yet</p></div>';
+        } else {
+            html = renderSingleStageLeaderboard(currentTournamentData.players || []);
+        }
+    }
+    
+    resultsContainer.innerHTML = html || '<div style="text-align:center;padding:48px;color:#888"><p>No results available yet</p></div>';
+}
 
-// Filters & paging
-[stage, squad, query].forEach((el) => el.addEventListener('input', () => {
-    PAGE = 1;
-    render();
-}));
+function filterPlayers(players) {
+    return players;
+}
 
-prevBtn.addEventListener('click', () => { PAGE = Math.max(1, PAGE - 1); render(); });
-nextBtn.addEventListener('click', () => { PAGE = PAGE + 1; render(); });
+function renderStageLeaderboard(stage, players, stageIndex) {
+    const isQualifying = stageIndex === 0;
+    const isFinal = stageIndex === currentTournamentData.stages.length - 1;
+    const icon = isFinal ? '👑' : isQualifying ? '🎯' : '🏆';
+    
+    // Determine max games in this stage
+    const maxGames = Math.max(...players.map(p => p.scores?.length || 0), stage.games);
+    const gameHeaders = Array.from({length: maxGames}, (_, i) => 
+        `<th style="padding:12px;text-align:center;font-weight:600;width:70px">G${i+1}</th>`
+    ).join('');
+    
+    return `
+        <div style="margin-bottom:32px">
+            <h2 style="margin:0 0 8px;font-size:1.5rem;display:flex;align-items:center;gap:8px">
+                ${icon} ${stage.stageName}
+                <span style="font-size:0.9rem;color:#888;font-weight:400">(${stage.games} games)</span>
+            </h2>
+            ${stage.advancingBowlers ? `<p class="sub" style="margin:0 0 16px">Top ${stage.advancingBowlers} advance to next stage</p>` : '<div style="margin-bottom:16px"></div>'}
+            
+            <div style="overflow-x:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.1)">
+                <table style="width:100%;border-collapse:collapse;background:#0a0f16">
+                    <thead>
+                        <tr style="background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.1)">
+                            <th style="padding:12px;text-align:left;font-weight:600;width:60px">#</th>
+                            <th style="padding:12px;text-align:left;font-weight:600;min-width:150px">Player</th>
+                            ${stage.players[0]?.carryover > 0 ? '<th style="padding:12px;text-align:center;font-weight:600;width:70px">Carry</th>' : ''}
+                            ${gameHeaders}
+                            <th style="padding:12px;text-align:center;font-weight:600;width:80px">Avg</th>
+                            <th style="padding:12px;text-align:center;font-weight:600;width:100px">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${players.map((player, idx) => renderPlayerRow(player, idx, stage, maxGames)).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
 
-// CSV download
-document.getElementById('download').addEventListener('click', () => {
-    const rows = sortData(getData());
-    const head = ['pos', 'name', 'games', 'avg', 'pins', 'high'];
-    const csv = [head.join(','), ...rows.map((r) => head.map((k) => r[k]).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `results_${stage.value}_${(year && year.value) || '2026'}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-});
+function renderSingleStageLeaderboard(players) {
+    // Determine max games
+    const maxGames = Math.max(...players.map(p => p.scores?.length || 0), 3);
+    const gameHeaders = Array.from({length: maxGames}, (_, i) => 
+        `<th style="padding:12px;text-align:center;font-weight:600;width:70px">G${i+1}</th>`
+    ).join('');
+    
+    return `
+        <div style="margin-bottom:32px">
+            <h2 style="margin:0 0 16px;font-size:1.5rem">🏆 Final Standings</h2>
+            
+            <div style="overflow-x:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.1)">
+                <table style="width:100%;border-collapse:collapse;background:#0a0f16">
+                    <thead>
+                        <tr style="background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.1)">
+                            <th style="padding:12px;text-align:left;font-weight:600;width:60px">#</th>
+                            <th style="padding:12px;text-align:left;font-weight:600;min-width:150px">Player</th>
+                            ${gameHeaders}
+                            <th style="padding:12px;text-align:center;font-weight:600;width:80px">Avg</th>
+                            <th style="padding:12px;text-align:center;font-weight:600;width:100px">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${players.map((player, idx) => renderPlayerRow(player, idx, null, maxGames)).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
 
-render();
+function renderPlayerRow(player, index, stage = null, maxGames = 0) {
+    const position = player.position;
+    const isTopThree = position <= 3;
+    const isAdvancing = stage?.advancingBowlers && position <= stage.advancingBowlers;
+    
+    let positionBadge = position;
+    if (position === 1) positionBadge = '🥇';
+    else if (position === 2) positionBadge = '🥈';
+    else if (position === 3) positionBadge = '🥉';
+    
+    const rowStyle = isTopThree 
+        ? 'background:rgba(255,215,0,0.08);border-bottom:1px solid rgba(255,215,0,0.2)' 
+        : isAdvancing
+        ? 'background:rgba(46,143,220,0.05);border-bottom:1px solid rgba(255,255,255,0.05)'
+        : 'border-bottom:1px solid rgba(255,255,255,0.05)';
+    
+    // Generate game score cells
+    const gameCells = Array.from({length: maxGames}, (_, i) => {
+        const score = player.scores?.[i];
+        if (score !== undefined) {
+            const isHigh = score === player.high;
+            return `<td style="padding:12px;text-align:center;${isHigh ? 'color:#5eb6f5;font-weight:600' : 'color:#b9c6d8'}">${score}</td>`;
+        }
+        return `<td style="padding:12px;text-align:center;color:#444">-</td>`;
+    }).join('');
+    
+    return `
+        <tr style="${rowStyle}">
+            <td style="padding:12px;font-weight:600;font-size:1.1rem">${positionBadge}</td>
+            <td style="padding:12px;font-weight:500">${player.playerName}</td>
+            ${player.carryover > 0 ? `<td style="padding:12px;text-align:center;color:#51cf66;font-weight:600">${player.carryover}</td>` : ''}
+            ${gameCells}
+            <td style="padding:12px;text-align:center;font-weight:500">${player.average}</td>
+            <td style="padding:12px;text-align:center;font-weight:700;font-size:1.1rem;color:#51cf66">${player.total}</td>
+        </tr>
+    `;
+}
+
+function renderEmptyStage(stage, stageIndex) {
+    const isQualifying = stageIndex === 0;
+    const icon = isQualifying ? '🎯' : '🏆';
+    
+    return `
+        <div style="margin-bottom:32px">
+            <h2 style="margin:0 0 8px;font-size:1.5rem;color:#888;display:flex;align-items:center;gap:8px">
+                ${icon} ${stage.stageName}
+                <span style="font-size:0.9rem;font-weight:400">(${stage.games} games)</span>
+            </h2>
+            <div style="text-align:center;padding:32px;background:rgba(255,255,255,0.02);border-radius:12px;border:1px solid rgba(255,255,255,0.05)">
+                <p style="color:#888;margin:0">Waiting for ${stageIndex === 0 ? 'scores' : 'previous stage to complete'}</p>
+            </div>
+        </div>
+    `;
+}
+
+// Initialize on page load
+init();
