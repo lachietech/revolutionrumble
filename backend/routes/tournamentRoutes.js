@@ -1,6 +1,7 @@
 import express from 'express';
 import Tournament from '../models/Tournament.js';
 import Registration from '../models/Registration.js';
+import SpotReservation from '../models/SpotReservation.js';
 
 const router = express.Router();
 
@@ -79,6 +80,12 @@ router.get('/tournaments/:id/squads/availability', async (req, res) => {
             tournament: req.params.id,
             status: { $in: ['pending', 'confirmed'] }
         });
+        
+        // Get active reservations
+        const activeReservations = await SpotReservation.find({
+            tournament: req.params.id,
+            expiresAt: { $gt: new Date() }
+        });
 
         // Count registrations per squad
         const squadCounts = {};
@@ -91,17 +98,33 @@ router.get('/tournaments/:id/squads/availability', async (req, res) => {
             }
         });
 
+        // Count reservations per squad
+        const reservationCounts = {};
+        activeReservations.forEach(res => {
+            if (res.squads && res.squads.length > 0) {
+                res.squads.forEach(squadId => {
+                    const id = squadId.toString();
+                    reservationCounts[id] = (reservationCounts[id] || 0) + 1;
+                });
+            }
+        });
+
         // Build availability data
-        const squadsWithAvailability = tournament.squads.map(squad => ({
-            _id: squad._id,
-            name: squad.name,
-            date: squad.date,
-            time: squad.time,
-            capacity: squad.capacity,
-            isQualifying: squad.isQualifying,
-            registered: squadCounts[squad._id.toString()] || 0,
-            available: squad.capacity - (squadCounts[squad._id.toString()] || 0)
-        }));
+        const squadsWithAvailability = tournament.squads.map(squad => {
+            const registered = squadCounts[squad._id.toString()] || 0;
+            const reserved = reservationCounts[squad._id.toString()] || 0;
+            return {
+                _id: squad._id,
+                name: squad.name,
+                date: squad.date,
+                time: squad.time,
+                capacity: squad.capacity,
+                isQualifying: squad.isQualifying,
+                registered,
+                reserved,
+                available: squad.capacity - registered - reserved
+            };
+        });
 
         res.json({
             tournament: {

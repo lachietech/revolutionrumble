@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Bowler Hub — Revolution Rumble</title>
+        <meta name="description" content="Manage your tournament registrations and bowling profile"/>
+        <link rel="stylesheet" href="static/css/packages/navbar.css" />
+        <link rel="stylesheet" href="static/css/packages/presets.css" />
+        <link rel="stylesheet" href="static/css/mainfiles/bowler-hub.css" />
+    </head>
+    <body>
+        <special-header></special-header>
+
+        <!-- Login Section (shown when not authenticated) -->
+        <div id="login-section" class="login-container">
+            <div class="login-card">
+                <h1>🎳 Bowler Hub</h1>
+                <p class="subtitle">Access your tournament registrations and profile</p>
+                
+                <div id="email-step" class="auth-step">
+                    <p class="instructions">Enter your email to receive a login code</p>
+                    <form id="email-form">
+                        <div class="form-group">
+                            <input 
+                                type="email" 
+                                id="email-input" 
+                                placeholder="your@email.com" 
+                                required 
+                                autocomplete="email"
+                            />
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Code</button>
+                    </form>
+                    <div id="email-message"></div>
+                </div>
+
+                <div id="otp-step" class="auth-step" style="display:none">
+                    <p class="instructions">Enter the 6-digit code sent to <strong id="sent-email"></strong></p>
+                    <form id="otp-form">
+                        <div class="form-group">
+                            <input 
+                                type="text" 
+                                id="otp-input" 
+                                placeholder="000000" 
+                                maxlength="6" 
+                                pattern="[0-9]{6}"
+                                required 
+                                autocomplete="one-time-code"
+                            />
+                        </div>
+                        <button type="submit" class="btn btn-primary">Verify Code</button>
+                        <button type="button" class="btn btn-secondary" onclick="backToEmail()">Use Different Email</button>
+                    </form>
+                    <div id="otp-message"></div>
+                    <p class="help-text">Didn't receive it? <a href="#" onclick="resendCode(event)">Resend code</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hub Section (shown when authenticated) -->
+        <div id="hub-section" style="display:none">
+            <div class="page-header">
+                <div class="container">
+                    <h1>Welcome, <span id="bowler-name">Bowler</span>! 👋</h1>
+                    <p id="subtitle">Manage your tournament entries and profile</p>
+                </div>
+            </div>
+
+            <main class="container wide">
+                <div class="hub-grid">
+                    <!-- Profile Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Profile</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="toggleEditProfile()">Edit</button>
+                        </div>
+                        
+                        <div id="profile-display">
+                            <div class="profile-field">
+                                <label>Email</label>
+                                <div id="display-email"></div>
+                            </div>
+                            <div class="profile-field">
+                                <label>Full Name</label>
+                                <div id="display-playerName"></div>
+                            </div>
+                            <div class="profile-field">
+                                <label>Nickname</label>
+                                <div id="display-nickname"></div>
+                            </div>
+                            <div class="profile-field">
+                                <label>Hand</label>
+                                <div id="display-hand"></div>
+                            </div>
+                            <div class="profile-field">
+                                <label>Current Average</label>
+                                <div id="display-currentAverage"></div>
+                            </div>
+                            <div class="profile-field">
+                                <label>High Game</label>
+                                <div id="display-highGame"></div>
+                            </div>
+                        </div>
+
+                        <div id="profile-edit" style="display:none">
+                            <form id="profile-form" onsubmit="saveProfile(event)">
+                                <div class="form-group">
+                                    <label for="edit-playerName">Full Name *</label>
+                                    <input type="text" id="edit-playerName" required />
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-nickname">Nickname</label>
+                                    <input type="text" id="edit-nickname" placeholder="Optional" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-hand">Bowling Hand</label>
+                                    <select id="edit-hand">
+                                        <option value="">Not specified</option>
+                                        <option value="right">Right</option>
+                                        <option value="left">Left</option>
+                                        <option value="both">Both</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-homeCenter">Home Center</label>
+                                    <input type="text" id="edit-homeCenter" placeholder="Your home bowling center" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-currentAverage">Current Average</label>
+                                    <input type="number" id="edit-currentAverage" min="0" max="300" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-highGame">High Game</label>
+                                    <input type="number" id="edit-highGame" min="0" max="300" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-highSeries">High Series</label>
+                                    <input type="number" id="edit-highSeries" min="0" max="900" />
+                                </div>
+                                <div class="form-group full-width">
+                                    <label for="edit-bio">Bio</label>
+                                    <textarea id="edit-bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    <button type="button" class="btn btn-secondary" onclick="toggleEditProfile()">Cancel</button>
+                                </div>
+                            </form>
+                            <div id="profile-message"></div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Card -->
+                    <div class="card">
+                        <h3>Statistics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <div class="stat-value" id="stat-tournamentAvg">--</div>
+                                <div class="stat-label">Tournament Avg</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="stat-currentAvg">--</div>
+                                <div class="stat-label">Book Avg</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="stat-highGame">--</div>
+                                <div class="stat-label">High Game</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="stat-tournaments">0</div>
+                                <div class="stat-label">Tournaments</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-full" onclick="location.href='/bowlerstats?id=' + currentBowlerId">
+                            View Full Profile →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Registrations Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>My Tournament Registrations</h3>
+                        <a href="/register" class="btn btn-primary btn-sm">+ Register for Tournament</a>
+                    </div>
+                    <div id="registrations-list"></div>
+                </div>
+
+                <div style="text-align:center;margin-top:40px">
+                    <button class="btn btn-secondary" onclick="logout()">Logout</button>
+                </div>
+            </main>
+        </div>
+
+        <special-footer></special-footer>
+
+        <script src="js/global/headerfooter.js"></script>
+        <script src="js/global/navbar.js"></script>
+        <script src="js/bowler-hub/bowler-hub.js"></script>
+    </body>
+</html>

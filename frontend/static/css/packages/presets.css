@@ -7,6 +7,7 @@ THEME & RESET
     --blue-700: #134b86; /* primary */
     --blue-600: #1a65b8;
     --blue-500: #2e8fdc; /* accents */
+    --blue-400: #60a5fa;
     --blue-300: #7ac3ff; /* light accents */
     --black: #0b0b0c;
     --grey-900: #121316;
@@ -15,8 +16,13 @@ THEME & RESET
     --grey-600: #2d313a;
     --grey-500: #3a404b;
     --text: #e9eef7;
+    --text-primary: #e9eef7;
     --muted: #b9c6d8;
-    --success: #2ecc71;
+    --success: #51cf66;
+    --success-light: rgba(46, 204, 113, .2);
+    --error: #c92a2a;
+    --error-light: #e03131;
+    --card-bg: #181a1f;
     --shadow: 0 10px 30px rgba(0, 0, 0, .35);
     --radius: 18px;
 }
@@ -45,8 +51,9 @@ img {
 }
 
 .container {
-    width: min(1200px, 92%);
-    margin-inline: auto;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
 }
 
 .btn {

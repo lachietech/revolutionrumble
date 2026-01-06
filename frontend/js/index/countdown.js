@@ -1,13 +1,46 @@
-// ===== Countdown =====
-let eventDate = new Date('2026-04-10T08:00:00'); // fallback date
-let eventName = 'Logan City Cup'; // fallback name
+/**
+ * @fileoverview Countdown timer for the next upcoming tournament
+ * Displays days, hours, and minutes until the next event
+ * @module index/countdown
+ */
 
+// ============================================================================
+// STATE MANAGEMENT
+// ============================================================================
+
+/** @type {Date} Target date for countdown (defaults to fallback) */
+let eventDate = new Date('2026-04-10T08:00:00');
+
+/** @type {string} Name of the upcoming event */
+let eventName = 'Logan City Cup';
+
+// ============================================================================
+// DOM ELEMENTS
+// ============================================================================
+
+/** @type {HTMLElement} Months display element */
 const m = document.getElementById('m');
+
+/** @type {HTMLElement} Days display element */
 const d = document.getElementById('d');
+
+/** @type {HTMLElement} Hours display element */
 const h = document.getElementById('h');
+
+/** @type {HTMLElement} Event name display element */
 const eventNameEl = document.querySelector('.eyebrow');
 
-// Fetch nearest upcoming tournament from database
+// ============================================================================
+// DATA LOADING
+// ============================================================================
+
+/**
+ * Loads the nearest upcoming tournament from the database
+ * Updates eventDate and eventName with the next tournament data
+ * Falls back to default values if no tournaments are found
+ * @async
+ * @returns {Promise<void>}
+ */
 async function loadNextTournament() {
     try {
         const response = await fetch('/api/tournaments');
@@ -35,9 +68,20 @@ async function loadNextTournament() {
     }
 }
 
+// ============================================================================
+// COUNTDOWN LOGIC
+// ============================================================================
+
+/**
+ * Updates the countdown display with current time remaining
+ * Calculates and displays months, days, and hours until eventDate
+ * Shows '00' for all values when countdown reaches zero
+ * @returns {void}
+ */
 const tick = () => {
     const now = new Date();
     const diff = eventDate - now;
+    
     if (diff <= 0) {
         m.textContent = '00';
         d.textContent = '00';
@@ -54,12 +98,19 @@ const tick = () => {
     m.textContent = String(mm).padStart(2, '0');
 };
 
-// Initialize
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+/**
+ * Initialize countdown timer
+ * Loads next tournament, starts countdown, and updates every second
+ */
 loadNextTournament().then(() => {
     tick();
     setInterval(tick, 1000);
 });
 
-// Year in footer (optional - ensure element exists)
+// Update footer year (if element exists)
 const yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();

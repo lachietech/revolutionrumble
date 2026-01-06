@@ -1,5 +1,27 @@
+/**
+ * @fileoverview Squad list page - displays tournament squads and registered bowlers
+ * Shows squad schedules, capacity, and registered bowlers for selected tournaments
+ * @module squadlist
+ */
+
+// ============================================================================
+// DOM ELEMENTS
+// ============================================================================
+
+/** @type {HTMLSelectElement} Tournament selection dropdown */
 const tournamentSelect = document.getElementById('tournamentSelect');
 
+// ============================================================================
+// DATA LOADING
+// ============================================================================
+
+/**
+ * Loads all tournaments and populates the tournament selection dropdown
+ * Automatically loads squads if a tournament ID is present in the URL
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} If the API request fails
+ */
 async function loadTournaments() {
     try {
         const response = await fetch('/api/tournaments');
@@ -29,21 +51,14 @@ async function loadTournaments() {
     }
 }
 
-tournamentSelect.addEventListener('change', async () => {
-    const tournamentId = tournamentSelect.value;
-    if (tournamentId) {
-        // Update URL
-        const url = new URL(window.location);
-        url.searchParams.set('id', tournamentId);
-        window.history.replaceState({}, '', url);
-        
-        await loadSquads(tournamentId);
-    } else {
-        document.getElementById('tournament-info').innerHTML = '';
-        document.getElementById('squads-container').innerHTML = '<div class="loading"><p>Please select a tournament to view squad lists</p></div>';
-    }
-});
-
+/**
+ * Loads squad details for a specific tournament
+ * Fetches squad information, bowler lists, and availability from the API
+ * @async
+ * @param {string} tournamentId - The unique identifier of the tournament
+ * @returns {Promise<void>}
+ * @throws {Error} If the API request fails
+ */
 async function loadSquads(tournamentId) {
     try {
         if (!tournamentId) {
@@ -142,5 +157,32 @@ async function loadSquads(tournamentId) {
         document.getElementById('squads-container').innerHTML = '<div class="error">Failed to load squad information</div>';
     }
 }
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
+/**
+ * Handles tournament selection changes
+ * Updates the URL and loads squad data for the selected tournament
+ */
+tournamentSelect.addEventListener('change', async () => {
+    const tournamentId = tournamentSelect.value;
+    if (tournamentId) {
+        // Update URL
+        const url = new URL(window.location);
+        url.searchParams.set('id', tournamentId);
+        window.history.replaceState({}, '', url);
+        
+        await loadSquads(tournamentId);
+    } else {
+        document.getElementById('tournament-info').innerHTML = '';
+        document.getElementById('squads-container').innerHTML = '<div class="loading"><p>Please select a tournament to view squad lists</p></div>';
+    }
+});
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
 
 loadTournaments();

@@ -1,12 +1,97 @@
-// ===== Tournament Results with Stage-Based Leaderboards =====
+/**
+ * @fileoverview Tournament Results Display System
+ * Handles displaying tournament results with stage-based leaderboards, player rankings,
+ * and detailed scoring information including handicaps and bonuses.
+ * 
+ * @module results
+ * @requires DOM elements: tournamentSelect, tournamentTitle, tournamentSubtitle, resultsContainer
+ */
+
+// ========================================
+// STATE MANAGEMENT
+// ========================================
+
+/**
+ * @typedef {Object} Tournament
+ * @property {string} _id - Tournament unique identifier
+ * @property {string} name - Tournament name
+ * @property {Date|string} startDate - Tournament start date
+ * @property {Date|string} date - Alternative date field
+ * @property {string} location - Tournament location
+ * @property {string} status - Tournament status (upcoming/active/completed)
+ */
+
+/**
+ * @typedef {Object} Stage
+ * @property {string} stageName - Name of the stage (e.g., "Qualifying", "Finals")
+ * @property {number} games - Number of games in this stage
+ * @property {number} [advancingBowlers] - Number of bowlers advancing to next stage
+ * @property {Player[]} players - Array of players in this stage
+ */
+
+/**
+ * @typedef {Object} Player
+ * @property {string} playerName - Player's display name
+ * @property {number} position - Player's current position/rank
+ * @property {number[]} scores - Array of game scores
+ * @property {number} total - Total score including handicap and bonuses
+ * @property {number} scratchTotal - Total score without handicap or bonuses
+ * @property {number} average - Player's average score
+ * @property {number} high - Highest individual game score
+ * @property {number} [carryover] - Carryover score from previous stage
+ * @property {number} [handicapPerGame] - Handicap applied per game
+ * @property {number[]} [bonusPins] - Bonus pins for each game
+ */
+
+/**
+ * @typedef {Object} TournamentData
+ * @property {Tournament} tournament - Tournament information
+ * @property {boolean} hasStages - Whether tournament has multiple stages
+ * @property {Stage[]} [stages] - Array of tournament stages
+ * @property {Player[]} [players] - Array of players (for single-stage tournaments)
+ */
+
+/**
+ * Current tournament data being displayed
+ * @type {TournamentData|null}
+ */
 let currentTournamentData = null;
 
+// ========================================
+// DOM ELEMENT REFERENCES
+// ========================================
+
+/**
+ * @type {HTMLSelectElement}
+ */
 const tournamentSelect = document.getElementById('tournamentSelect');
+
+/**
+ * @type {HTMLElement}
+ */
 const tournamentTitle = document.getElementById('tournamentTitle');
+
+/**
+ * @type {HTMLElement}
+ */
 const tournamentSubtitle = document.getElementById('tournamentSubtitle');
+
+/**
+ * @type {HTMLElement}
+ */
 const resultsContainer = document.getElementById('resultsContainer');
 
-// Initialize
+// ========================================
+// INITIALIZATION
+// ========================================
+
+/**
+ * Initialize the results page
+ * Loads available tournaments and checks for tournament ID in URL parameters
+ * 
+ * @async
+ * @returns {Promise<void>}
+ */
 async function init() {
     await loadTournaments();
     
@@ -22,6 +107,18 @@ async function init() {
     tournamentSelect.addEventListener('change', loadTournamentResults);
 }
 
+// ========================================
+// DATA LOADING
+// ========================================
+
+/**
+ * Load all available tournaments from the API
+ * Populates the tournament selection dropdown with tournaments sorted by date (newest first)
+ * 
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} If the API request fails
+ */
 async function loadTournaments() {
     try {
         const response = await fetch('/api/tournaments');
@@ -43,6 +140,15 @@ async function loadTournaments() {
     }
 }
 
+/**
+ * Load results for the selected tournament
+ * Fetches tournament data and renders the appropriate leaderboard(s)
+ * Updates the URL with the selected tournament ID
+ * 
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} If the API request fails
+ */
 async function loadTournamentResults() {
     const tournamentId = tournamentSelect.value;
     
@@ -82,6 +188,16 @@ async function loadTournamentResults() {
     }
 }
 
+// ========================================
+// RENDERING
+// ========================================
+
+/**
+ * Render the results for the current tournament
+ * Determines whether to render single-stage or multi-stage leaderboards
+ * 
+ * @returns {void}
+ */
 function renderResults() {
     if (!currentTournamentData) return;
     
@@ -109,10 +225,26 @@ function renderResults() {
     resultsContainer.innerHTML = html || '<div style="text-align:center;padding:48px;color:#888"><p>No results available yet</p></div>';
 }
 
+/**
+ * Filter players (currently returns all players unfiltered)
+ * Placeholder for future filtering functionality
+ * 
+ * @param {Player[]} players - Array of players to filter
+ * @returns {Player[]} Filtered array of players
+ */
 function filterPlayers(players) {
     return players;
 }
 
+/**
+ * Render a leaderboard for a specific tournament stage
+ * Displays player rankings with game-by-game scores, averages, and totals
+ * 
+ * @param {Stage} stage - Stage information
+ * @param {Player[]} players - Array of players in this stage
+ * @param {number} stageIndex - Index of the stage (0 = qualifying, last = finals)
+ * @returns {string} HTML string for the stage leaderboard
+ */
 function renderStageLeaderboard(stage, players, stageIndex) {
     const isQualifying = stageIndex === 0;
     const isFinal = stageIndex === currentTournamentData.stages.length - 1;
@@ -141,6 +273,7 @@ function renderStageLeaderboard(stage, players, stageIndex) {
                             ${stage.players[0]?.carryover > 0 ? '<th style="padding:12px;text-align:center;font-weight:600;width:70px">Carry</th>' : ''}
                             ${gameHeaders}
                             <th style="padding:12px;text-align:center;font-weight:600;width:80px">Avg</th>
+                            <th style="padding:12px;text-align:center;font-weight:600;width:100px">Scratch</th>
                             <th style="padding:12px;text-align:center;font-weight:600;width:100px">Total</th>
                         </tr>
                     </thead>
@@ -153,6 +286,12 @@ function renderStageLeaderboard(stage, players, stageIndex) {
     `;
 }
 
+/**
+ * Render a single-stage leaderboard (for tournaments without multiple stages)
+ * 
+ * @param {Player[]} players - Array of players to display
+ * @returns {string} HTML string for the leaderboard
+ */
 function renderSingleStageLeaderboard(players) {
     // Determine max games
     const maxGames = Math.max(...players.map(p => p.scores?.length || 0), 3);
@@ -172,6 +311,7 @@ function renderSingleStageLeaderboard(players) {
                             <th style="padding:12px;text-align:left;font-weight:600;min-width:150px">Player</th>
                             ${gameHeaders}
                             <th style="padding:12px;text-align:center;font-weight:600;width:80px">Avg</th>
+                            <th style="padding:12px;text-align:center;font-weight:600;width:100px">Scratch</th>
                             <th style="padding:12px;text-align:center;font-weight:600;width:100px">Total</th>
                         </tr>
                     </thead>
@@ -184,6 +324,17 @@ function renderSingleStageLeaderboard(players) {
     `;
 }
 
+/**
+ * Render a single player row in the leaderboard
+ * Includes position badge, name, game scores with handicap/bonus indicators,
+ * average, scratch total, and total score
+ * 
+ * @param {Player} player - Player data
+ * @param {number} index - Row index (unused, position comes from player.position)
+ * @param {Stage|null} stage - Stage information (null for single-stage tournaments)
+ * @param {number} maxGames - Maximum number of games to display
+ * @returns {string} HTML string for the player row
+ */
 function renderPlayerRow(player, index, stage = null, maxGames = 0) {
     const position = player.position;
     const isTopThree = position <= 3;
@@ -200,12 +351,23 @@ function renderPlayerRow(player, index, stage = null, maxGames = 0) {
         ? 'background:rgba(46,143,220,0.05);border-bottom:1px solid rgba(255,255,255,0.05)'
         : 'border-bottom:1px solid rgba(255,255,255,0.05)';
     
-    // Generate game score cells
+    // Generate game score cells with handicap (superscript) and bonus (subscript)
     const gameCells = Array.from({length: maxGames}, (_, i) => {
         const score = player.scores?.[i];
         if (score !== undefined) {
             const isHigh = score === player.high;
-            return `<td style="padding:12px;text-align:center;${isHigh ? 'color:#5eb6f5;font-weight:600' : 'color:#b9c6d8'}">${score}</td>`;
+            const bonus = player.bonusPins?.[i] || 0;
+            const handicap = player.handicapPerGame || 0;
+            
+            let displayScore = score;
+            if (handicap > 0) {
+                displayScore += `<sup style="color:#fab005;font-size:0.7em">+${handicap}</sup>`;
+            }
+            if (bonus > 0) {
+                displayScore += `<sub style="color:#51cf66;font-size:0.7em">+${bonus}</sub>`;
+            }
+            
+            return `<td style="padding:12px;text-align:center;${isHigh ? 'color:#5eb6f5;font-weight:600' : 'color:#b9c6d8'}">${displayScore}</td>`;
         }
         return `<td style="padding:12px;text-align:center;color:#444">-</td>`;
     }).join('');
@@ -217,11 +379,19 @@ function renderPlayerRow(player, index, stage = null, maxGames = 0) {
             ${player.carryover > 0 ? `<td style="padding:12px;text-align:center;color:#51cf66;font-weight:600">${player.carryover}</td>` : ''}
             ${gameCells}
             <td style="padding:12px;text-align:center;font-weight:500">${player.average}</td>
+            <td style="padding:12px;text-align:center;font-weight:600;color:#b9c6d8">${player.scratchTotal || player.total}</td>
             <td style="padding:12px;text-align:center;font-weight:700;font-size:1.1rem;color:#51cf66">${player.total}</td>
         </tr>
     `;
 }
 
+/**
+ * Render a placeholder for a stage that hasn't started yet
+ * 
+ * @param {Stage} stage - Stage information
+ * @param {number} stageIndex - Index of the stage (0 = qualifying)
+ * @returns {string} HTML string for the empty stage placeholder
+ */
 function renderEmptyStage(stage, stageIndex) {
     const isQualifying = stageIndex === 0;
     const icon = isQualifying ? '🎯' : '🏆';
@@ -238,6 +408,10 @@ function renderEmptyStage(stage, stageIndex) {
         </div>
     `;
 }
+
+// ========================================
+// APPLICATION START
+// ========================================
 
 // Initialize on page load
 init();

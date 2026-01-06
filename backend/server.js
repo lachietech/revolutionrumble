@@ -28,7 +28,6 @@ app.use('/', mainroutes);
 app.use('/api', tournamentRoutes);
 app.use('/api', registrationRoutes);
 app.use('/api', bowlerRoutes);
-app.use('/api', tournamentRoutes);
 
 app.listen(5000, () => {
     console.log("Server started at http://localhost:5000");

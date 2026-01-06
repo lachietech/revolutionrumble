@@ -85,4 +85,44 @@ tournamentResultSchema.pre('save', function(next) {
     next();
 });
 
+// After saving results, update bowler's overall stats
+tournamentResultSchema.post('save', async function(doc) {
+    try {
+        const Bowler = mongoose.model('Bowler');
+        const TournamentResult = mongoose.model('TournamentResult');
+        
+        // Get all results for this bowler
+        const results = await TournamentResult.find({ bowler: doc.bowler });
+        
+        let totalPins = 0;
+        let totalGames = 0;
+        let highGame = 0;
+        let highSeries = 0;
+
+        results.forEach(result => {
+            if (result.totalPins && result.totalGames) {
+                totalPins += result.totalPins;
+                totalGames += result.totalGames;
+            }
+            if (result.highGame > highGame) {
+                highGame = result.highGame;
+            }
+            if (result.highSeries > highSeries) {
+                highSeries = result.highSeries;
+            }
+        });
+
+        const tournamentAverage = totalGames > 0 ? Math.round(totalPins / totalGames) : null;
+
+        // Update bowler's stats
+        await Bowler.findByIdAndUpdate(doc.bowler, {
+            tournamentAverage,
+            highGame: highGame || undefined,
+            highSeries: highSeries || undefined
+        });
+    } catch (error) {
+        console.error('Error updating bowler stats after result save:', error);
+    }
+});
+
 export default mongoose.model('TournamentResult', tournamentResultSchema);

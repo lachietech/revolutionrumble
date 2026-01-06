@@ -45,6 +45,9 @@ const bowlerSchema = new mongoose.Schema({
     // Authentication
     claimedAt: Date, // When bowler claimed their profile
     lastLogin: Date,
+    otpCode: String, // Current OTP code
+    otpExpires: Date, // OTP expiration time
+    otpAttempts: { type: Number, default: 0 }, // Failed OTP attempts
     
     createdAt: {
         type: Date,

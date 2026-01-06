@@ -5,10 +5,16 @@ body {
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", 'Helvetica Neue', Arial;
 }
 
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
 .page-header {
     padding: 60px 0 40px;
     text-align: center;
-    background: linear-gradient(180deg, var(--grey-900), var(--black));
+    background: var(--black);
 }
 
 .page-header h1 {
@@ -53,7 +59,7 @@ body {
 }
 
 .event-card {
-    background: linear-gradient(180deg, var(--grey-800), var(--grey-700));
+    background: var(--card-bg);
     border: 1px solid var(--grey-600);
     border-radius: 16px;
     padding: 24px;
@@ -100,20 +106,20 @@ body {
 
 .status-upcoming {
     background: rgba(46, 143, 220, .2);
-    color: #5eb6f5;
+    color: var(--blue-400);
     border: 1px solid rgba(46, 143, 220, .3);
 }
 
 .status-ongoing {
-    background: rgba(46, 204, 113, .2);
-    color: #51cf66;
+    background: var(--success-light);
+    color: var(--success);
     border: 1px solid rgba(46, 204, 113, .3);
     animation: pulse 2s ease-in-out infinite;
 }
 
 .status-completed {
     background: rgba(134, 142, 150, .2);
-    color: #adb5bd;
+    color: var(--muted);
     border: 1px solid rgba(134, 142, 150, .3);
 }
 
@@ -229,5 +235,33 @@ body {
 
     .btn-action {
         width: 100%;
+    }
+    
+    .event-card {
+        padding: 20px;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .events-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .page-header {
+        padding: 40px 0 30px;
+    }
+    
+    .page-header h1 {
+        font-size: 2rem;
+    }
+    
+    .event-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
 }

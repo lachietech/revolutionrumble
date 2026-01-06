@@ -22,6 +22,14 @@ router.get('/playerstats', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/bowlerstats.html'));
 });
 
+router.get('/bowlerstats', (req, res) => {
+    res.sendFile(path.join(import.meta.dirname, '../../frontend/bowlerstats.html'));
+});
+
+router.get('/bowler-hub', (req, res) => {
+    res.sendFile(path.join(import.meta.dirname, '../../frontend/bowler-hub.html'));
+});
+
 router.get('/results', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/results.html'));
 });

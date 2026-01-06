@@ -14,6 +14,7 @@ body{
     border-radius:12px;
     box-shadow:0 10px 30px rgba(0,0,0,.6);
     width:320px;
+    max-width: 90%;
 }
 input{
     width:100%;
@@ -31,11 +32,11 @@ button{
     padding-bottom: 10px;
     border-radius:8px;
     border:0;
-    background:#2e8fdc;
+    background:var(--blue-600);
     color:white;
     font-weight:700;
 }
 button:hover{
-    background:#2574c4;
+    background:var(--blue-700);
     cursor:pointer;
 }

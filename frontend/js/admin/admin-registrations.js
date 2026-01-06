@@ -1,8 +1,60 @@
+/**
+ * @fileoverview Admin Registration Management System
+ * 
+ * Manages tournament registrations, results, and player data for Revolution Rumble
+ * bowling tournaments. Provides comprehensive tools for viewing, editing, filtering,
+ * and exporting registration data, as well as managing tournament results and scores.
+ * 
+ * Features:
+ * - Registration list with filtering and status management
+ * - Squad assignment viewing
+ * - CSV export functionality
+ * - Tournament results input and management
+ * - Real-time score calculation
+ * - Status tracking (pending, confirmed, cancelled, waitlist)
+ * 
+ * @module admin-registrations
+ * @requires ../utils/api-utils
+ */
+
+// ==================== STATE MANAGEMENT ====================
+
+/**
+ * Container element for the registration list display
+ * @type {HTMLElement}
+ */
 const regListContainer = document.getElementById('registrationList');
+
+/**
+ * Select element for filtering registrations by tournament
+ * @type {HTMLSelectElement}
+ */
 const regFilterSelect = document.getElementById('regTournamentFilter');
+
+/**
+ * Span element displaying the current registration count
+ * @type {HTMLElement}
+ */
 const regCountSpan = document.getElementById('regCount');
 
-// Load tournaments and registrations on page load
+/**
+ * Currently selected tournament object for results management
+ * @type {Object|null}
+ */
+let currentTournamentForResults = null;
+
+// ==================== DATA LOADING ====================
+
+/**
+ * Loads all tournaments and populates the filter dropdown with tournament options.
+ * Fetches tournaments from the API and formats them with name and date for display
+ * in the registration filter select element.
+ * 
+ * @async
+ * @function loadTournamentsForFilter
+ * @returns {Promise<void>}
+ * @throws {Error} Logs error to console if tournament loading fails
+ */
 async function loadTournamentsForFilter() {
     try {
         const response = await fetch('/api/tournaments');
@@ -17,9 +69,13 @@ async function loadTournamentsForFilter() {
     }
 }
 
+// ==================== INITIALIZATION ====================
+
+// Load initial data on page load
 loadTournamentsForFilter();
 loadRegistrations();
 
+// Set up event listener for tournament filter changes
 regFilterSelect.addEventListener('change', loadRegistrations);
 
 // Handle form submission (note: no form on this page, but keeping for compatibility)
@@ -266,16 +322,44 @@ function renderSquadsList() {
 }
 */
 
+// ==================== UI RENDERING ====================
+
+/**
+ * Redirects to the tournaments page for editing a specific tournament.
+ * This page is focused on registration management, so tournament editing
+ * is handled on the dedicated tournaments page.
+ * 
+ * @function editTournament
+ * @param {string} id - The tournament ID to edit
+ * @returns {void}
+ */
 function editTournament(id) {
     // Redirect to tournaments page for editing
     window.location.href = `/admin/tournaments`;
 }
 
+/**
+ * Cancels the current edit operation.
+ * No-op function as this page doesn't have tournament editing capabilities.
+ * 
+ * @function cancelEdit
+ * @returns {void}
+ */
 function cancelEdit() {
     // No-op: This page doesn't have tournament editing
 }
 
-// Load and display tournaments
+/**
+ * Loads and displays all tournaments with their details.
+ * Fetches tournaments from the API and renders them with information including
+ * date, location, status, squad count, and format details. Updates both the
+ * registration filter and results filter dropdowns.
+ * 
+ * @async
+ * @function loadTournaments
+ * @returns {Promise<void>}
+ * @throws {Error} Displays error message if tournament loading fails
+ */
 async function loadTournaments() {
     try {
         const response = await fetch('/api/tournaments');
@@ -340,7 +424,17 @@ async function loadTournaments() {
     }
 }
 
-// Delete tournament
+/**
+ * Deletes a tournament after user confirmation.
+ * Prompts the user to confirm deletion, then sends a DELETE request to the API.
+ * Reloads both tournaments and registrations on successful deletion.
+ * 
+ * @async
+ * @function deleteTournament
+ * @param {string} id - The tournament ID to delete
+ * @returns {Promise<void>}
+ * @throws {Error} Displays alert if deletion fails
+ */
 async function deleteTournament(id) {
     if (!confirm('Are you sure you want to delete this tournament?')) return;
 
@@ -357,7 +451,17 @@ async function deleteTournament(id) {
     }
 }
 
-// Load registrations
+/**
+ * Loads and displays all registrations with filtering support.
+ * Fetches registrations from the API, optionally filtered by tournament.
+ * Displays registration data in a table format including player information,
+ * tournament details, squad assignments, contact info, and status.
+ * 
+ * @async
+ * @function loadRegistrations
+ * @returns {Promise<void>}
+ * @throws {Error} Displays error message if registration loading fails
+ */
 async function loadRegistrations() {
     try {
         const tournamentId = regFilterSelect.value;
@@ -444,7 +548,20 @@ async function loadRegistrations() {
     }
 }
 
-// Update registration status
+// ==================== STATUS UPDATES ====================
+
+/**
+ * Updates the status of a registration.
+ * Sends a PUT request to update the registration status and reloads the
+ * registration list on failure to reset the dropdown to its previous value.
+ * 
+ * @async
+ * @function updateRegistrationStatus
+ * @param {string} id - The registration ID to update
+ * @param {string} status - The new status ('pending', 'confirmed', 'cancelled', or 'waitlist')
+ * @returns {Promise<void>}
+ * @throws {Error} Displays alert and reloads registrations if update fails
+ */
 async function updateRegistrationStatus(id, status) {
     try {
         const response = await fetch(`/api/registrations/${id}`, {
@@ -463,7 +580,17 @@ async function updateRegistrationStatus(id, status) {
     }
 }
 
-// Delete registration
+/**
+ * Deletes a registration after user confirmation.
+ * Prompts the user to confirm deletion, then sends a DELETE request to the API.
+ * Reloads the registration list on successful deletion.
+ * 
+ * @async
+ * @function deleteRegistration
+ * @param {string} id - The registration ID to delete
+ * @returns {Promise<void>}
+ * @throws {Error} Displays alert if deletion fails
+ */
 async function deleteRegistration(id) {
     if (!confirm('Are you sure you want to delete this registration?')) return;
 
@@ -479,7 +606,20 @@ async function deleteRegistration(id) {
     }
 }
 
-// Export registrations to CSV
+// ==================== EXPORTS ====================
+
+/**
+ * Exports registration data to a CSV file.
+ * Fetches all registrations (optionally filtered by tournament) and creates
+ * a CSV file with player information, tournament details, squad assignments,
+ * and registration metadata. The file is automatically downloaded to the user's
+ * computer with a timestamped filename.
+ * 
+ * @async
+ * @function exportRegistrations
+ * @returns {Promise<void>}
+ * @throws {Error} Displays alert if export fails
+ */
 async function exportRegistrations() {
     try {
         const tournamentId = regFilterSelect.value;
@@ -546,11 +686,18 @@ async function exportRegistrations() {
     }
 }
 
-// Listen for filter changes
-regFilterSelect.addEventListener('change', loadRegistrations);
-
 // ==================== RESULTS MANAGEMENT ====================
 
+/**
+ * Loads tournament results for the selected tournament.
+ * Fetches tournament details and registrations, then renders the appropriate
+ * results interface based on whether the tournament has squads configured.
+ * 
+ * @async
+ * @function loadTournamentResults
+ * @returns {Promise<void>}
+ * @throws {Error} Displays error message if loading fails
+ */
 async function loadTournamentResults() {
     const tournamentId = resultsTournamentFilter.value;
     const container = document.getElementById('resultsContainer');
@@ -588,6 +735,16 @@ async function loadTournamentResults() {
     }
 }
 
+/**
+ * Renders results interface organized by squads.
+ * Creates separate tables for each squad showing registered bowlers and their
+ * game scores. Each table includes input fields for each game and displays
+ * calculated totals and averages.
+ * 
+ * @function renderSquadResults
+ * @param {Array<Object>} registrations - Array of registration objects
+ * @returns {void}
+ */
 function renderSquadResults(registrations) {
     const container = document.getElementById('resultsContainer');
     const squads = currentTournamentForResults.squads;
@@ -635,6 +792,15 @@ function renderSquadResults(registrations) {
     loadExistingResults();
 }
 
+/**
+ * Renders a simple results interface without squad organization.
+ * Creates a single table showing all registered bowlers and their game scores.
+ * Used for tournaments that don't have squads configured.
+ * 
+ * @function renderSimpleResults
+ * @param {Array<Object>} registrations - Array of registration objects
+ * @returns {void}
+ */
 function renderSimpleResults(registrations) {
     const container = document.getElementById('resultsContainer');
     const gamesCount = currentTournamentForResults?.format?.gamesPerBowler || 3;
@@ -664,6 +830,16 @@ function renderSimpleResults(registrations) {
     loadExistingResults();
 }
 
+/**
+ * Renders a single result row for a bowler.
+ * Creates a table row with the bowler's information and input fields for
+ * each game score. Includes calculated fields for total and average scores.
+ * 
+ * @function renderResultRow
+ * @param {Object} registration - The registration object containing bowler information
+ * @param {string|null} squadId - The squad ID if organized by squads, or null
+ * @returns {string} HTML string for the table row
+ */
 function renderResultRow(registration, squadId) {
     const rowId = squadId ? `result-${registration.bowler}-${squadId}` : `result-${registration.bowler}`;
     const gamesCount = currentTournamentForResults?.format?.gamesPerBowler || 3;
@@ -696,6 +872,17 @@ function renderResultRow(registration, squadId) {
     `;
 }
 
+/**
+ * Loads and populates existing tournament results into the form.
+ * Fetches all bowler histories for the current tournament and populates
+ * the score input fields with existing data. Also displays calculated
+ * totals and averages for bowlers with saved results.
+ * 
+ * @async
+ * @function loadExistingResults
+ * @returns {Promise<void>}
+ * @throws {Error} Logs error to console if loading fails
+ */
 async function loadExistingResults() {
     if (!currentTournamentForResults) return;
 
@@ -772,6 +959,19 @@ async function loadExistingResults() {
     }
 }
 
+/**
+ * Saves tournament results for a specific bowler and squad.
+ * Collects game scores from input fields, calculates totals and averages,
+ * and sends the data to the API. Provides visual feedback on save status.
+ * 
+ * @async
+ * @function saveResult
+ * @param {string} bowlerId - The ID of the bowler
+ * @param {string} squadId - The ID of the squad (empty string if no squads)
+ * @param {string} rowId - The HTML element ID for the result row
+ * @returns {Promise<void>}
+ * @throws {Error} Displays alert if save fails
+ */
 async function saveResult(bowlerId, squadId, rowId) {
     const gamesCount = currentTournamentForResults?.format?.gamesPerBowler || 3;
     const games = [];
@@ -861,7 +1061,15 @@ async function saveResult(bowlerId, squadId, rowId) {
     }
 }
 
-// Auto-calculate totals and averages on input
+/**
+ * Event listener for auto-calculating totals and averages on score input.
+ * Listens for input changes in game score fields and automatically recalculates
+ * and displays the total pinfall and average score for the bowler.
+ * 
+ * @listens document#input
+ * @param {Event} e - The input event
+ * @returns {void}
+ */
 document.addEventListener('input', (e) => {
     if (e.target.type === 'number' && e.target.id.includes('result-')) {
         const rowId = e.target.id.split('-g')[0];

@@ -18,150 +18,31 @@
         </div>
 
         <main class="container wide">
-            <!-- Directory View (default) -->
-            <div id="directory-section">
-                <div class="layout-grid">
-                    <!-- Left Sidebar - Bowler List -->
-                    <div class="card">
-                        <h3 style="margin-top:0">Bowlers</h3>
-                        <div class="search-filter">
-                            <input 
-                                type="text" 
-                                id="search-input" 
-                                placeholder="Search by name..."
-                                oninput="filterBowlers()"
-                            />
-                            <select id="sort-select" onchange="loadBowlers()">
-                                <option value="avg-desc">Highest Average</option>
-                                <option value="avg-asc">Lowest Average</option>
-                                <option value="name-asc">Name (A-Z)</option>
-                                <option value="tournaments-desc">Most Tournaments</option>
-                            </select>
-                            <select id="hand-filter" onchange="filterBowlers()">
-                                <option value="all">All Hands</option>
-                                <option value="right">Right Hand</option>
-                                <option value="left">Left Hand</option>
-                                <option value="both">Both Hands</option>
-                            </select>
-                        </div>
-                        <ul class="bowler-list" id="bowler-list"></ul>
-                    </div>
-
-                    <!-- Right Side - Profile Display -->
-                    <div id="profile-display-section">
-                        <div class="card" style="text-align:center;padding:60px 20px;color:var(--muted)">
-                            <div style="font-size:3rem;margin-bottom:16px">👈</div>
-                            <h3>Select a Bowler</h3>
-                            <p>Choose a bowler from the list to view their profile and stats</p>
-                            <button class="btn btn-primary" onclick="showClaimForm()" style="margin-top:20px">
-                                Claim Your Profile
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <!-- Search and Filter Controls -->
+            <div class="controls-bar">
+                <input 
+                    type="text" 
+                    id="search-input" 
+                    class="search-input"
+                    placeholder="🔍 Search by name or nickname..."
+                />
+                <select id="sort-select" class="sort-select">
+                    <option value="tournamentAvg-desc">Highest Tournament Avg</option>
+                    <option value="tournamentAvg-asc">Lowest Tournament Avg</option>
+                    <option value="currentAvg-desc">Highest Book Avg</option>
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="tournaments-desc">Most Tournaments</option>
+                </select>
             </div>
 
-            <!-- Profile Section (shown when bowler selected or URL param) -->
-            <div id="profile-section" style="display:none">
-                <!-- Profile Display -->
-                <div id="profile-display" class="card">
-                    <div class="profile-header">
-                        <div class="profile-info">
-                            <h2 id="display-name"></h2>
-                            <div class="profile-nickname" id="display-nickname"></div>
-                            <div class="profile-meta">
-                                <span id="display-email"></span>
-                                <span id="display-hand"></span>
-                                <span id="display-experience"></span>
-                            </div>
-                        </div>
-                        <button class="btn btn-secondary" onclick="toggleEditMode()">Edit Profile</button>
-                    </div>
+            <!-- Bowlers Grid -->
+            <div id="bowlers-grid" class="bowlers-grid"></div>
 
-                    <div id="display-bio"></div>
-
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <div class="stat-value" id="stat-tournament-avg">--</div>
-                            <div class="stat-label">Tournament Avg</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-value" id="stat-current-avg">--</div>
-                            <div class="stat-label">Current Avg</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-value" id="stat-high-game">--</div>
-                            <div class="stat-label">High Game</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-value" id="stat-tournaments">0</div>
-                            <div class="stat-label">Tournaments</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Edit Form (hidden initially) -->
-                <div id="edit-form" class="card" style="display:none">
-                    <h3 style="margin-top:0">Edit Profile</h3>
-                    <form onsubmit="saveProfile(event)" class="edit-form">
-                        <div class="form-group">
-                            <label for="edit-nickname">Nickname</label>
-                            <input type="text" id="edit-nickname" placeholder="Optional nickname" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="edit-hand">Bowling Hand</label>
-                            <select id="edit-hand">
-                                <option value="">Not specified</option>
-                                <option value="right">Right</option>
-                                <option value="left">Left</option>
-                                <option value="both">Both</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="edit-home-center">Home Center</label>
-                            <input type="text" id="edit-home-center" placeholder="Your home bowling center" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="edit-years">Years Experience</label>
-                            <input type="number" id="edit-years" min="0" max="100" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="edit-current-avg">Current Average</label>
-                            <input type="number" id="edit-current-avg" min="0" max="300" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="edit-high-game">High Game</label>
-                            <input type="number" id="edit-high-game" min="0" max="300" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="edit-high-series">High Series</label>
-                            <input type="number" id="edit-high-series" min="0" max="900" />
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label for="edit-bio">Bio</label>
-                            <textarea id="edit-bio" placeholder="Tell us about yourself..."></textarea>
-                        </div>
-
-                        <div class="form-group full-width" style="display:flex;gap:12px">
-                            <button type="submit" class="btn btn-primary" style="flex:1">Save Changes</button>
-                            <button type="button" class="btn btn-secondary" onclick="toggleEditMode()">Cancel</button>
-                        </div>
-                    </form>
-                    <div id="edit-message"></div>
-                </div>
-
-                <!-- Tournament History -->
-                <div class="card">
-                    <h3 style="margin-top:0">Tournament History</h3>
-                    <ul class="tournament-list" id="tournament-history"></ul>
-                </div>
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state" style="display:none">
+                <div class="empty-state-icon">🎳</div>
+                <h3>No Bowlers Found</h3>
+                <p>Try adjusting your search or filters</p>
             </div>
         </main>
 

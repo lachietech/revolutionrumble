@@ -7,13 +7,13 @@ header {
     z-index: 50;
     background: linear-gradient(180deg, var(--grey-700), var(--black));
     backdrop-filter: blur(10px);
+    padding: 20px 0;
 }
 
 .nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 0;
     position: relative;
 }
 

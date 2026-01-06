@@ -1,4 +1,20 @@
-// Load and display events
+/**
+ * @fileoverview Events page - displays and manages tournament event listings
+ * Loads tournaments from the API and displays them grouped by status (ongoing, upcoming, completed)
+ * @module events
+ */
+
+// ============================================================================
+// DATA LOADING
+// ============================================================================
+
+/**
+ * Loads all tournaments from the API and displays them grouped by status
+ * Fetches tournament data, groups by status, sorts chronologically, and renders event cards
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} If the API request fails
+ */
 async function loadEvents() {
     try {
         const response = await fetch('/api/tournaments');
@@ -45,6 +61,26 @@ async function loadEvents() {
     }
 }
 
+// ============================================================================
+// UI RENDERING
+// ============================================================================
+
+/**
+ * Renders an individual event card with tournament information
+ * Creates HTML for displaying tournament details, status, and action buttons
+ * @param {Object} tournament - The tournament object to render
+ * @param {string} tournament._id - Tournament unique identifier
+ * @param {string} tournament.name - Tournament name
+ * @param {string} tournament.location - Tournament location
+ * @param {string} tournament.status - Tournament status (upcoming/ongoing/completed)
+ * @param {string} tournament.startDate - Tournament start date (ISO format)
+ * @param {string} [tournament.endDate] - Tournament end date (ISO format)
+ * @param {string} [tournament.description] - Tournament description
+ * @param {string} [tournament.registrationDeadline] - Registration deadline (ISO format)
+ * @param {number} [tournament.maxParticipants] - Maximum number of participants
+ * @param {Array} [tournament.squads] - Array of squad objects
+ * @returns {string} HTML string for the event card
+ */
 function renderEventCard(tournament) {
     const startDate = new Date(tournament.startDate || tournament.date);
     const endDate = new Date(tournament.endDate || tournament.date);
@@ -115,6 +151,10 @@ function renderEventCard(tournament) {
         </div>
     `;
 }
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
 
 // Load events on page load
 loadEvents();
