@@ -21,7 +21,10 @@ app.use(session({
     secret: process.env.SECRET_KEY,
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } // true if HTTPS
+    cookie: {
+        secure: process.env.COOKIE_SECURE === 'true', // set to true in HTTPS deployments
+        httpOnly: true
+    }
 }));
 // Routes
 app.use('/', mainroutes);
