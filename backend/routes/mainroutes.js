@@ -63,6 +63,9 @@ router.get('/squads', (req, res) => {
 });
 
 // Admin login page
+router.get('/admin', (req, res) => {
+    res.redirect('/admin/login');
+});
 router.get('/admin/login', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-login.html'));
 });
