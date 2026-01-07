@@ -466,7 +466,7 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
                 // Count current registrations for this squad
                 // Using inline query construction to satisfy CodeQL taint analysis
                 const registrationsWithSquad = await Registration.countDocuments({
-                    tournament: tournamentId,
+                    tournament: validTournamentId,
                     status: { $in: ['pending', 'confirmed'] },
                     assignedSquads: sanitizedSquadId
                 });
