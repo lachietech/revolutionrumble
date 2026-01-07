@@ -6,6 +6,16 @@ import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
+// Rate limiter for static HTML page serving (lenient)
+const pageViewLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 120, // 120 page views per minute per IP
+    message: 'Too many requests, please try again later',
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: false
+});
+
 // Rate limiter for admin OTP verification
 const verifyOtpLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -40,48 +50,48 @@ function requireAdmin(req, res, next) {
 }
 
 // Home page
-router.get('/', (req, res) => {
+router.get('/', pageViewLimiter, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/index.html'));
 });
 
-router.get('/register', (req, res) => {
+router.get('/register', pageViewLimiter, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/register.html'));
 });
 
-router.get('/playerstats', (req, res) => {
+router.get('/playerstats', pageViewLimiter, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/bowlerstats.html'));
 });
 
-router.get('/bowlerstats', (req, res) => {
+router.get('/bowlerstats', pageViewLimiter, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/bowlerstats.html'));
 });
 
-router.get('/bowler-hub', (req, res) => {
+router.get('/bowler-hub', pageViewLimiter, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/bowler-hub.html'));
 });
 
-router.get('/results', (req, res) => {
+router.get('/results', pageViewLimiter, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/results.html'));
 });
 
-router.get('/events', (req, res) => {
+router.get('/events', pageViewLimiter, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/events.html'));
 });
 
-router.get('/squads', (req, res) => {
+router.get('/squads', pageViewLimiter, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/squads.html'));
 });
 
 // Admin login page
-router.get('/admin', (req, res) => {
+router.get('/admin', pageViewLimiter, (req, res) => {
     res.redirect('/admin/login');
 });
-router.get('/admin/login', (req, res) => {
+router.get('/admin/login', pageViewLimiter, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-login.html'));
 });
 
 // Get available admin email options (no email shown for security)
-router.get('/admin/email-options', (req, res) => {
+router.get('/admin/email-options', verifyOtpLimiter, (req, res) => {
     const allowedEmails = getAllowedAdminEmails();
     const options = allowedEmails.map((email, index) => {
         return { id: index, label: `Admin ${index + 1}` };
