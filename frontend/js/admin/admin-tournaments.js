@@ -723,9 +723,9 @@ function updateFormatSummary() {
 
     const summary = currentStages.map((stage, i) => 
         `<div style="margin-bottom:6px">
-            <strong>Stage ${i + 1}:</strong> ${stage.name} (${stage.games} games)
-            ${stage.advancingBowlers ? ` → Top ${stage.advancingBowlers} advance` : ''}
-            ${stage.carryoverPinfall ? ` with ${stage.carryoverPercentage}% carryover` : ''}
+            <strong>Stage ${i + 1}:</strong> ${escapeHtml(stage.name)} (${parseInt(stage.games)} games)
+            ${stage.advancingBowlers ? ` → Top ${parseInt(stage.advancingBowlers)} advance` : ''}
+            ${stage.carryoverPinfall ? ` with ${parseInt(stage.carryoverPercentage)}% carryover` : ''}
         </div>`
     ).join('');
 
@@ -796,9 +796,9 @@ function renderStagesList() {
     container.innerHTML = currentStages.map((stage, i) => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:6px;gap:8px">
             <div style="flex:1">
-                <strong>${stage.name}</strong> • ${stage.games} games
-                ${stage.advancingBowlers ? ` • Top ${stage.advancingBowlers} advance` : ''}
-                ${stage.carryoverPinfall ? ` • ${stage.carryoverPercentage}% carryover` : ''}
+                <strong>${escapeHtml(stage.name)}</strong> • ${parseInt(stage.games)} games
+                ${stage.advancingBowlers ? ` • Top ${parseInt(stage.advancingBowlers)} advance` : ''}
+                ${stage.carryoverPinfall ? ` • ${parseInt(stage.carryoverPercentage)}% carryover` : ''}
             </div>
             <div style="display:flex;gap:4px">
                 <button onclick="editStage(${i})" class="button" style="padding:4px 8px;font-size:.75rem;background:var(--blue-600)">Edit</button>
@@ -905,9 +905,9 @@ function renderSquadsList() {
         return `
             <div style="background:#141a22;padding:10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(255,255,255,.05)">
                 <div>
-                    <strong style="font-size:.9rem">${squad.name}</strong>
+                    <strong style="font-size:.9rem">${escapeHtml(squad.name)}</strong>
                     <span style="color:#b9c6d8;font-size:.85rem;margin-left:8px">
-                        ${squadDate} @ ${squad.time} • Capacity: ${squad.capacity}
+                        ${squadDate} @ ${escapeHtml(squad.time)} • Capacity: ${parseInt(squad.capacity)}
                     </span>
                 </div>
                 <div style="display:flex;gap:6px">
@@ -1084,7 +1084,11 @@ async function loadTournaments() {
         }).join('');
     } catch (error) {
         console.error('Error loading tournaments:', error);
-        listContainer.innerHTML = `<p style="color:#c92a2a;text-align:center">Failed to load tournaments: ${error.message}</p>`;
+        const errorP = document.createElement('p');
+        errorP.style.cssText = 'color:#c92a2a;text-align:center';
+        errorP.textContent = `Failed to load tournaments: ${error.message}`;
+        listContainer.innerHTML = '';
+        listContainer.appendChild(errorP);
     }
 }
 

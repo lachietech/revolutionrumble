@@ -18,6 +18,13 @@ let reservationData = {};
 /** @type {Object.<string, string>} Map of tournament IDs to the email addresses being used for signin */
 let currentSigninEmail = {};
 
+// Helper function to escape HTML and prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // ============================================================================
 // DATA LOADING
 // ============================================================================
@@ -554,8 +561,8 @@ async function handleSubmit(e, tournament) {
         const squadInfo = selectedSquads.length > 0 ? ` for ${selectedSquads.length} squad${selectedSquads.length > 1 ? 's' : ''}` : '';
         messageDiv.innerHTML = `
             <div class="success-message">
-                ✅ Registration successful! You're registered for ${tournament.name}${squadInfo}. 
-                A confirmation email will be sent to ${data.email}.
+                ✅ Registration successful! You're registered for ${escapeHtml(tournament.name)}${squadInfo}. 
+                A confirmation email will be sent to ${escapeHtml(data.email)}.
             </div>
         `;
         form.reset();

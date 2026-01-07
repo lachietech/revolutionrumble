@@ -61,7 +61,9 @@ function createNotification(message, type) {
 function createSpinner(message = 'Loading...') {
     const spinner = document.createElement('div');
     spinner.style.cssText = 'text-align:center;padding:48px;color:#888';
-    spinner.innerHTML = `<p>${message}</p>`;
+    const p = document.createElement('p');
+    p.textContent = message;
+    spinner.appendChild(p);
     return spinner;
 }
 
@@ -73,7 +75,9 @@ function createSpinner(message = 'Loading...') {
 function createEmptyState(message) {
     const emptyState = document.createElement('div');
     emptyState.style.cssText = 'text-align:center;padding:48px;color:#888';
-    emptyState.innerHTML = `<p>${message}</p>`;
+    const p = document.createElement('p');
+    p.textContent = message;
+    emptyState.appendChild(p);
     return emptyState;
 }
 

@@ -73,9 +73,24 @@ router.post('/tournaments', strictWriteLimiter, requireAdmin, async (req, res) =
 // PUT update tournament (admin only)
 router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
+        // Validate tournament ID
+        const tournamentId = validateObjectId(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ error: 'Invalid tournament ID' });
+        }
+        
+        // Sanitize update data - only allow specific fields
+        const allowedFields = ['name', 'description', 'startDate', 'endDate', 'location', 'entryFee', 'maxParticipants', 'status', 'squads', 'squadsRequiredToQualify'];
+        const updateData = {};
+        for (const field of allowedFields) {
+            if (req.body[field] !== undefined) {
+                updateData[field] = req.body[field];
+            }
+        }
+        
         const tournament = await Tournament.findByIdAndUpdate(
-            req.params.id,
-            req.body,
+            tournamentId,
+            updateData,
             { new: true, runValidators: true }
         );
         if (!tournament) return res.status(404).json({ error: 'Tournament not found' });

@@ -57,11 +57,32 @@ export function sanitizeEmail(email) {
         return null;
     }
     
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const sanitized = email.toLowerCase().trim();
     
-    if (!emailRegex.test(sanitized) || sanitized.length > 254) {
+    // Length check first (RFC 5321)
+    if (sanitized.length > 254 || sanitized.length < 3) {
+        return null;
+    }
+    
+    // Simple validation: must contain @ with content on both sides and at least one dot after @
+    // Using indexOf to avoid ReDoS vulnerability from complex regex
+    const atIndex = sanitized.indexOf('@');
+    if (atIndex <= 0 || atIndex === sanitized.length - 1) {
+        return null; // @ must exist and not be at start or end
+    }
+    
+    const localPart = sanitized.substring(0, atIndex);
+    const domainPart = sanitized.substring(atIndex + 1);
+    
+    // Local part: must not be empty, no spaces
+    if (!localPart || localPart.includes(' ') || localPart.includes('\t') || localPart.includes('\n')) {
+        return null;
+    }
+    
+    // Domain part: must have at least one dot and not start/end with dot, no spaces
+    const lastDotIndex = domainPart.lastIndexOf('.');
+    if (lastDotIndex <= 0 || lastDotIndex === domainPart.length - 1 || 
+        domainPart.includes(' ') || domainPart.includes('\t') || domainPart.includes('\n')) {
         return null;
     }
     

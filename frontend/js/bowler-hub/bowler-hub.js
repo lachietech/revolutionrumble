@@ -552,7 +552,11 @@ async function editRegistration(regId, tournamentId) {
         
     } catch (error) {
         console.error('Failed to load squad editor:', error);
-        editArea.innerHTML = `<div style="color:#ef4444;padding:12px">Failed to load squad editor: ${error.message}</div>`;
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'color:#ef4444;padding:12px';
+        errorDiv.textContent = `Failed to load squad editor: ${error.message}`;
+        editArea.innerHTML = '';
+        editArea.appendChild(errorDiv);
     }
 }
 

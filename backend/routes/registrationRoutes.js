@@ -349,10 +349,16 @@ router.get('/registrations', generalWriteLimiter, requireAdmin, async (req, res)
     try {
         const filter = {};
         if (req.query.tournamentId) {
-            filter.tournament = req.query.tournamentId;
+            const tournamentId = validateObjectId(req.query.tournamentId);
+            if (tournamentId) {
+                filter.tournament = tournamentId;
+            }
         }
         if (req.query.status) {
-            filter.status = req.query.status;
+            const status = sanitizeString(req.query.status, 20);
+            if (status) {
+                filter.status = status;
+            }
         }
 
         const registrations = await Registration.find(filter)
@@ -445,7 +451,13 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
 
             // Validate each selected squad exists and has capacity
             for (const squadId of assignedSquads) {
-                const squad = tournament.squads.id(squadId);
+                // Sanitize squadId
+                const sanitizedSquadId = validateObjectId(squadId);
+                if (!sanitizedSquadId) {
+                    return res.status(400).json({ error: 'Invalid squad ID format' });
+                }
+                
+                const squad = tournament.squads.id(sanitizedSquadId);
                 if (!squad) {
                     return res.status(400).json({ error: 'Invalid squad selection' });
                 }
@@ -454,7 +466,7 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
                 const registrationsWithSquad = await Registration.countDocuments({
                     tournament: tournamentId,
                     status: { $in: ['pending', 'confirmed'] },
-                    assignedSquads: squadId
+                    assignedSquads: sanitizedSquadId
                 });
 
                 if (registrationsWithSquad >= squad.capacity) {
