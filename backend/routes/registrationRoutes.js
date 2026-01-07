@@ -464,13 +464,13 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
                 }
 
                 // Count current registrations for this squad
-                // Using explicit status values to prevent query manipulation
-                const validStatuses = ['pending', 'confirmed'];
-                const registrationsWithSquad = await Registration.countDocuments({
+                // Build query object explicitly to prevent injection
+                const countQuery = {
                     tournament: tournamentId,
-                    status: { $in: validStatuses },
+                    status: { $in: ['pending', 'confirmed'] },
                     assignedSquads: sanitizedSquadId
-                });
+                };
+                const registrationsWithSquad = await Registration.countDocuments(countQuery);
 
                 if (registrationsWithSquad >= squad.capacity) {
                     return res.status(400).json({ error: `Squad "${squad.name}" is full. Please select different squads.` });

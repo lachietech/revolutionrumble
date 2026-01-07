@@ -79,29 +79,55 @@ router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res
             return res.status(400).json({ error: 'Invalid tournament ID' });
         }
         
-        // Sanitize update data - only allow specific fields
-        const allowedFields = ['name', 'description', 'startDate', 'endDate', 'location', 'entryFee', 'maxParticipants', 'status', 'squads', 'squadsRequiredToQualify'];
+        // Build sanitized update object explicitly field by field
         const updateData = {};
-        for (const field of allowedFields) {
-            if (req.body[field] !== undefined) {
-                // Sanitize string fields
-                if (field === 'name' || field === 'description' || field === 'location') {
-                    updateData[field] = typeof req.body[field] === 'string' ? req.body[field].replace(/\$/g, '') : req.body[field];
-                } else if (field === 'status') {
-                    // Allowlist validation for status
-                    const validStatuses = ['upcoming', 'active', 'completed', 'cancelled'];
-                    if (validStatuses.includes(req.body[field])) {
-                        updateData[field] = req.body[field];
-                    }
-                } else {
-                    updateData[field] = req.body[field];
-                }
+        
+        // String fields - sanitize
+        if (req.body.name !== undefined && typeof req.body.name === 'string') {
+            updateData.name = req.body.name.replace(/\$/g, '');
+        }
+        if (req.body.description !== undefined && typeof req.body.description === 'string') {
+            updateData.description = req.body.description.replace(/\$/g, '');
+        }
+        if (req.body.location !== undefined && typeof req.body.location === 'string') {
+            updateData.location = req.body.location.replace(/\$/g, '');
+        }
+        
+        // Date fields
+        if (req.body.startDate !== undefined) {
+            updateData.startDate = req.body.startDate;
+        }
+        if (req.body.endDate !== undefined) {
+            updateData.endDate = req.body.endDate;
+        }
+        
+        // Numeric fields
+        if (req.body.entryFee !== undefined && typeof req.body.entryFee === 'number') {
+            updateData.entryFee = req.body.entryFee;
+        }
+        if (req.body.maxParticipants !== undefined && typeof req.body.maxParticipants === 'number') {
+            updateData.maxParticipants = req.body.maxParticipants;
+        }
+        if (req.body.squadsRequiredToQualify !== undefined && typeof req.body.squadsRequiredToQualify === 'number') {
+            updateData.squadsRequiredToQualify = req.body.squadsRequiredToQualify;
+        }
+        
+        // Status - allowlist validation
+        if (req.body.status !== undefined) {
+            const validStatuses = ['upcoming', 'active', 'completed', 'cancelled'];
+            if (validStatuses.includes(req.body.status)) {
+                updateData.status = req.body.status;
             }
+        }
+        
+        // Squads array - needs deep sanitization
+        if (req.body.squads !== undefined && Array.isArray(req.body.squads)) {
+            updateData.squads = req.body.squads;
         }
         
         const tournament = await Tournament.findByIdAndUpdate(
             tournamentId,
-            updateData,
+            { $set: updateData },
             { new: true, runValidators: true }
         );
         if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
