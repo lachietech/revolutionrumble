@@ -22,7 +22,8 @@ const reservationLimiter = rateLimit({
     max: 10, // 10 reservation requests per minute per IP
     message: 'Too many reservation requests, please try again later',
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skipSuccessfulRequests: false
 });
 
 const registrationLimiter = rateLimit({
@@ -30,7 +31,8 @@ const registrationLimiter = rateLimit({
     max: 10, // 10 registration submissions per 5 minutes per IP
     message: 'Too many registration attempts, please try again later',
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skipSuccessfulRequests: false
 });
 
 const generalWriteLimiter = rateLimit({
@@ -38,7 +40,8 @@ const generalWriteLimiter = rateLimit({
     max: 30, // 30 write operations per minute per IP
     message: 'Too many requests, please try again later',
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skipSuccessfulRequests: false
 });
 
 const strictWriteLimiter = rateLimit({
@@ -46,7 +49,8 @@ const strictWriteLimiter = rateLimit({
     max: 20, // 20 admin operations per minute per IP
     message: 'Too many requests, please try again later',
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skipSuccessfulRequests: false
 });
 
 // Middleware to check admin
@@ -341,7 +345,7 @@ router.get('/tournaments/:tournamentId/results', async (req, res) => {
 });
 
 // GET all registrations (admin only - with optional tournament filter)
-router.get('/registrations', requireAdmin, async (req, res) => {
+router.get('/registrations', generalWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const filter = {};
         if (req.query.tournamentId) {
@@ -362,7 +366,7 @@ router.get('/registrations', requireAdmin, async (req, res) => {
 });
 
 // GET single registration (admin only)
-router.get('/registrations/:id', requireAdmin, async (req, res) => {
+router.get('/registrations/:id', generalWriteLimiter, requireAdmin, async (req, res) => {
     try {
         // Validate registration ID
         const registrationId = validateObjectId(req.params.id);
@@ -576,7 +580,7 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
 });
 
 // PUT update registration status (admin only)
-router.put('/registrations/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
+router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const { status, notes, stageScores, currentStage, carryoverToNextStage } = req.body;
         
@@ -784,7 +788,7 @@ router.delete('/registrations/:id/cancel', generalWriteLimiter, async (req, res)
 });
 
 // DELETE registration (admin only)
-router.delete('/registrations/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
+router.delete('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         // Validate registration ID
         const registrationId = validateObjectId(req.params.id);

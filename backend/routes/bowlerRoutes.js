@@ -21,7 +21,8 @@ const otpRequestLimiter = rateLimit({
     max: 5, // 5 OTP requests per 15 minutes per IP
     message: 'Too many OTP requests, please try again later',
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skipSuccessfulRequests: false // Count all requests to prevent spam
 });
 
 const otpVerifyLimiter = rateLimit({
@@ -29,7 +30,8 @@ const otpVerifyLimiter = rateLimit({
     max: 10, // 10 verification attempts per 15 minutes per IP
     message: 'Too many verification attempts, please try again later',
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skipSuccessfulRequests: false // Count all attempts to prevent brute force
 });
 
 const generalWriteLimiter = rateLimit({
@@ -37,7 +39,8 @@ const generalWriteLimiter = rateLimit({
     max: 30, // 30 write operations per minute per IP
     message: 'Too many requests, please try again later',
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skipSuccessfulRequests: false
 });
 
 const strictWriteLimiter = rateLimit({
@@ -45,7 +48,8 @@ const strictWriteLimiter = rateLimit({
     max: 10, // 10 operations per minute per IP (for admin operations)
     message: 'Too many requests, please try again later',
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skipSuccessfulRequests: false
 });
 
 // Initialize Resend client (lazy initialization to ensure env vars are loaded)
@@ -236,7 +240,7 @@ router.get('/bowlers/session', (req, res) => {
 });
 
 // POST logout
-router.post('/bowlers/logout', (req, res) => {
+router.post('/bowlers/logout', generalWriteLimiter, (req, res) => {
     req.session.bowlerId = undefined;
     req.session.bowlerEmail = undefined;
     res.json({ success: true });
@@ -300,7 +304,7 @@ router.get('/bowlers', async (req, res) => {
 });
 
 // PUT update bowler profile (requires authentication)
-router.put('/bowlers/:id', requireBowlerAuth, generalWriteLimiter, async (req, res) => {
+router.put('/bowlers/:id', generalWriteLimiter, requireBowlerAuth, async (req, res) => {
     try {
         const { playerName, nickname, hand, bio, homeCenter, yearsExperience, currentAverage, highGame, highSeries } = req.body;
 
@@ -440,7 +444,7 @@ router.get('/bowlers/:id/history', async (req, res) => {
 });
 
 // POST create/update tournament result (admin only)
-router.post('/results', requireAdmin, strictWriteLimiter, async (req, res) => {
+router.post('/results', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const { bowlerId, tournamentId, registrationId, squadResults, finalPosition, totalParticipants } = req.body;
 
@@ -568,7 +572,7 @@ async function updateBowlerStats(bowlerId) {
 }
 
 // POST admin utility to sync all bowler stats from results
-router.post('/bowlers/sync-stats', requireAdmin, strictWriteLimiter, async (req, res) => {
+router.post('/bowlers/sync-stats', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const bowlers = await Bowler.find();
         let syncedCount = 0;
@@ -588,7 +592,7 @@ router.post('/bowlers/sync-stats', requireAdmin, strictWriteLimiter, async (req,
 });
 
 // POST admin utility to sync bowler names to all registrations
-router.post('/bowlers/sync-names', requireAdmin, strictWriteLimiter, async (req, res) => {
+router.post('/bowlers/sync-names', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const bowlers = await Bowler.find();
         let updatedCount = 0;
@@ -700,7 +704,7 @@ router.get('/bowlers/check-sync/:email', requireAdmin, async (req, res) => {
 });
 
 // POST fix/link results to bowler by email match
-router.post('/bowlers/link-results/:bowlerId', requireAdmin, strictWriteLimiter, async (req, res) => {
+router.post('/bowlers/link-results/:bowlerId', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const bowlerId = validateObjectId(req.params.bowlerId);
         if (!bowlerId) {
@@ -756,7 +760,7 @@ router.post('/bowlers/link-results/:bowlerId', requireAdmin, strictWriteLimiter,
 });
 
 // POST find and fix bowler by name (for cases where results have wrong name)
-router.post('/bowlers/fix-by-name', requireAdmin, strictWriteLimiter, async (req, res) => {
+router.post('/bowlers/fix-by-name', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const { searchName, correctEmail } = req.body;
         

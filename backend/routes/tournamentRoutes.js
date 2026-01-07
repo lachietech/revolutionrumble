@@ -13,7 +13,8 @@ const strictWriteLimiter = rateLimit({
     max: 20, // 20 admin operations per minute per IP
     message: 'Too many requests, please try again later',
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skipSuccessfulRequests: false
 });
 
 // Middleware to require admin session
@@ -50,7 +51,7 @@ router.get('/tournaments/:id', async (req, res) => {
 });
 
 // POST create new tournament (admin only)
-router.post('/tournaments', requireAdmin, strictWriteLimiter, async (req, res) => {
+router.post('/tournaments', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const tournament = new Tournament(req.body);
         await tournament.save();
@@ -61,7 +62,7 @@ router.post('/tournaments', requireAdmin, strictWriteLimiter, async (req, res) =
 });
 
 // PUT update tournament (admin only)
-router.put('/tournaments/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
+router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const tournament = await Tournament.findByIdAndUpdate(
             req.params.id,
@@ -76,7 +77,7 @@ router.put('/tournaments/:id', requireAdmin, strictWriteLimiter, async (req, res
 });
 
 // DELETE tournament (admin only)
-router.delete('/tournaments/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
+router.delete('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
