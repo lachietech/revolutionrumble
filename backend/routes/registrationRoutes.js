@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
+<<<<<<< HEAD
 // Rate limiters
 const reservationLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
@@ -38,6 +39,11 @@ const strictWriteLimiter = rateLimit({
     message: 'Too many requests, please try again later',
     standardHeaders: true,
     legacyHeaders: false
+=======
+const adminDeleteLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 20, // limit each admin IP to 20 delete requests per windowMs
+>>>>>>> 3efd3d3f615b87808b780ca6308991a492326021
 });
 
 // Middleware to check admin
@@ -719,7 +725,11 @@ router.delete('/registrations/:id/cancel', generalWriteLimiter, async (req, res)
 });
 
 // DELETE registration (admin only)
+<<<<<<< HEAD
 router.delete('/registrations/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
+=======
+router.delete('/registrations/:id', requireAdmin, adminDeleteLimiter, async (req, res) => {
+>>>>>>> 3efd3d3f615b87808b780ca6308991a492326021
     try {
         const registration = await Registration.findByIdAndDelete(req.params.id);
         
