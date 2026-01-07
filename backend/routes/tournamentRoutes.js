@@ -84,7 +84,18 @@ router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res
         const updateData = {};
         for (const field of allowedFields) {
             if (req.body[field] !== undefined) {
-                updateData[field] = req.body[field];
+                // Sanitize string fields
+                if (field === 'name' || field === 'description' || field === 'location') {
+                    updateData[field] = typeof req.body[field] === 'string' ? req.body[field].replace(/\$/g, '') : req.body[field];
+                } else if (field === 'status') {
+                    // Allowlist validation for status
+                    const validStatuses = ['upcoming', 'active', 'completed', 'cancelled'];
+                    if (validStatuses.includes(req.body[field])) {
+                        updateData[field] = req.body[field];
+                    }
+                } else {
+                    updateData[field] = req.body[field];
+                }
             }
         }
         

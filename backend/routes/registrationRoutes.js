@@ -464,9 +464,11 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
                 }
 
                 // Count current registrations for this squad
+                // Using explicit status values to prevent query manipulation
+                const validStatuses = ['pending', 'confirmed'];
                 const registrationsWithSquad = await Registration.countDocuments({
                     tournament: tournamentId,
-                    status: { $in: ['pending', 'confirmed'] },
+                    status: { $in: validStatuses },
                     assignedSquads: sanitizedSquadId
                 });
 
