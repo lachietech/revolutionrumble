@@ -719,11 +719,7 @@ router.delete('/registrations/:id/cancel', generalWriteLimiter, async (req, res)
 });
 
 // DELETE registration (admin only)
-<<<<<<< HEAD
 router.delete('/registrations/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
-=======
-router.delete('/registrations/:id', requireAdmin, adminDeleteLimiter, async (req, res) => {
->>>>>>> 3efd3d3f615b87808b780ca6308991a492326021
     try {
         const registration = await Registration.findByIdAndDelete(req.params.id);
         
