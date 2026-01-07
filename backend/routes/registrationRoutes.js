@@ -106,7 +106,7 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
 });
 
 // GET check reservation status
-router.get('/reservations/:sessionId', async (req, res) => {
+router.get('/reservations/:sessionId', generalWriteLimiter, async (req, res) => {
     try {
         const reservation = await SpotReservation.findOne({
             sessionId: req.params.sessionId,
@@ -141,7 +141,7 @@ router.delete('/reservations/:sessionId', reservationLimiter, async (req, res) =
 
 // 
 // GET all registrations for a specific tournament (public - for displaying count)
-router.get('/tournaments/:tournamentId/registrations/count', async (req, res) => {
+router.get('/tournaments/:tournamentId/registrations/count', generalWriteLimiter, async (req, res) => {
     try {
         const count = await Registration.countDocuments({
             tournament: req.params.tournamentId,
@@ -154,7 +154,7 @@ router.get('/tournaments/:tournamentId/registrations/count', async (req, res) =>
 });
 
 // GET registrations for a tournament (public - for results page)
-router.get('/tournaments/:tournamentId/registrations', async (req, res) => {
+router.get('/tournaments/:tournamentId/registrations', generalWriteLimiter, async (req, res) => {
     try {
         const registrations = await Registration.find({
             tournament: req.params.tournamentId,
@@ -171,7 +171,7 @@ router.get('/tournaments/:tournamentId/registrations', async (req, res) => {
 });
 
 // GET tournament results with stage scores (public - for results leaderboard)
-router.get('/tournaments/:tournamentId/results', async (req, res) => {
+router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.tournamentId);

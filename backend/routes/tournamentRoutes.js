@@ -7,7 +7,16 @@ import { validateObjectId } from '../utils/validation.js';
 
 const router = express.Router();
 
-// Rate limiter for admin write operations
+// Rate limiters
+const generalWriteLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 30, // 30 operations per minute per IP
+    message: 'Too many requests, please try again later',
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: false
+});
+
 const strictWriteLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
     max: 20, // 20 admin operations per minute per IP
@@ -24,7 +33,7 @@ function requireAdmin(req, res, next) {
 }
 
 // GET all tournaments
-router.get('/tournaments', async (req, res) => {
+router.get('/tournaments', generalWriteLimiter, async (req, res) => {
     try {
         const tournaments = await Tournament.find().sort({ startDate: 1 });
         res.json(tournaments);
@@ -34,7 +43,7 @@ router.get('/tournaments', async (req, res) => {
 });
 
 // GET single tournament by ID
-router.get('/tournaments/:id', async (req, res) => {
+router.get('/tournaments/:id', generalWriteLimiter, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
@@ -94,7 +103,7 @@ router.delete('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, 
 });
 
 // GET squad availability for a tournament (public)
-router.get('/tournaments/:id/squads/availability', async (req, res) => {
+router.get('/tournaments/:id/squads/availability', generalWriteLimiter, async (req, res) => {
     try {
         const tournamentId = validateObjectId(req.params.id);
         if (!tournamentId) {
@@ -169,7 +178,7 @@ router.get('/tournaments/:id/squads/availability', async (req, res) => {
 });
 
 // GET squad lists with bowler names (public)
-router.get('/tournaments/:id/squads/list', async (req, res) => {
+router.get('/tournaments/:id/squads/list', generalWriteLimiter, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);

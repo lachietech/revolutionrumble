@@ -202,21 +202,21 @@ router.post('/admin/verify-otp', verifyOtpLimiter, async (req, res) => {
 });
 
 // Admin logout
-router.get('/admin/logout', (req, res) => {
+router.get('/admin/logout', verifyOtpLimiter, (req, res) => {
     req.session.isAdmin = false;
     req.session.destroy?.(() => res.redirect('/'));
 });
 
 // Admin sub-pages (protected)
-router.get('/admin/tournaments', requireAdmin, (req, res) => {
+router.get('/admin/tournaments', verifyOtpLimiter, requireAdmin, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-tournaments.html'));
 });
 
-router.get('/admin/registrations', requireAdmin, (req, res) => {
+router.get('/admin/registrations', verifyOtpLimiter, requireAdmin, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-registrations.html'));
 });
 
-router.get('/admin/results', requireAdmin, (req, res) => {
+router.get('/admin/results', verifyOtpLimiter, requireAdmin, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-results.html'));
 });
 

@@ -77,7 +77,7 @@ function requireBowlerAuth(req, res, next) {
 }
 
 // TEST ENDPOINT - Verify Resend is working
-router.get('/test-email', async (req, res) => {
+router.get('/test-email', strictWriteLimiter, async (req, res) => {
     try {
         const resendClient = getResendClient();
         const result = await resendClient.emails.send({
@@ -227,7 +227,7 @@ router.post('/bowlers/verify-otp', otpVerifyLimiter, async (req, res) => {
 });
 
 // GET current bowler session
-router.get('/bowlers/session', (req, res) => {
+router.get('/bowlers/session', generalWriteLimiter, (req, res) => {
     if (req.session.bowlerId) {
         res.json({ 
             authenticated: true, 
@@ -247,7 +247,7 @@ router.post('/bowlers/logout', generalWriteLimiter, (req, res) => {
 });
 
 // GET bowler by email (public - for profile lookup)
-router.get('/bowlers/lookup', async (req, res) => {
+router.get('/bowlers/lookup', generalWriteLimiter, async (req, res) => {
     try {
         const { email } = req.query;
         // Validate and sanitize email
@@ -270,7 +270,7 @@ router.get('/bowlers/lookup', async (req, res) => {
 });
 
 // GET bowler by ID (public)
-router.get('/bowlers/:id', async (req, res) => {
+router.get('/bowlers/:id', generalWriteLimiter, async (req, res) => {
     try {
         const bowlerId = validateObjectId(req.params.id);
         if (!bowlerId) {
@@ -291,7 +291,7 @@ router.get('/bowlers/:id', async (req, res) => {
 });
 
 // GET all bowlers (public - for leaderboards, etc.)
-router.get('/bowlers', async (req, res) => {
+router.get('/bowlers', generalWriteLimiter, async (req, res) => {
     try {
         const bowlers = await Bowler.find()
             .select('playerName nickname email tournamentAverage currentAverage highGame highSeries tournamentsEntered')
@@ -356,7 +356,7 @@ router.put('/bowlers/:id', generalWriteLimiter, requireBowlerAuth, async (req, r
 });
 
 // GET current authenticated bowler's registrations
-router.get('/bowlers/my/registrations', requireBowlerAuth, async (req, res) => {
+router.get('/bowlers/my/registrations', generalWriteLimiter, requireBowlerAuth, async (req, res) => {
     try {
         // Get bowler to find their email
         const bowler = await Bowler.findById(req.session.bowlerId);
@@ -387,7 +387,7 @@ router.get('/bowlers/my/registrations', requireBowlerAuth, async (req, res) => {
 });
 
 // GET bowler tournament history with results
-router.get('/bowlers/:id/history', async (req, res) => {
+router.get('/bowlers/:id/history', generalWriteLimiter, async (req, res) => {
     try {
         // Validate bowler ID
         const bowlerId = validateObjectId(req.params.id);
@@ -615,7 +615,7 @@ router.post('/bowlers/sync-names', strictWriteLimiter, requireAdmin, async (req,
 });
 
 // GET diagnostic route to check bowler sync status
-router.get('/bowlers/check-sync/:email', requireAdmin, async (req, res) => {
+router.get('/bowlers/check-sync/:email', generalWriteLimiter, requireAdmin, async (req, res) => {
     try {
         // Sanitize email parameter
         const sanitizedEmail = sanitizeEmail(req.params.email);
