@@ -2,8 +2,18 @@ import express from 'express';
 import Tournament from '../models/Tournament.js';
 import Registration from '../models/Registration.js';
 import SpotReservation from '../models/SpotReservation.js';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+// Rate limiter for admin write operations
+const strictWriteLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 20, // 20 admin operations per minute per IP
+    message: 'Too many requests, please try again later',
+    standardHeaders: true,
+    legacyHeaders: false
+});
 
 // Middleware to require admin session
 function requireAdmin(req, res, next) {
@@ -33,7 +43,7 @@ router.get('/tournaments/:id', async (req, res) => {
 });
 
 // POST create new tournament (admin only)
-router.post('/tournaments', requireAdmin, async (req, res) => {
+router.post('/tournaments', requireAdmin, strictWriteLimiter, async (req, res) => {
     try {
         const tournament = new Tournament(req.body);
         await tournament.save();
@@ -44,7 +54,7 @@ router.post('/tournaments', requireAdmin, async (req, res) => {
 });
 
 // PUT update tournament (admin only)
-router.put('/tournaments/:id', requireAdmin, async (req, res) => {
+router.put('/tournaments/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
     try {
         const tournament = await Tournament.findByIdAndUpdate(
             req.params.id,
@@ -59,7 +69,7 @@ router.put('/tournaments/:id', requireAdmin, async (req, res) => {
 });
 
 // DELETE tournament (admin only)
-router.delete('/tournaments/:id', requireAdmin, async (req, res) => {
+router.delete('/tournaments/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
     try {
         const tournament = await Tournament.findByIdAndDelete(req.params.id);
         if (!tournament) return res.status(404).json({ error: 'Tournament not found' });

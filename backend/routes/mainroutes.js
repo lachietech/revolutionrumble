@@ -89,7 +89,7 @@ router.get('/admin/email-options', (req, res) => {
 });
 
 // Request admin OTP
-router.post('/admin/request-otp', async (req, res) => {
+router.post('/admin/request-otp', verifyOtpLimiter, async (req, res) => {
     try {
         const { emailIndex } = req.body;
         if (emailIndex === undefined) {

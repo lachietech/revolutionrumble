@@ -3,8 +3,42 @@ import Registration from '../models/Registration.js';
 import Tournament from '../models/Tournament.js';
 import Bowler from '../models/Bowler.js';
 import SpotReservation from '../models/SpotReservation.js';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+// Rate limiters
+const reservationLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 10, // 10 reservation requests per minute per IP
+    message: 'Too many reservation requests, please try again later',
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+const registrationLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 10, // 10 registration submissions per 5 minutes per IP
+    message: 'Too many registration attempts, please try again later',
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+const generalWriteLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 30, // 30 write operations per minute per IP
+    message: 'Too many requests, please try again later',
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+const strictWriteLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 20, // 20 admin operations per minute per IP
+    message: 'Too many requests, please try again later',
+    standardHeaders: true,
+    legacyHeaders: false
+});
 
 // Middleware to check admin
 function requireAdmin(req, res, next) {
@@ -13,7 +47,7 @@ function requireAdmin(req, res, next) {
 }
 
 // POST create spot reservation (holds spots for 10 minutes)
-router.post('/reservations', async (req, res) => {
+router.post('/reservations', reservationLimiter, async (req, res) => {
     try {
         const { tournamentId, squads } = req.body;
         
@@ -83,7 +117,7 @@ router.get('/reservations/:sessionId', async (req, res) => {
 });
 
 // DELETE release reservation
-router.delete('/reservations/:sessionId', async (req, res) => {
+router.delete('/reservations/:sessionId', reservationLimiter, async (req, res) => {
     try {
         await SpotReservation.deleteOne({ sessionId: req.params.sessionId });
         res.json({ success: true, message: 'Reservation released' });
@@ -329,7 +363,7 @@ router.get('/registrations/:id', requireAdmin, async (req, res) => {
 });
 
 // POST new registration (public)
-router.post('/registrations', async (req, res) => {
+router.post('/registrations', registrationLimiter, async (req, res) => {
     try {
         const { tournamentId, playerName, email, phone, gender, averageScore, notes, assignedSquads } = req.body;
 
@@ -495,7 +529,7 @@ router.post('/registrations', async (req, res) => {
 });
 
 // PUT update registration status (admin only)
-router.put('/registrations/:id', requireAdmin, async (req, res) => {
+router.put('/registrations/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
     try {
         const { status, notes, stageScores, currentStage, carryoverToNextStage } = req.body;
         
@@ -582,7 +616,7 @@ router.put('/registrations/:id', requireAdmin, async (req, res) => {
 });
 
 // PUT update bowler's own registration (bowler must be authenticated)
-router.put('/registrations/:id/squads', async (req, res) => {
+router.put('/registrations/:id/squads', generalWriteLimiter, async (req, res) => {
     try {
         // Check if bowler is authenticated
         if (!req.session || !req.session.bowlerId) {
@@ -652,7 +686,7 @@ router.put('/registrations/:id/squads', async (req, res) => {
 });
 
 // DELETE bowler's own registration (bowler must be authenticated)
-router.delete('/registrations/:id/cancel', async (req, res) => {
+router.delete('/registrations/:id/cancel', generalWriteLimiter, async (req, res) => {
     try {
         // Check if bowler is authenticated
         if (!req.session || !req.session.bowlerId) {
@@ -685,7 +719,7 @@ router.delete('/registrations/:id/cancel', async (req, res) => {
 });
 
 // DELETE registration (admin only)
-router.delete('/registrations/:id', requireAdmin, async (req, res) => {
+router.delete('/registrations/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
     try {
         const registration = await Registration.findByIdAndDelete(req.params.id);
         
