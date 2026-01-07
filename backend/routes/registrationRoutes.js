@@ -3,8 +3,14 @@ import Registration from '../models/Registration.js';
 import Tournament from '../models/Tournament.js';
 import Bowler from '../models/Bowler.js';
 import SpotReservation from '../models/SpotReservation.js';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+const adminDeleteLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 20, // limit each admin IP to 20 delete requests per windowMs
+});
 
 // Middleware to check admin
 function requireAdmin(req, res, next) {
@@ -685,7 +691,7 @@ router.delete('/registrations/:id/cancel', async (req, res) => {
 });
 
 // DELETE registration (admin only)
-router.delete('/registrations/:id', requireAdmin, async (req, res) => {
+router.delete('/registrations/:id', requireAdmin, adminDeleteLimiter, async (req, res) => {
     try {
         const registration = await Registration.findByIdAndDelete(req.params.id);
         
