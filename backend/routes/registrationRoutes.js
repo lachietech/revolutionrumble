@@ -13,6 +13,7 @@ import {
     validateInteger,
     validateObjectIdArray 
 } from '../utils/validation.js';
+import crypto from 'crypto';
 
 const router = express.Router();
 
@@ -67,7 +68,7 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
         // Generate or use session ID
         let sessionId = req.session.reservationId;
         if (!sessionId) {
-            sessionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            sessionId = crypto.randomBytes(16).toString('hex');
             req.session.reservationId = sessionId;
         }
         
