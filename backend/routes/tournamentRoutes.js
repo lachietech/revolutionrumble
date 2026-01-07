@@ -3,6 +3,7 @@ import Tournament from '../models/Tournament.js';
 import Registration from '../models/Registration.js';
 import SpotReservation from '../models/SpotReservation.js';
 import rateLimit from 'express-rate-limit';
+import { validateObjectId } from '../utils/validation.js';
 
 const router = express.Router();
 
@@ -34,7 +35,13 @@ router.get('/tournaments', async (req, res) => {
 // GET single tournament by ID
 router.get('/tournaments/:id', async (req, res) => {
     try {
-        const tournament = await Tournament.findById(req.params.id);
+        // Validate tournament ID
+        const tournamentId = validateObjectId(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ error: 'Invalid tournament ID' });
+        }
+        
+        const tournament = await Tournament.findById(tournamentId);
         if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
         res.json(tournament);
     } catch (error) {
@@ -71,7 +78,13 @@ router.put('/tournaments/:id', requireAdmin, strictWriteLimiter, async (req, res
 // DELETE tournament (admin only)
 router.delete('/tournaments/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
     try {
-        const tournament = await Tournament.findByIdAndDelete(req.params.id);
+        // Validate tournament ID
+        const tournamentId = validateObjectId(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ error: 'Invalid tournament ID' });
+        }
+        
+        const tournament = await Tournament.findById(tournamentId);
         if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
         res.json({ message: 'Tournament deleted' });
     } catch (error) {
@@ -152,12 +165,18 @@ router.get('/tournaments/:id/squads/availability', async (req, res) => {
 // GET squad lists with bowler names (public)
 router.get('/tournaments/:id/squads/list', async (req, res) => {
     try {
-        const tournament = await Tournament.findById(req.params.id);
+        // Validate tournament ID
+        const tournamentId = validateObjectId(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ error: 'Invalid tournament ID' });
+        }
+        
+        const tournament = await Tournament.findById(tournamentId);
         if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
 
         // Get all confirmed registrations for this tournament
         const registrations = await Registration.find({
-            tournament: req.params.id,
+            tournament: tournamentId,
             status: { $in: ['pending', 'confirmed'] }
         }).select('playerName averageScore assignedSquads bowler').populate('bowler', '_id');
 

@@ -5,6 +5,13 @@ import TournamentResult from '../models/TournamentResult.js';
 import Tournament from '../models/Tournament.js';
 import { Resend } from 'resend';
 import rateLimit from 'express-rate-limit';
+import { 
+    validateObjectId, 
+    sanitizeEmail, 
+    sanitizeString, 
+    sanitizePhone,
+    validateInteger 
+} from '../utils/validation.js';
 
 const router = express.Router();
 
@@ -86,12 +93,15 @@ router.get('/test-email', async (req, res) => {
 router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
     try {
         const { email } = req.body;
-        if (!email) {
-            return res.status(400).json({ error: 'Email required' });
+        
+        // Validate and sanitize email
+        const sanitizedEmail = sanitizeEmail(email);
+        if (!sanitizedEmail) {
+            return res.status(400).json({ error: 'Valid email required' });
         }
 
         // Find or create bowler
-        let bowler = await Bowler.findOne({ email: email.toLowerCase() });
+        let bowler = await Bowler.findOne({ email: sanitizedEmail });
         
         // Generate 6-digit OTP
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -100,7 +110,7 @@ router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
         if (!bowler) {
             // Create new bowler record with OTP
             bowler = new Bowler({
-                email: email.toLowerCase(),
+                email: sanitizedEmail,
                 playerName: '', // Will be filled in later
                 otpCode,
                 otpExpires,
@@ -152,11 +162,16 @@ router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
 router.post('/bowlers/verify-otp', otpVerifyLimiter, async (req, res) => {
     try {
         const { email, otp } = req.body;
-        if (!email || !otp) {
-            return res.status(400).json({ error: 'Email and OTP required' });
+        
+        // Validate and sanitize inputs
+        const sanitizedEmail = sanitizeEmail(email);
+        const sanitizedOtp = sanitizeString(otp, 6);
+        
+        if (!sanitizedEmail || !sanitizedOtp || sanitizedOtp.length !== 6) {
+            return res.status(400).json({ error: 'Valid email and 6-digit OTP required' });
         }
 
-        const bowler = await Bowler.findOne({ email: email.toLowerCase() });
+        const bowler = await Bowler.findOne({ email: sanitizedEmail });
         if (!bowler) {
             return res.status(404).json({ error: 'Email not found' });
         }
@@ -172,7 +187,7 @@ router.post('/bowlers/verify-otp', otpVerifyLimiter, async (req, res) => {
         }
 
         // Verify OTP
-        if (bowler.otpCode !== otp) {
+        if (bowler.otpCode !== sanitizedOtp) {
             bowler.otpAttempts += 1;
             await bowler.save();
             return res.status(400).json({ error: 'Invalid OTP code' });
@@ -231,11 +246,13 @@ router.post('/bowlers/logout', (req, res) => {
 router.get('/bowlers/lookup', async (req, res) => {
     try {
         const { email } = req.query;
-        if (!email) {
-            return res.status(400).json({ error: 'Email required' });
+        // Validate and sanitize email
+        const sanitizedEmail = sanitizeEmail(email);
+        if (!sanitizedEmail) {
+            return res.status(400).json({ error: 'Valid email required' });
         }
 
-        const bowler = await Bowler.findOne({ email: email.toLowerCase() })
+        const bowler = await Bowler.findOne({ email: sanitizedEmail })
             .populate('tournamentsEntered.tournament', 'name date location status');
         
         if (!bowler) {
@@ -282,12 +299,18 @@ router.put('/bowlers/:id', requireBowlerAuth, generalWriteLimiter, async (req, r
     try {
         const { playerName, nickname, hand, bio, homeCenter, yearsExperience, currentAverage, highGame, highSeries } = req.body;
 
+        // Validate ObjectId
+        const bowlerId = validateObjectId(req.params.id);
+        if (!bowlerId) {
+            return res.status(400).json({ error: 'Invalid bowler ID' });
+        }
+
         // Ensure bowler can only update their own profile
-        if (req.params.id !== req.session.bowlerId) {
+        if (bowlerId !== req.session.bowlerId) {
             return res.status(403).json({ error: 'You can only update your own profile' });
         }
 
-        const bowler = await Bowler.findById(req.params.id);
+        const bowler = await Bowler.findById(bowlerId);
         if (!bowler) {
             return res.status(404).json({ error: 'Bowler not found' });
         }
@@ -296,16 +319,16 @@ router.put('/bowlers/:id', requireBowlerAuth, generalWriteLimiter, async (req, r
         const nameChanged = playerName !== undefined && playerName !== bowler.playerName;
         const oldEmail = bowler.email;
 
-        // Update allowed fields
-        if (playerName !== undefined) bowler.playerName = playerName;
-        if (nickname !== undefined) bowler.nickname = nickname;
-        if (hand !== undefined) bowler.hand = hand;
-        if (bio !== undefined) bowler.bio = bio;
-        if (homeCenter !== undefined) bowler.homeCenter = homeCenter;
-        if (yearsExperience !== undefined) bowler.yearsExperience = yearsExperience;
-        if (currentAverage !== undefined) bowler.currentAverage = currentAverage;
-        if (highGame !== undefined) bowler.highGame = highGame;
-        if (highSeries !== undefined) bowler.highSeries = highSeries;
+        // Update allowed fields with sanitization
+        if (playerName !== undefined) bowler.playerName = sanitizeString(playerName, 100);
+        if (nickname !== undefined) bowler.nickname = sanitizeString(nickname, 50);
+        if (hand !== undefined) bowler.hand = sanitizeString(hand, 20);
+        if (bio !== undefined) bowler.bio = sanitizeString(bio, 500);
+        if (homeCenter !== undefined) bowler.homeCenter = sanitizeString(homeCenter, 100);
+        if (yearsExperience !== undefined) bowler.yearsExperience = validateInteger(yearsExperience, 0, 100);
+        if (currentAverage !== undefined) bowler.currentAverage = validateInteger(currentAverage, 0, 300);
+        if (highGame !== undefined) bowler.highGame = validateInteger(highGame, 0, 300);
+        if (highSeries !== undefined) bowler.highSeries = validateInteger(highSeries, 0, 900);
 
         await bowler.save();
 

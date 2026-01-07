@@ -4,6 +4,15 @@ import Tournament from '../models/Tournament.js';
 import Bowler from '../models/Bowler.js';
 import SpotReservation from '../models/SpotReservation.js';
 import rateLimit from 'express-rate-limit';
+import { 
+    validateObjectId, 
+    sanitizeEmail, 
+    sanitizeString, 
+    sanitizePhone,
+    validateGender,
+    validateInteger,
+    validateObjectIdArray 
+} from '../utils/validation.js';
 
 const router = express.Router();
 
@@ -160,7 +169,13 @@ router.get('/tournaments/:tournamentId/registrations', async (req, res) => {
 // GET tournament results with stage scores (public - for results leaderboard)
 router.get('/tournaments/:tournamentId/results', async (req, res) => {
     try {
-        const tournament = await Tournament.findById(req.params.tournamentId);
+        // Validate tournament ID
+        const tournamentId = validateObjectId(req.params.tournamentId);
+        if (!tournamentId) {
+            return res.status(400).json({ error: 'Invalid tournament ID' });
+        }
+        
+        const tournament = await Tournament.findById(tournamentId);
         if (!tournament) {
             return res.status(404).json({ error: 'Tournament not found' });
         }
@@ -349,7 +364,13 @@ router.get('/registrations', requireAdmin, async (req, res) => {
 // GET single registration (admin only)
 router.get('/registrations/:id', requireAdmin, async (req, res) => {
     try {
-        const registration = await Registration.findById(req.params.id)
+        // Validate registration ID
+        const registrationId = validateObjectId(req.params.id);
+        if (!registrationId) {
+            return res.status(400).json({ error: 'Invalid registration ID' });
+        }
+        
+        const registration = await Registration.findById(registrationId)
             .populate('tournament');
         
         if (!registration) {
@@ -367,13 +388,38 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
     try {
         const { tournamentId, playerName, email, phone, gender, averageScore, notes, assignedSquads } = req.body;
 
-        // Validate gender
-        if (!gender || !['male', 'female'].includes(gender)) {
+        // Validate and sanitize inputs
+        const validTournamentId = validateObjectId(tournamentId);
+        if (!validTournamentId) {
+            return res.status(400).json({ error: 'Invalid tournament ID' });
+        }
+        
+        const sanitizedName = sanitizeString(playerName, 100);
+        if (!sanitizedName || sanitizedName.length < 2) {
+            return res.status(400).json({ error: 'Valid player name is required' });
+        }
+        
+        const sanitizedEmail = sanitizeEmail(email);
+        if (!sanitizedEmail) {
+            return res.status(400).json({ error: 'Valid email is required' });
+        }
+        
+        const sanitizedPhone = sanitizePhone(phone);
+        if (!sanitizedPhone) {
+            return res.status(400).json({ error: 'Valid phone number is required' });
+        }
+        
+        const validGender = validateGender(gender);
+        if (!validGender) {
             return res.status(400).json({ error: 'Valid gender selection is required' });
         }
+        
+        const validAverage = validateInteger(averageScore, 0, 300);
+        const sanitizedNotes = sanitizeString(notes, 500);
+        const validSquads = validateObjectIdArray(assignedSquads);
 
         // Verify tournament exists and is accepting registrations
-        const tournament = await Tournament.findById(tournamentId);
+        const tournament = await Tournament.findById(validTournamentId);
         if (!tournament) {
             return res.status(404).json({ error: 'Tournament not found' });
         }
@@ -439,7 +485,7 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
         // Check if tournament is full (overall capacity)
         if (tournament.maxParticipants) {
             const currentCount = await Registration.countDocuments({
-                tournament: tournamentId,
+                tournament: validTournamentId,
                 status: { $in: ['pending', 'confirmed'] }
             });
 
@@ -450,8 +496,8 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
 
         // Check for duplicate registration
         const existingReg = await Registration.findOne({
-            tournament: tournamentId,
-            email: email.toLowerCase()
+            tournament: validTournamentId,
+            email: sanitizedEmail
         });
 
         if (existingReg) {
@@ -459,17 +505,17 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
         }
 
         // Find or create bowler profile
-        let bowler = await Bowler.findOne({ email: email.toLowerCase() });
+        let bowler = await Bowler.findOne({ email: sanitizedEmail });
         
         if (!bowler) {
             // Create new bowler profile
             bowler = new Bowler({
-                email: email.toLowerCase(),
-                playerName,
-                phone,
-                currentAverage: averageScore,
+                email: sanitizedEmail,
+                playerName: sanitizedName,
+                phone: sanitizedPhone,
+                currentAverage: validAverage,
                 tournamentsEntered: [{
-                    tournament: tournamentId,
+                    tournament: validTournamentId,
                     registeredAt: new Date(),
                     status: 'registered'
                 }]
@@ -477,19 +523,20 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
             await bowler.save();
         } else {
             // Update existing bowler
-            bowler.playerName = playerName; // Update name in case it changed
-            bowler.phone = phone;
-            if (averageScore) {
-                bowler.currentAverage = averageScore;
+            bowler.playerName = sanitizedName;
+            bowler.phone = sanitizedPhone;
+            if (validAverage) {
+                bowler.currentAverage = validAverage;
             }
             
             // Add tournament to history if not already there
             const alreadyEntered = bowler.tournamentsEntered.some(
-                t => t.tournament.toString() === tournamentId
+                t => t.tournament.toString() === validTournamentId
             );
             
             if (!alreadyEntered) {
                 bowler.tournamentsEntered.push({
+                    tournament: validTournamentId,
                     tournament: tournamentId,
                     registeredAt: new Date(),
                     status: 'registered'
@@ -501,15 +548,15 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
 
         // Create registration
         const registration = new Registration({
-            tournament: tournamentId,
+            tournament: validTournamentId,
             bowler: bowler._id,
-            playerName,
-            email,
-            phone,
-            gender,
-            averageScore,
-            notes,
-            assignedSquads: assignedSquads || [],
+            playerName: sanitizedName,
+            email: sanitizedEmail,
+            phone: sanitizedPhone,
+            gender: validGender,
+            averageScore: validAverage,
+            notes: sanitizedNotes,
+            assignedSquads: validSquads || [],
             status: 'confirmed' // Auto-confirm for now
         });
 
@@ -533,13 +580,19 @@ router.put('/registrations/:id', requireAdmin, strictWriteLimiter, async (req, r
     try {
         const { status, notes, stageScores, currentStage, carryoverToNextStage } = req.body;
         
+        // Validate registration ID
+        const registrationId = validateObjectId(req.params.id);
+        if (!registrationId) {
+            return res.status(400).json({ error: 'Invalid registration ID' });
+        }
+        
         console.log('PUT /registrations/:id - Received:', { 
-            id: req.params.id, 
+            id: registrationId, 
             stageScores, 
             currentStage 
         });
         
-        const registration = await Registration.findById(req.params.id);
+        const registration = await Registration.findById(registrationId);
         if (!registration) {
             return res.status(404).json({ error: 'Registration not found' });
         }
@@ -623,7 +676,13 @@ router.put('/registrations/:id/squads', generalWriteLimiter, async (req, res) =>
             return res.status(403).json({ error: 'Authentication required' });
         }
 
-        const registration = await Registration.findById(req.params.id);
+        // Validate registration ID
+        const registrationId = validateObjectId(req.params.id);
+        if (!registrationId) {
+            return res.status(400).json({ error: 'Invalid registration ID' });
+        }
+
+        const registration = await Registration.findById(registrationId);
         if (!registration) {
             return res.status(404).json({ error: 'Registration not found' });
         }
@@ -693,7 +752,13 @@ router.delete('/registrations/:id/cancel', generalWriteLimiter, async (req, res)
             return res.status(403).json({ error: 'Authentication required' });
         }
 
-        const registration = await Registration.findById(req.params.id);
+        // Validate registration ID
+        const registrationId = validateObjectId(req.params.id);
+        if (!registrationId) {
+            return res.status(400).json({ error: 'Invalid registration ID' });
+        }
+
+        const registration = await Registration.findById(registrationId);
         if (!registration) {
             return res.status(404).json({ error: 'Registration not found' });
         }
@@ -710,7 +775,7 @@ router.delete('/registrations/:id/cancel', generalWriteLimiter, async (req, res)
             return res.status(400).json({ error: 'Cannot cancel registration for tournaments that have started or completed' });
         }
 
-        await Registration.findByIdAndDelete(req.params.id);
+        await Registration.findByIdAndDelete(registrationId);
 
         res.json({ message: 'Registration cancelled successfully' });
     } catch (error) {
@@ -721,7 +786,13 @@ router.delete('/registrations/:id/cancel', generalWriteLimiter, async (req, res)
 // DELETE registration (admin only)
 router.delete('/registrations/:id', requireAdmin, strictWriteLimiter, async (req, res) => {
     try {
-        const registration = await Registration.findByIdAndDelete(req.params.id);
+        // Validate registration ID
+        const registrationId = validateObjectId(req.params.id);
+        if (!registrationId) {
+            return res.status(400).json({ error: 'Invalid registration ID' });
+        }
+        
+        const registration = await Registration.findByIdAndDelete(registrationId);
         
         if (!registration) {
             return res.status(404).json({ error: 'Registration not found' });
