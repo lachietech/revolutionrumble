@@ -83,9 +83,16 @@ function createEmptyState(message) {
  * @param {string} html - The HTML content
  */
 function setSafeHTML(element, html) {
-    // Basic XSS prevention - escape script tags
-    const safeHtml = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-    element.innerHTML = safeHtml;
+    // Parse the HTML in a detached container and remove all <script> elements
+    const container = document.createElement('div');
+    container.innerHTML = html;
+
+    const scripts = container.querySelectorAll('script');
+    scripts.forEach((script) => {
+        script.remove();
+    });
+
+    element.innerHTML = container.innerHTML;
 }
 
 /**
