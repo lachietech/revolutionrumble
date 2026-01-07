@@ -22,7 +22,7 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     cookie: {
-        secure: process.env.COOKIE_SECURE === 'true', // set to true in HTTPS deployments
+        secure: 'true', // set to true in HTTPS deployments
         httpOnly: true
     }
 }));
