@@ -8,6 +8,7 @@ import tournamentRoutes from './routes/tournamentRoutes.js';
 import registrationRoutes from './routes/registrationRoutes.js';
 import bowlerRoutes from './routes/bowlerRoutes.js';
 import mongoose from 'mongoose';
+import { csrf } from 'lusca';
 
 dotenv.config();
 const app = express();
@@ -26,6 +27,7 @@ app.use(session({
         httpOnly: true
     }
 }));
+app.use(csrf());
 // Routes
 app.use('/', mainroutes);
 app.use('/api', tournamentRoutes);
