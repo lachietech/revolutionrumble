@@ -2,8 +2,17 @@ import express from 'express';
 import path from 'path';
 import AdminSession from '../models/AdminSession.js';
 import { Resend } from 'resend';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+// Rate limiter for admin OTP verification
+const verifyOtpLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // limit each IP to 10 verification requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false
+});
 
 // Initialize Resend client
 let resend;
@@ -137,7 +146,7 @@ router.post('/admin/request-otp', async (req, res) => {
 });
 
 // Verify admin OTP
-router.post('/admin/verify-otp', async (req, res) => {
+router.post('/admin/verify-otp', verifyOtpLimiter, async (req, res) => {
     try {
         const { emailIndex, otp } = req.body;
         if (emailIndex === undefined || !otp) {
