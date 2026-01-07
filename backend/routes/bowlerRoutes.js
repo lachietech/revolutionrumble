@@ -81,14 +81,11 @@ router.post('/bowlers/request-otp', async (req, res) => {
 
         await bowler.save();
 
-        // In development, log OTP to console
-        console.log('🔐 OTP CODE FOR', email, ':', otpCode);
-
         // Send OTP via Resend
         try {
             const resendClient = getResendClient();
             const result = await resendClient.emails.send({
-                from: 'Revolution Rumble <noreply@nielseninnovations.com>',
+                from: 'Revolution Rumble Verification <rrotpverification@nielseninnovations.com>',
                 to: email,
                 subject: 'Your Revolution Rumble Login Code',
                 html: `
