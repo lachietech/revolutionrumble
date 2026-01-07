@@ -95,12 +95,17 @@ router.delete('/tournaments/:id', requireAdmin, strictWriteLimiter, async (req, 
 // GET squad availability for a tournament (public)
 router.get('/tournaments/:id/squads/availability', async (req, res) => {
     try {
-        const tournament = await Tournament.findById(req.params.id);
+        const tournamentId = validateObjectId(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ error: 'Invalid tournament ID' });
+        }
+        
+        const tournament = await Tournament.findById(tournamentId);
         if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
 
         // Get all confirmed registrations for this tournament
         const registrations = await Registration.find({
-            tournament: req.params.id,
+            tournament: tournamentId,
             status: { $in: ['pending', 'confirmed'] }
         });
         

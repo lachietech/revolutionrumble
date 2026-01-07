@@ -268,7 +268,12 @@ router.get('/bowlers/lookup', async (req, res) => {
 // GET bowler by ID (public)
 router.get('/bowlers/:id', async (req, res) => {
     try {
-        const bowler = await Bowler.findById(req.params.id)
+        const bowlerId = validateObjectId(req.params.id);
+        if (!bowlerId) {
+            return res.status(400).json({ error: 'Invalid bowler ID' });
+        }
+        
+        const bowler = await Bowler.findById(bowlerId)
             .populate('tournamentsEntered.tournament', 'name date location status');
         
         if (!bowler) {
@@ -380,18 +385,24 @@ router.get('/bowlers/my/registrations', requireBowlerAuth, async (req, res) => {
 // GET bowler tournament history with results
 router.get('/bowlers/:id/history', async (req, res) => {
     try {
-        const bowler = await Bowler.findById(req.params.id);
+        // Validate bowler ID
+        const bowlerId = validateObjectId(req.params.id);
+        if (!bowlerId) {
+            return res.status(400).json({ error: 'Invalid bowler ID' });
+        }
+        
+        const bowler = await Bowler.findById(bowlerId);
         if (!bowler) {
             return res.status(404).json({ error: 'Bowler not found' });
         }
 
         // Get all registrations
-        const registrations = await Registration.find({ bowler: req.params.id })
+        const registrations = await Registration.find({ bowler: bowlerId })
             .populate('tournament', 'name date location status')
             .sort({ registeredAt: -1 });
 
         // Get all tournament results
-        const results = await TournamentResult.find({ bowler: req.params.id })
+        const results = await TournamentResult.find({ bowler: bowlerId })
             .populate('tournament', 'name date location')
             .sort({ 'tournament.date': -1 });
 
@@ -433,35 +444,44 @@ router.post('/results', requireAdmin, strictWriteLimiter, async (req, res) => {
     try {
         const { bowlerId, tournamentId, registrationId, squadResults, finalPosition, totalParticipants } = req.body;
 
+        // Validate IDs
+        const validBowlerId = validateObjectId(bowlerId);
+        const validTournamentId = validateObjectId(tournamentId);
+        const validRegistrationId = registrationId ? validateObjectId(registrationId) : null;
+        
+        if (!validBowlerId || !validTournamentId) {
+            return res.status(400).json({ error: 'Valid bowler and tournament IDs required' });
+        }
+
         // Verify bowler exists
-        const bowler = await Bowler.findById(bowlerId);
+        const bowler = await Bowler.findById(validBowlerId);
         if (!bowler) {
             return res.status(404).json({ error: 'Bowler not found' });
         }
 
         // Check if result already exists
         let result = await TournamentResult.findOne({
-            bowler: bowlerId,
-            tournament: tournamentId
+            bowler: validBowlerId,
+            tournament: validTournamentId
         });
 
         if (result) {
             // Update existing
             result.squadResults = squadResults;
-            result.finalPosition = finalPosition;
-            result.totalParticipants = totalParticipants;
-            if (registrationId) result.registration = registrationId;
+            result.finalPosition = validateInteger(finalPosition, 1, 10000);
+            result.totalParticipants = validateInteger(totalParticipants, 1, 10000);
+            if (validRegistrationId) result.registration = validRegistrationId;
             result.enteredBy = 'admin';
             result.verified = true;
         } else {
             // Create new
             result = new TournamentResult({
-                bowler: bowlerId,
-                tournament: tournamentId,
-                registration: registrationId,
+                bowler: validBowlerId,
+                tournament: validTournamentId,
+                registration: validRegistrationId,
                 squadResults,
-                finalPosition,
-                totalParticipants,
+                finalPosition: validateInteger(finalPosition, 1, 10000),
+                totalParticipants: validateInteger(totalParticipants, 1, 10000),
                 enteredBy: 'admin',
                 verified: true
             });
@@ -470,7 +490,7 @@ router.post('/results', requireAdmin, strictWriteLimiter, async (req, res) => {
         await result.save();
 
         // Update bowler's tournament average and high scores
-        await updateBowlerStats(bowlerId);
+        await updateBowlerStats(validBowlerId);
 
         // Populate before sending response
         await result.populate('bowler', 'playerName email');
@@ -593,16 +613,20 @@ router.post('/bowlers/sync-names', requireAdmin, strictWriteLimiter, async (req,
 // GET diagnostic route to check bowler sync status
 router.get('/bowlers/check-sync/:email', requireAdmin, async (req, res) => {
     try {
-        const email = req.params.email.toLowerCase();
+        // Sanitize email parameter
+        const sanitizedEmail = sanitizeEmail(req.params.email);
+        if (!sanitizedEmail) {
+            return res.status(400).json({ error: 'Valid email required' });
+        }
         
         // Find bowler
-        const bowler = await Bowler.findOne({ email });
+        const bowler = await Bowler.findOne({ email: sanitizedEmail });
         if (!bowler) {
             return res.status(404).json({ error: 'Bowler not found' });
         }
         
         // Find all registrations
-        const registrations = await Registration.find({ email })
+        const registrations = await Registration.find({ email: sanitizedEmail })
             .populate('tournament', 'name');
         
         // Find all results linked to this bowler ID
@@ -678,7 +702,12 @@ router.get('/bowlers/check-sync/:email', requireAdmin, async (req, res) => {
 // POST fix/link results to bowler by email match
 router.post('/bowlers/link-results/:bowlerId', requireAdmin, strictWriteLimiter, async (req, res) => {
     try {
-        const bowler = await Bowler.findById(req.params.bowlerId);
+        const bowlerId = validateObjectId(req.params.bowlerId);
+        if (!bowlerId) {
+            return res.status(400).json({ error: 'Invalid bowler ID' });
+        }
+        
+        const bowler = await Bowler.findById(bowlerId);
         if (!bowler) {
             return res.status(404).json({ error: 'Bowler not found' });
         }
@@ -731,24 +760,28 @@ router.post('/bowlers/fix-by-name', requireAdmin, strictWriteLimiter, async (req
     try {
         const { searchName, correctEmail } = req.body;
         
-        if (!searchName || !correctEmail) {
-            return res.status(400).json({ error: 'searchName and correctEmail required' });
+        // Validate and sanitize inputs
+        const sanitizedName = sanitizeString(searchName, 100);
+        const sanitizedEmail = sanitizeEmail(correctEmail);
+        
+        if (!sanitizedName || !sanitizedEmail) {
+            return res.status(400).json({ error: 'Valid searchName and correctEmail required' });
         }
         
         // Find the bowler by email
-        const bowler = await Bowler.findOne({ email: correctEmail.toLowerCase() });
+        const bowler = await Bowler.findOne({ email: sanitizedEmail });
         if (!bowler) {
             return res.status(404).json({ error: 'Bowler not found with that email' });
         }
         
         // Find registrations by email and update names
         const regUpdate = await Registration.updateMany(
-            { email: correctEmail.toLowerCase() },
+            { email: sanitizedEmail },
             { $set: { playerName: bowler.playerName } }
         );
         
         // Get all registrations for this bowler
-        const registrations = await Registration.find({ email: correctEmail.toLowerCase() });
+        const registrations = await Registration.find({ email: sanitizedEmail });
         const registrationIds = registrations.map(r => r._id);
         
         // Link all results with these registration IDs to this bowler
@@ -788,24 +821,26 @@ router.post('/bowlers/force-sync', strictWriteLimiter, async (req, res) => {
     try {
         const { email } = req.body;
         
-        if (!email) {
-            return res.status(400).json({ error: 'email required' });
+        // Validate and sanitize email
+        const sanitizedEmail = sanitizeEmail(email);
+        if (!sanitizedEmail) {
+            return res.status(400).json({ error: 'Valid email required' });
         }
         
         // Find the bowler by email
-        const bowler = await Bowler.findOne({ email: email.toLowerCase() });
+        const bowler = await Bowler.findOne({ email: sanitizedEmail });
         if (!bowler) {
             return res.status(404).json({ error: 'Bowler not found with that email' });
         }
         
         // Find registrations by email and update names
         const regUpdate = await Registration.updateMany(
-            { email: email.toLowerCase() },
+            { email: sanitizedEmail },
             { $set: { playerName: bowler.playerName } }
         );
         
         // Get all registrations for this bowler
-        const registrations = await Registration.find({ email: email.toLowerCase() });
+        const registrations = await Registration.find({ email: sanitizedEmail });
         const registrationIds = registrations.map(r => r._id);
         const tournamentIds = registrations.map(r => r.tournament);
         
