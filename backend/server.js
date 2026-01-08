@@ -28,6 +28,7 @@ app.use(session({
     }
 }));
 app.use(lusca.csrf());
+
 // Routes
 app.use('/', mainroutes);
 app.use('/api', tournamentRoutes);

@@ -1,8 +1,3 @@
-/**
- * @fileoverview Input Validation and Sanitization Utilities
- * @module utils/validation
- */
-
 import mongoose from 'mongoose';
 
 /**

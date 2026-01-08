@@ -47,8 +47,6 @@ export const pageViewLimiter = rateLimit({
     skipSuccessfulRequests: false
 });
 
-
-// Rate limiters
 export const reservationLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
     max: 10, // 10 reservation requests per minute per IP

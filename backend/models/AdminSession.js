@@ -1,8 +1,3 @@
-/**
- * @fileoverview Admin Session Model - Stores temporary OTP codes for admin authentication
- * @module models/AdminSession
- */
-
 import mongoose from 'mongoose';
 
 /**
@@ -10,10 +5,6 @@ import mongoose from 'mongoose';
  * Stores temporary one-time passwords for admin email authentication
  */
 const adminSessionSchema = new mongoose.Schema({
-    /**
-     * Admin email address (lowercase)
-     * @type {string}
-     */
     email: {
         type: String,
         required: true,
@@ -23,17 +14,12 @@ const adminSessionSchema = new mongoose.Schema({
     
     /**
      * 6-digit OTP code
-     * @type {string}
      */
     otpCode: {
         type: String,
         required: true
     },
     
-    /**
-     * OTP expiration timestamp
-     * @type {Date}
-     */
     otpExpires: {
         type: Date,
         required: true
@@ -41,17 +27,11 @@ const adminSessionSchema = new mongoose.Schema({
     
     /**
      * Number of failed OTP verification attempts
-     * @type {number}
      */
     otpAttempts: {
         type: Number,
         default: 0
     },
-    
-    /**
-     * Creation timestamp
-     * @type {Date}
-     */
     createdAt: {
         type: Date,
         default: Date.now,
