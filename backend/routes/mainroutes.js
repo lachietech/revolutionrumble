@@ -1,53 +1,21 @@
 import express from 'express';
 import path from 'path';
 import AdminSession from '../models/AdminSession.js';
-import { Resend } from 'resend';
-import rateLimit from 'express-rate-limit';
+import {
+    pageViewLimiter,
+    otpVerifyLimiter
+} from '../middleware/ratelimiters.js';
+import { 
+    getResendClient 
+} from '../middleware/resend.js';
+import { 
+    getAllowedAdminEmails,
+    requireAdmin
+} from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Rate limiter for static HTML page serving (lenient)
-const pageViewLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 120, // 120 page views per minute per IP
-    message: 'Too many requests, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false
-});
 
-// Rate limiter for admin OTP verification
-const verifyOtpLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // limit each IP to 10 verification requests per windowMs
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false
-});
-
-// Initialize Resend client
-let resend;
-function getResendClient() {
-    if (!resend) {
-        if (!process.env.RESEND_API_KEY) {
-            throw new Error('RESEND_API_KEY not configured');
-        }
-        resend = new Resend(process.env.RESEND_API_KEY);
-    }
-    return resend;
-}
-
-// Allowed admin emails (from environment variable)
-function getAllowedAdminEmails() {
-    const emails = process.env.ADMIN_EMAILS || '';
-    return emails.split(',').map(e => e.trim().toLowerCase()).filter(e => e);
-}
-
-// simple admin-check middleware
-function requireAdmin(req, res, next) {
-    if (req.session && req.session.isAdmin) return next();
-    return res.redirect('/admin/login');
-}
 
 // Home page
 router.get('/', pageViewLimiter, (req, res) => {
@@ -91,7 +59,7 @@ router.get('/admin/login', pageViewLimiter, (req, res) => {
 });
 
 // Get available admin email options (no email shown for security)
-router.get('/admin/email-options', verifyOtpLimiter, (req, res) => {
+router.get('/admin/email-options', otpVerifyLimiter, (req, res) => {
     const allowedEmails = getAllowedAdminEmails();
     const options = allowedEmails.map((email, index) => {
         return { id: index, label: `Admin ${index + 1}` };
@@ -100,7 +68,7 @@ router.get('/admin/email-options', verifyOtpLimiter, (req, res) => {
 });
 
 // Request admin OTP
-router.post('/admin/request-otp', verifyOtpLimiter, async (req, res) => {
+router.post('/admin/request-otp', otpVerifyLimiter, async (req, res) => {
     try {
         const { emailIndex } = req.body;
         if (emailIndex === undefined) {
@@ -157,7 +125,7 @@ router.post('/admin/request-otp', verifyOtpLimiter, async (req, res) => {
 });
 
 // Verify admin OTP
-router.post('/admin/verify-otp', verifyOtpLimiter, async (req, res) => {
+router.post('/admin/verify-otp', otpVerifyLimiter, async (req, res) => {
     try {
         const { emailIndex, otp } = req.body;
         if (emailIndex === undefined || !otp) {
@@ -212,21 +180,21 @@ router.post('/admin/verify-otp', verifyOtpLimiter, async (req, res) => {
 });
 
 // Admin logout
-router.get('/admin/logout', verifyOtpLimiter, (req, res) => {
+router.get('/admin/logout', otpVerifyLimiter, (req, res) => {
     req.session.isAdmin = false;
     req.session.destroy?.(() => res.redirect('/'));
 });
 
 // Admin sub-pages (protected)
-router.get('/admin/tournaments', verifyOtpLimiter, requireAdmin, (req, res) => {
+router.get('/admin/tournaments', otpVerifyLimiter, requireAdmin, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-tournaments.html'));
 });
 
-router.get('/admin/registrations', verifyOtpLimiter, requireAdmin, (req, res) => {
+router.get('/admin/registrations', otpVerifyLimiter, requireAdmin, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-registrations.html'));
 });
 
-router.get('/admin/results', verifyOtpLimiter, requireAdmin, (req, res) => {
+router.get('/admin/results', otpVerifyLimiter, requireAdmin, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-results.html'));
 });
 

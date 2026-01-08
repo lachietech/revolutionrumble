@@ -3,7 +3,7 @@ import Registration from '../models/Registration.js';
 import Tournament from '../models/Tournament.js';
 import Bowler from '../models/Bowler.js';
 import SpotReservation from '../models/SpotReservation.js';
-import rateLimit from 'express-rate-limit';
+import crypto from 'crypto';
 import { 
     validateObjectId, 
     sanitizeEmail, 
@@ -12,53 +12,19 @@ import {
     validateGender,
     validateInteger,
     validateObjectIdArray 
-} from '../utils/validation.js';
-import crypto from 'crypto';
+} from '../middleware/validation.js';
+import {
+    reservationLimiter,
+    generalWriteLimiter,
+    strictWriteLimiter,
+    registrationLimiter
+} from '../middleware/ratelimiters.js';
+import { 
+    requireAdmin 
+} from '../middleware/auth.js';
+
 
 const router = express.Router();
-
-// Rate limiters
-const reservationLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 10, // 10 reservation requests per minute per IP
-    message: 'Too many reservation requests, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false
-});
-
-const registrationLimiter = rateLimit({
-    windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 10, // 10 registration submissions per 5 minutes per IP
-    message: 'Too many registration attempts, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false
-});
-
-const generalWriteLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 30, // 30 write operations per minute per IP
-    message: 'Too many requests, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false
-});
-
-const strictWriteLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 20, // 20 admin operations per minute per IP
-    message: 'Too many requests, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false
-});
-
-// Middleware to check admin
-function requireAdmin(req, res, next) {
-    if (req.session && req.session.isAdmin) return next();
-    return res.status(403).json({ error: 'Admin access required' });
-}
 
 // POST create spot reservation (holds spots for 10 minutes)
 router.post('/reservations', reservationLimiter, async (req, res) => {

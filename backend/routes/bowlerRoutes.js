@@ -2,96 +2,28 @@ import express from 'express';
 import Bowler from '../models/Bowler.js';
 import Registration from '../models/Registration.js';
 import TournamentResult from '../models/TournamentResult.js';
-import Tournament from '../models/Tournament.js';
-import { Resend } from 'resend';
-import rateLimit from 'express-rate-limit';
 import { 
     validateObjectId, 
     sanitizeEmail, 
     sanitizeString, 
     sanitizePhone,
     validateInteger 
-} from '../utils/validation.js';
+} from '../middleware/validation.js';
+import {
+    generalWriteLimiter,
+    strictWriteLimiter,
+    otpRequestLimiter,
+    otpVerifyLimiter
+} from '../middleware/ratelimiters.js';
+import { 
+    getResendClient 
+} from '../middleware/resend.js';
+import { 
+    requireBowlerAuth,
+    requireAdmin
+} from '../middleware/auth.js';
 
 const router = express.Router();
-
-// Rate limiters for different operations
-const otpRequestLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 OTP requests per 15 minutes per IP
-    message: 'Too many OTP requests, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false // Count all requests to prevent spam
-});
-
-const otpVerifyLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // 10 verification attempts per 15 minutes per IP
-    message: 'Too many verification attempts, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false // Count all attempts to prevent brute force
-});
-
-const generalWriteLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 30, // 30 write operations per minute per IP
-    message: 'Too many requests, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false
-});
-
-const strictWriteLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 10, // 10 operations per minute per IP (for admin operations)
-    message: 'Too many requests, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false
-});
-
-// Initialize Resend client (lazy initialization to ensure env vars are loaded)
-let resend;
-function getResendClient() {
-    if (!resend) {
-        if (!process.env.RESEND_API_KEY) {
-            throw new Error('RESEND_API_KEY not configured');
-        }
-        resend = new Resend(process.env.RESEND_API_KEY);
-    }
-    return resend;
-}
-
-// Middleware to check admin
-function requireAdmin(req, res, next) {
-    if (req.session && req.session.isAdmin) return next();
-    return res.status(403).json({ error: 'Admin access required' });
-}
-
-// Middleware to check bowler authentication
-function requireBowlerAuth(req, res, next) {
-    if (req.session && req.session.bowlerId) return next();
-    return res.status(403).json({ error: 'Authentication required' });
-}
-
-// TEST ENDPOINT - Verify Resend is working
-router.get('/test-email', strictWriteLimiter, async (req, res) => {
-    try {
-        const resendClient = getResendClient();
-        const result = await resendClient.emails.send({
-            from: 'Revolution Rumble <noreply@nielseninnovations.com>',
-            to: req.query.email || 'test@example.com',
-            subject: 'Test Email from Revolution Rumble',
-            html: '<h1>Test Email</h1><p>If you receive this, Resend is working!</p>'
-        });
-        res.json({ success: true, result });
-    } catch (error) {
-        console.error('Test email failed:', error);
-        res.status(500).json({ error: error.message, details: error });
-    }
-});
 
 // POST request OTP code via email
 router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {

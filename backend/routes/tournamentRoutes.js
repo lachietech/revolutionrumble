@@ -2,36 +2,18 @@ import express from 'express';
 import Tournament from '../models/Tournament.js';
 import Registration from '../models/Registration.js';
 import SpotReservation from '../models/SpotReservation.js';
-import rateLimit from 'express-rate-limit';
-import { validateObjectId } from '../utils/validation.js';
+import { 
+    validateObjectId 
+} from '../middleware/validation.js';
+import {
+    generalWriteLimiter,
+    strictWriteLimiter
+} from '../middleware/ratelimiters.js';
+import { 
+    requireAdmin 
+} from '../middleware/auth.js';
 
 const router = express.Router();
-
-// Rate limiters
-const generalWriteLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 30, // 30 operations per minute per IP
-    message: 'Too many requests, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false
-});
-
-const strictWriteLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 20, // 20 admin operations per minute per IP
-    message: 'Too many requests, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: false
-});
-
-// Middleware to require admin session
-function requireAdmin(req, res, next) {
-    if (req.session && req.session.isAdmin) return next();
-    return res.status(401).json({ error: 'Unauthorized' });
-}
-
 // GET all tournaments
 router.get('/tournaments', generalWriteLimiter, async (req, res) => {
     try {
