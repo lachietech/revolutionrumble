@@ -238,7 +238,7 @@ router.get('/bowlers', generalWriteLimiter, async (req, res) => {
 // PUT update bowler profile (requires authentication)
 router.put('/bowlers/:id', generalWriteLimiter, requireBowlerAuth, async (req, res) => {
     try {
-        const { playerName, nickname, hand, bio, homeCenter, yearsExperience, currentAverage, highGame, highSeries } = req.body;
+        const { playerName, nickname, hand, bio, homeCenter, yearsExperience, currentAverage, highGame, highSeries, gender } = req.body;
 
         // Validate ObjectId
         const bowlerId = validateObjectId(req.params.id);
@@ -270,6 +270,7 @@ router.put('/bowlers/:id', generalWriteLimiter, requireBowlerAuth, async (req, r
         if (currentAverage !== undefined) bowler.currentAverage = validateInteger(currentAverage, 0, 300);
         if (highGame !== undefined) bowler.highGame = validateInteger(highGame, 0, 300);
         if (highSeries !== undefined) bowler.highSeries = validateInteger(highSeries, 0, 900);
+        if (gender !== undefined && ['male', 'female'].includes(gender)) bowler.gender = gender;
 
         await bowler.save();
 

@@ -20,6 +20,12 @@
 // ==================== STATE MANAGEMENT ====================
 
 /**
+ * CSRF token for secure requests
+ * @type {string|null}
+ */
+let csrfToken = null;
+
+/**
  * Container element for the registration list display
  * @type {HTMLElement}
  */
@@ -57,6 +63,14 @@ let currentTournamentForResults = null;
  */
 async function loadTournamentsForFilter() {
     try {
+        // Fetch CSRF token if not already fetched
+        if (!csrfToken) {
+            const csrfResponse = await fetch('/api/csrf-token');
+            const csrfData = await csrfResponse.json();
+            csrfToken = csrfData.csrfToken;
+            console.log('CSRF token fetched:', csrfToken ? 'Success' : 'Failed');
+        }
+        
         const response = await fetch('/api/tournaments');
         const tournaments = await response.json();
         regFilterSelect.innerHTML = '<option value="">All Tournaments</option>' + 
@@ -78,272 +92,12 @@ loadRegistrations();
 // Set up event listener for tournament filter changes
 regFilterSelect.addEventListener('change', loadRegistrations);
 
-// Handle form submission (note: no form on this page, but keeping for compatibility)
-/*
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const editingId = document.getElementById('editingTournamentId').value;
-    const isEditing = !!editingId;
-    
-    const formData = {
-        name: form.name.value,
-        date: form.date.value,
-        location: form.location.value,
-        status: form.status.value,
-        description: form.description.value,
-        maxParticipants: form.maxParticipants.value ? Number(form.maxParticipants.value) : null,
-        registrationDeadline: form.registrationDeadline.value || null,
-        squadsRequiredToQualify: form.squadsRequiredToQualify.value ? Number(form.squadsRequiredToQualify.value) : 1,
-        squads: currentSquads.map(s => {
-            const squad = {
-                name: s.name,
-                date: s.date,
-                time: s.time,
-                capacity: s.capacity,
-                isQualifying: s.isQualifying
-            };
-            // Only include _id if it's a valid MongoDB ObjectId (24 hex characters)
-            if (s._id && s._id.length === 24 && /^[0-9a-fA-F]{24}$/.test(s._id)) {
-                squad._id = s._id;
-            }
-            return squad;
-        }),
-        format: {
-            // If multi-stage, gamesPerBowler is sum of all stage games, otherwise use the input field
-            gamesPerBowler: document.getElementById('hasStages').checked 
-                ? currentStages.reduce((sum, stage) => sum + stage.games, 0)
-                : Number(document.getElementById('gamesPerBowler').value) || 6,
-            hasStages: document.getElementById('hasStages').checked,
-            stages: currentStages,
-            useHandicap: document.getElementById('useHandicap').checked,
-            handicapBase: Number(document.getElementById('handicapBase').value) || 200,
-            handicapPercentage: Number(document.getElementById('handicapPercentage').value) || 90,
-            bonusPoints: {
-                enabled: document.getElementById('bonusPointsEnabled').checked,
-                perGame: Number(document.getElementById('bonusPerGame').value) || 0,
-                perSeries: Number(document.getElementById('bonusPerSeries').value) || 0
-            },
-            scoringMethod: document.getElementById('scoringMethod').value,
-            matchPlay: {
-                pointsForWin: Number(document.getElementById('pointsForWin').value) || 30,
-                pointsForTie: Number(document.getElementById('pointsForTie').value) || 15,
-                pointsForLoss: Number(document.getElementById('pointsForLoss').value) || 0,
-                includePinfall: document.getElementById('includePinfall').checked
-            }
-        }
-    };
-
-    try {
-        const url = isEditing ? `/api/tournaments/${editingId}` : '/api/tournaments';
-        const method = isEditing ? 'PUT' : 'POST';
-        
-        const response = await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        });
-
-        if (response.ok) {
-            form.reset();
-            currentSquads = [];
-            renderSquadsList();
-            cancelEdit();
-            loadTournaments();
-            loadRegistrations();
-            alert(isEditing ? 'Tournament updated successfully!' : 'Tournament added successfully!');
-        } else {
-            const error = await response.json();
-            alert('Error: ' + error.error);
-        }
-    } catch (error) {
-        alert('Failed to save tournament: ' + error.message);
-    }
-});
-*/
-
-// Squad management functions (commented out - not used on this page)
-/*
-let editingSquadIndex = null;
-
-function addSquad() {
-    const name = document.getElementById('squadName').value;
-    const date = document.getElementById('squadDate').value;
-    const time = document.getElementById('squadTime').value;
-    const capacity = document.getElementById('squadCapacity').value;
-    const isQualifying = document.getElementById('squadIsQualifying').checked;
-
-    if (!name || !date || !time || !capacity) {
-        alert('Please fill in all squad fields');
-        return;
-    }
-
-    const squadData = {
-        name,
-        date,
-        time,
-        capacity: Number(capacity),
-        isQualifying
-    };
-
-    if (editingSquadIndex !== null) {
-        // Update existing squad
-        currentSquads[editingSquadIndex] = {
-            ...currentSquads[editingSquadIndex],
-            ...squadData
-        };
-        editingSquadIndex = null;
-        document.querySelector('#squadsList ~ div button[onclick="addSquad()"]').textContent = 'Add Squad';
-    } else {
-        // Add new squad
-        squadData._id = Date.now().toString(); // Temporary ID for new squads
-        currentSquads.push(squadData);
-    }
-
-    // Clear inputs
-    document.getElementById('squadName').value = '';
-    document.getElementById('squadDate').value = '';
-    document.getElementById('squadTime').value = '';
-    document.getElementById('squadCapacity').value = '';
-    document.getElementById('squadIsQualifying').checked = false;
-
-    renderSquadsList();
-}
-
-function addStage() {
-    const name = document.getElementById('stageName').value;
-    const games = document.getElementById('stageGames').value;
-    const advancing = document.getElementById('stageAdvancing').value;
-    const carryover = document.getElementById('stageCarryover').checked;
-    const carryoverPct = document.getElementById('stageCarryoverPct').value;
-
-    if (!name || !games) {
-        alert('Please fill in stage name and games');
-        return;
-    }
-
-    currentStages.push({
-        name,
-        games: Number(games),
-        advancingBowlers: advancing ? Number(advancing) : null,
-        carryoverPinfall: carryover,
-        carryoverPercentage: Number(carryoverPct) || 100
-    });
-
-    // Clear inputs
-    document.getElementById('stageName').value = '';
-    document.getElementById('stageGames').value = '6';
-    document.getElementById('stageAdvancing').value = '';
-    document.getElementById('stageCarryover').checked = true;
-    document.getElementById('stageCarryoverPct').value = '100';
-
-    renderStagesList();
-}
-
-function removeStage(index) {
-    currentStages.splice(index, 1);
-    renderStagesList();
-}
-
-function renderStagesList() {
-    const container = document.getElementById('stagesList');
-    if (currentStages.length === 0) {
-        container.innerHTML = '<p style="color:#888;text-align:center;padding:8px;font-size:.85rem">No stages added yet</p>';
-        return;
-    }
-    
-    container.innerHTML = currentStages.map((stage, i) => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:6px">
-            <div>
-                <strong>${stage.name}</strong> • ${stage.games} games
-                ${stage.advancingBowlers ? ` • Top ${stage.advancingBowlers} advance` : ''}
-                ${stage.carryoverPinfall ? ` • ${stage.carryoverPercentage}% carryover` : ''}
-            </div>
-            <button onclick="removeStage(${i})" class="button" style="padding:4px 8px;font-size:.75rem;background:#c92a2a">Remove</button>
-        </div>
-    `).join('');
-}
-
-function editSquad(index) {
-    const squad = currentSquads[index];
-    document.getElementById('squadName').value = squad.name;
-    document.getElementById('squadDate').value = squad.date;
-    document.getElementById('squadTime').value = squad.time;
-    document.getElementById('squadCapacity').value = squad.capacity;
-    document.getElementById('squadIsQualifying').checked = squad.isQualifying;
-    
-    editingSquadIndex = index;
-    document.querySelector('#squadsList ~ div button[onclick="addSquad()"]').textContent = 'Update Squad';
-    
-    // Scroll to squad form
-    document.getElementById('squadName').scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-function removeSquad(index) {
-    if (editingSquadIndex === index) {
-        editingSquadIndex = null;
-        document.querySelector('#squadsList ~ div button[onclick="addSquad()"]').textContent = 'Add Squad';
-        // Clear inputs
-        document.getElementById('squadName').value = '';
-        document.getElementById('squadDate').value = '';
-        document.getElementById('squadTime').value = '';
-        document.getElementById('squadCapacity').value = '';
-        document.getElementById('squadIsQualifying').checked = false;
-    }
-    currentSquads.splice(index, 1);
-    renderSquadsList();
-}
-
-function renderSquadsList() {
-    const container = document.getElementById('squadsList');
-    if (currentSquads.length === 0) {
-        container.innerHTML = '<p style="color:#b9c6d8;font-size:.85rem;margin:0">No squads added yet</p>';
-        return;
-    }
-
-    container.innerHTML = currentSquads.map((squad, index) => {
-        const squadDate = new Date(squad.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        return `
-            <div style="background:#141a22;padding:10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(255,255,255,.05)">
-                <div>
-                    <strong style="font-size:.9rem">${squad.name}</strong>
-                    <span style="color:#b9c6d8;font-size:.85rem;margin-left:8px">
-                        ${squadDate} @ ${squad.time} • Capacity: ${squad.capacity}
-                        ${squad.isQualifying ? ' • <span style="color:#51cf66">Qualifying</span>' : ''}
-                    </span>
-                </div>
-                <div style="display:flex;gap:6px">
-                    <button type="button" class="button" onclick="editSquad(${index})" style="font-size:.75rem;padding:4px 8px;background:#6c757d">Edit</button>
-                    <button type="button" class="btn-delete" onclick="removeSquad(${index})" style="font-size:.75rem;padding:4px 8px">Remove</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-*/
 
 // ==================== UI RENDERING ====================
 
 /**
- * Redirects to the tournaments page for editing a specific tournament.
- * This page is focused on registration management, so tournament editing
- * is handled on the dedicated tournaments page.
- * 
- * @function editTournament
- * @param {string} id - The tournament ID to edit
- * @returns {void}
- */
-function editTournament(id) {
-    // Redirect to tournaments page for editing
-    window.location.href = `/admin/tournaments`;
-}
-
-/**
  * Cancels the current edit operation.
  * No-op function as this page doesn't have tournament editing capabilities.
- * 
- * @function cancelEdit
- * @returns {void}
  */
 function cancelEdit() {
     // No-op: This page doesn't have tournament editing
@@ -354,14 +108,16 @@ function cancelEdit() {
  * Fetches tournaments from the API and renders them with information including
  * date, location, status, squad count, and format details. Updates both the
  * registration filter and results filter dropdowns.
- * 
- * @async
- * @function loadTournaments
- * @returns {Promise<void>}
- * @throws {Error} Displays error message if tournament loading fails
  */
 async function loadTournaments() {
     try {
+        // Fetch CSRF token if not already fetched
+        if (!csrfToken) {
+            const csrfResponse = await fetch('/api/csrf-token');
+            const csrfData = await csrfResponse.json();
+            csrfToken = csrfData.csrfToken;
+        }
+        
         const response = await fetch('/api/tournaments');
         const tournaments = await response.json();
 
@@ -413,7 +169,7 @@ async function loadTournaments() {
                         ${formatInfo}
                     </div>
                     <div class="tournament-actions">
-                        <button class="button" onclick="editTournament('${t._id}')" style="font-size:.85rem;padding:6px 10px;background:#6c757d">Edit</button>
+                        <a href="/admin/tournaments" class="button" style="font-size:.85rem;padding:6px 10px;background:#6c757d;text-decoration:none;display:inline-block">View Tournaments</a>
                         <button class="btn-delete" onclick="deleteTournament('${t._id}')">Delete</button>
                     </div>
                 </div>
@@ -428,18 +184,16 @@ async function loadTournaments() {
  * Deletes a tournament after user confirmation.
  * Prompts the user to confirm deletion, then sends a DELETE request to the API.
  * Reloads both tournaments and registrations on successful deletion.
- * 
- * @async
- * @function deleteTournament
- * @param {string} id - The tournament ID to delete
- * @returns {Promise<void>}
- * @throws {Error} Displays alert if deletion fails
  */
 async function deleteTournament(id) {
     if (!confirm('Are you sure you want to delete this tournament?')) return;
 
     try {
-        const response = await fetch(`/api/tournaments/${id}`, { method: 'DELETE' });
+        const response = await fetch(`/api/tournaments/${id}`, { 
+            method: 'DELETE',
+            headers: { 'X-CSRF-Token': csrfToken },
+            credentials: 'same-origin'
+        });
         if (response.ok) {
             loadTournaments();
             loadRegistrations();
@@ -456,11 +210,6 @@ async function deleteTournament(id) {
  * Fetches registrations from the API, optionally filtered by tournament.
  * Displays registration data in a table format including player information,
  * tournament details, squad assignments, contact info, and status.
- * 
- * @async
- * @function loadRegistrations
- * @returns {Promise<void>}
- * @throws {Error} Displays error message if registration loading fails
  */
 async function loadRegistrations() {
     try {
@@ -494,6 +243,7 @@ async function loadRegistrations() {
                         <th style="padding:10px 8px;font-size:.85rem;color:#b9c6d8">Squads</th>
                         <th style="padding:10px 8px;font-size:.85rem;color:#b9c6d8">Contact</th>
                         <th style="padding:10px 8px;font-size:.85rem;color:#b9c6d8">Status</th>
+                        <th style="padding:10px 8px;font-size:.85rem;color:#b9c6d8">Payment</th>
                         <th style="padding:10px 8px;font-size:.85rem;color:#b9c6d8">Registered</th>
                         <th style="padding:10px 8px;font-size:.85rem;color:#b9c6d8">Actions</th>
                     </tr>
@@ -534,6 +284,13 @@ async function loadRegistrations() {
                                     <option value="waitlist" ${r.status === 'waitlist' ? 'selected' : ''}>Waitlist</option>
                                 </select>
                             </td>
+                            <td style="padding:10px 8px">
+                                <select onchange="updatePaymentStatus('${r._id}', this.value)" style="font-size:.8rem;padding:4px 6px;background:${r.paymentStatus === 'paid' ? 'rgba(81, 207, 102, .2)' : r.paymentStatus === 'deposit' ? 'rgba(255, 169, 77, .2)' : 'rgba(201, 42, 42, .2)'};color:${r.paymentStatus === 'paid' ? '#51cf66' : r.paymentStatus === 'deposit' ? '#ffa94d' : '#c92a2a'}">
+                                    <option value="unpaid" ${r.paymentStatus === 'unpaid' ? 'selected' : ''}>Unpaid</option>
+                                    <option value="deposit" ${r.paymentStatus === 'deposit' ? 'selected' : ''}>Deposit</option>
+                                    <option value="paid" ${r.paymentStatus === 'paid' ? 'selected' : ''}>Paid</option>
+                                </select>
+                            </td>
                             <td style="padding:10px 8px;font-size:.85rem">${new Date(r.registeredAt).toLocaleDateString()}</td>
                             <td style="padding:10px 8px">
                                 <button class="btn-delete" style="font-size:.75rem;padding:4px 8px" onclick="deleteRegistration('${r._id}')">Delete</button>
@@ -554,19 +311,16 @@ async function loadRegistrations() {
  * Updates the status of a registration.
  * Sends a PUT request to update the registration status and reloads the
  * registration list on failure to reset the dropdown to its previous value.
- * 
- * @async
- * @function updateRegistrationStatus
- * @param {string} id - The registration ID to update
- * @param {string} status - The new status ('pending', 'confirmed', 'cancelled', or 'waitlist')
- * @returns {Promise<void>}
- * @throws {Error} Displays alert and reloads registrations if update fails
  */
 async function updateRegistrationStatus(id, status) {
     try {
         const response = await fetch(`/api/registrations/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ status })
         });
 
@@ -581,21 +335,51 @@ async function updateRegistrationStatus(id, status) {
 }
 
 /**
+ * Updates the payment status of a registration.
+ * Sends a PUT request to update payment status (unpaid, deposit, paid).
+ */
+async function updatePaymentStatus(id, paymentStatus) {
+    try {
+        const response = await fetch(`/api/registrations/${id}/payment-status`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ paymentStatus })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Payment status update failed:', response.status, errorData);
+            alert('Failed to update payment status: ' + (errorData.error || response.status));
+            loadRegistrations(); // Reload to reset dropdown
+        }
+    } catch (error) {
+        console.error('Payment status update error:', error);
+        alert('Error: ' + error.message);
+        loadRegistrations();
+    }
+}
+
+// Make function globally accessible
+window.updatePaymentStatus = updatePaymentStatus;
+
+/**
  * Deletes a registration after user confirmation.
  * Prompts the user to confirm deletion, then sends a DELETE request to the API.
  * Reloads the registration list on successful deletion.
- * 
- * @async
- * @function deleteRegistration
- * @param {string} id - The registration ID to delete
- * @returns {Promise<void>}
- * @throws {Error} Displays alert if deletion fails
  */
 async function deleteRegistration(id) {
     if (!confirm('Are you sure you want to delete this registration?')) return;
 
     try {
-        const response = await fetch(`/api/registrations/${id}`, { method: 'DELETE' });
+        const response = await fetch(`/api/registrations/${id}`, { 
+            method: 'DELETE',
+            headers: { 'X-CSRF-Token': csrfToken },
+            credentials: 'same-origin'
+        });
         if (response.ok) {
             loadRegistrations();
         } else {
@@ -614,11 +398,6 @@ async function deleteRegistration(id) {
  * a CSV file with player information, tournament details, squad assignments,
  * and registration metadata. The file is automatically downloaded to the user's
  * computer with a timestamped filename.
- * 
- * @async
- * @function exportRegistrations
- * @returns {Promise<void>}
- * @throws {Error} Displays alert if export fails
  */
 async function exportRegistrations() {
     try {
@@ -692,11 +471,6 @@ async function exportRegistrations() {
  * Loads tournament results for the selected tournament.
  * Fetches tournament details and registrations, then renders the appropriate
  * results interface based on whether the tournament has squads configured.
- * 
- * @async
- * @function loadTournamentResults
- * @returns {Promise<void>}
- * @throws {Error} Displays error message if loading fails
  */
 async function loadTournamentResults() {
     const tournamentId = resultsTournamentFilter.value;
@@ -740,10 +514,6 @@ async function loadTournamentResults() {
  * Creates separate tables for each squad showing registered bowlers and their
  * game scores. Each table includes input fields for each game and displays
  * calculated totals and averages.
- * 
- * @function renderSquadResults
- * @param {Array<Object>} registrations - Array of registration objects
- * @returns {void}
  */
 function renderSquadResults(registrations) {
     const container = document.getElementById('resultsContainer');
@@ -796,10 +566,6 @@ function renderSquadResults(registrations) {
  * Renders a simple results interface without squad organization.
  * Creates a single table showing all registered bowlers and their game scores.
  * Used for tournaments that don't have squads configured.
- * 
- * @function renderSimpleResults
- * @param {Array<Object>} registrations - Array of registration objects
- * @returns {void}
  */
 function renderSimpleResults(registrations) {
     const container = document.getElementById('resultsContainer');
@@ -834,11 +600,6 @@ function renderSimpleResults(registrations) {
  * Renders a single result row for a bowler.
  * Creates a table row with the bowler's information and input fields for
  * each game score. Includes calculated fields for total and average scores.
- * 
- * @function renderResultRow
- * @param {Object} registration - The registration object containing bowler information
- * @param {string|null} squadId - The squad ID if organized by squads, or null
- * @returns {string} HTML string for the table row
  */
 function renderResultRow(registration, squadId) {
     const rowId = squadId ? `result-${registration.bowler}-${squadId}` : `result-${registration.bowler}`;
@@ -877,11 +638,6 @@ function renderResultRow(registration, squadId) {
  * Fetches all bowler histories for the current tournament and populates
  * the score input fields with existing data. Also displays calculated
  * totals and averages for bowlers with saved results.
- * 
- * @async
- * @function loadExistingResults
- * @returns {Promise<void>}
- * @throws {Error} Logs error to console if loading fails
  */
 async function loadExistingResults() {
     if (!currentTournamentForResults) return;
@@ -963,14 +719,6 @@ async function loadExistingResults() {
  * Saves tournament results for a specific bowler and squad.
  * Collects game scores from input fields, calculates totals and averages,
  * and sends the data to the API. Provides visual feedback on save status.
- * 
- * @async
- * @function saveResult
- * @param {string} bowlerId - The ID of the bowler
- * @param {string} squadId - The ID of the squad (empty string if no squads)
- * @param {string} rowId - The HTML element ID for the result row
- * @returns {Promise<void>}
- * @throws {Error} Displays alert if save fails
  */
 async function saveResult(bowlerId, squadId, rowId) {
     const gamesCount = currentTournamentForResults?.format?.gamesPerBowler || 3;
@@ -1026,7 +774,11 @@ async function saveResult(bowlerId, squadId, rowId) {
     try {
         const response = await fetch('/api/results', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify(payload)
         });
 
@@ -1065,10 +817,6 @@ async function saveResult(bowlerId, squadId, rowId) {
  * Event listener for auto-calculating totals and averages on score input.
  * Listens for input changes in game score fields and automatically recalculates
  * and displays the total pinfall and average score for the bowler.
- * 
- * @listens document#input
- * @param {Event} e - The input event
- * @returns {void}
  */
 document.addEventListener('input', (e) => {
     if (e.target.type === 'number' && e.target.id.includes('result-')) {

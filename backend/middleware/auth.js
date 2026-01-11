@@ -12,6 +12,13 @@ export function getAllowedAdminEmails() {
 
 // simple admin-check middleware
 export function requireAdmin(req, res, next) {
+    console.log('requireAdmin check:', {
+        hasSession: !!req.session,
+        isAdmin: req.session?.isAdmin,
+        adminEmail: req.session?.adminEmail,
+        sessionID: req.sessionID
+    });
     if (req.session && req.session.isAdmin) return next();
+    console.log('Admin check failed - redirecting to login');
     return res.redirect('/admin/login');
 }

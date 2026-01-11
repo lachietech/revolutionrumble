@@ -8,6 +8,9 @@
 // STATE MANAGEMENT
 // ============================================================================
 
+/** @type {string|null} CSRF token for secure requests */
+let csrfToken = null;
+
 /** @type {HTMLSelectElement} Tournament selection dropdown */
 const resultsTournamentFilter = document.getElementById('resultsTournamentFilter');
 
@@ -25,6 +28,13 @@ let currentTournamentForResults = null;
  */
 async function loadTournamentsForDropdown() {
     try {
+        // Fetch CSRF token if not already fetched
+        if (!csrfToken) {
+            const csrfResponse = await fetch('/api/csrf-token');
+            const csrfData = await csrfResponse.json();
+            csrfToken = csrfData.csrfToken;
+        }
+        
         const response = await fetch('/api/tournaments');
         const tournaments = await response.json();
 
@@ -489,7 +499,11 @@ async function saveStageScores(regId, stageIndex, gamesCount) {
     try {
         const response = await fetch(`/api/registrations/${regId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ 
                 stageScores: { stageIndex, scores, bonusPins, handicap }
             })
@@ -650,7 +664,11 @@ async function advancePlayersToNextStage() {
                 // Update registration
                 await fetch(`/api/registrations/${reg._id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    credentials: 'same-origin',
                     body: JSON.stringify({ 
                         currentStage: stageIndex + 1,
                         carryoverToNextStage: carryover

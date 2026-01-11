@@ -9,6 +9,9 @@
 // STATE MANAGEMENT
 // ============================================================================
 
+/** @type {string|null} CSRF token for secure requests */
+let csrfToken = null;
+
 /** @type {Object.<string, number>} Map of tournament IDs to their reservation timer intervals */
 let reservationTimers = {};
 
@@ -39,6 +42,13 @@ function escapeHtml(text) {
  */
 async function loadTournaments() {
     try {
+        // Fetch CSRF token first if not already fetched
+        if (!csrfToken) {
+            const csrfResponse = await fetch('/api/csrf-token');
+            const csrfData = await csrfResponse.json();
+            csrfToken = csrfData.csrfToken;
+        }
+        
         const response = await fetch('/api/tournaments');
         const tournaments = await response.json();
 
@@ -47,6 +57,11 @@ async function loadTournaments() {
         const openTournaments = tournaments.filter(t => {
             if (t.status !== 'upcoming') return false;
             if (t.registrationDeadline && new Date(t.registrationDeadline) < now) return false;
+            
+            // Check if registration is open
+            const openDate = t.registrationOpenDate ? new Date(t.registrationOpenDate) : null;
+            if (!t.registrationManuallyOpened && openDate && now < openDate) return false;
+            
             return true;
         });
 
@@ -520,21 +535,38 @@ async function handleSubmit(e, tournament) {
             averageScore: document.getElementById(`average-${tournament._id}`).value ? parseInt(document.getElementById(`average-${tournament._id}`).value) : null
         };
     
+    // Always read gender from the form field (user can update it)
+    const genderFromForm = document.getElementById(`gender-${tournament._id}`).value;
+    
+    // Validate gender before submission
+    if (!genderFromForm || (genderFromForm !== 'male' && genderFromForm !== 'female')) {
+        alert('Please select a valid gender (Male or Female)');
+        submitBtn.disabled = false;
+        submitBtn.textContent = `Register for ${tournament.name}`;
+        return;
+    }
+    
     const data = {
         tournamentId: tournament._id,
         playerName: bowlerInfo.playerName,
         email: bowlerInfo.email,
         phone: bowlerInfo.phone,
-        gender: bowlerInfo.gender,
+        gender: genderFromForm,
         averageScore: bowlerInfo.averageScore,
         notes: formData.get('notes'),
         assignedSquads: selectedSquads
     };
+    
+    console.log('Submitting registration with gender:', genderFromForm);
 
     try {
         const response = await fetch('/api/registrations', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify(data)
         });
 
@@ -552,7 +584,9 @@ async function handleSubmit(e, tournament) {
         if (reservationData[tournament._id]) {
             // Release the reservation on server
             fetch(`/api/reservations/${reservationData[tournament._id].sessionId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: { 'X-CSRF-Token': csrfToken },
+                credentials: 'same-origin'
             }).catch(err => console.error('Failed to release reservation:', err));
             delete reservationData[tournament._id];
         }
@@ -664,7 +698,11 @@ async function createReservation(tournamentId) {
     try {
         const response = await fetch('/api/reservations', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ tournamentId })
         });
         
@@ -779,7 +817,11 @@ async function requestOTP(tournamentId) {
     try {
         const response = await fetch('/api/bowlers/request-otp', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ email })
         });
         
@@ -824,7 +866,11 @@ async function verifyOTP(tournamentId) {
     try {
         const response = await fetch('/api/bowlers/verify-otp', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ email, otp })
         });
         
@@ -837,18 +883,8 @@ async function verifyOTP(tournamentId) {
             const bowlerRes = await fetch(`/api/bowlers/${data.bowler._id}`);
             const bowler = await bowlerRes.json();
             
-            // Fetch their most recent registration to get gender
-            let recentGender = '';
-            try {
-                const regsRes = await fetch(`/api/bowlers/my/registrations`);
-                const registrations = await regsRes.json();
-                if (registrations.length > 0) {
-                    // Use gender from most recent registration
-                    recentGender = registrations[0].gender || '';
-                }
-            } catch (e) {
-                console.log('Could not fetch recent registrations');
-            }
+            // Use bowler's gender, default to 'male' if not set
+            const bowlerGender = bowler.gender || 'male';
             
             // Store bowler data for form submission
             if (!window.bowlerData) window.bowlerData = {};
@@ -856,9 +892,22 @@ async function verifyOTP(tournamentId) {
                 playerName: bowler.playerName || '',
                 email: bowler.email,
                 phone: bowler.phone || '',
-                gender: recentGender,
+                gender: bowlerGender,
                 averageScore: bowler.currentAverage || null
             };
+            
+            // Populate the visible form fields so user can edit if needed
+            const nameField = document.getElementById(`name-${tournamentId}`);
+            const emailField = document.getElementById(`email-${tournamentId}`);
+            const phoneField = document.getElementById(`phone-${tournamentId}`);
+            const genderField = document.getElementById(`gender-${tournamentId}`);
+            const avgField = document.getElementById(`average-${tournamentId}`);
+            
+            if (nameField) nameField.value = bowler.playerName || '';
+            if (emailField) emailField.value = bowler.email;
+            if (phoneField) phoneField.value = bowler.phone || '';
+            if (genderField) genderField.value = bowlerGender; // Always set gender (with default)
+            if (avgField && bowler.currentAverage) avgField.value = bowler.currentAverage;
             
             // Hide signin step, show squad selection
             document.getElementById(`signin-step-${tournamentId}`).style.display = 'none';

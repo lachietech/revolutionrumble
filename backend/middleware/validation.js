@@ -10,7 +10,7 @@ export function validateObjectId(id) {
     if (!id || typeof id !== 'string') {
         return null;
     }
-    
+
     // Remove any non-alphanumeric characters except for valid ObjectId chars
     const sanitized = id.trim();
     
@@ -126,18 +126,19 @@ export function sanitizeQueryObject(query) {
  * @returns {string|null} - Valid gender or null
  */
 export function validateGender(gender) {
-    const validGenders = ['Male', 'Female', 'Non-binary', 'Other'];
+    const validGenders = ['male', 'female'];
     
     if (!gender || typeof gender !== 'string') {
         return null;
     }
     
-    const sanitized = gender.trim();
+    const sanitized = gender.trim().toLowerCase();
     
     if (!validGenders.includes(sanitized)) {
         return null;
     }
     
+    return sanitized;
     return sanitized;
 }
 

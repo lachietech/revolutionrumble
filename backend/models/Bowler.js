@@ -14,6 +14,11 @@ const bowlerSchema = new mongoose.Schema({
         required: true
     },
     phone: String,
+    gender: {
+        type: String,
+        enum: ['male', 'female', ''],
+        default: 'male' // Default for existing users
+    },
     
     // Profile customization
     nickname: String,

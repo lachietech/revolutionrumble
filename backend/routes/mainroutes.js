@@ -58,13 +58,24 @@ router.get('/admin/login', pageViewLimiter, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-login.html'));
 });
 
+// Get CSRF token (public endpoint)
+router.get('/api/csrf-token', pageViewLimiter, (req, res) => {
+    const token = res.locals._csrf;
+    console.log('CSRF token request - token available:', !!token);
+    res.json({ csrfToken: token || '' });
+});
+
 // Get available admin email options (no email shown for security)
 router.get('/admin/email-options', otpVerifyLimiter, (req, res) => {
     const allowedEmails = getAllowedAdminEmails();
     const options = allowedEmails.map((email, index) => {
         return { id: index, label: `Admin ${index + 1}` };
     });
-    res.json(options);
+    // Include CSRF token in response
+    res.json({ 
+        options, 
+        csrfToken: res.locals._csrf || '' 
+    });
 });
 
 // Request admin OTP
@@ -158,6 +169,14 @@ router.post('/admin/verify-otp', otpVerifyLimiter, async (req, res) => {
         }
 
         // Verify OTP
+        console.log('OTP Verification:', {
+            received: otp.trim(),
+            stored: session.otpCode,
+            match: session.otpCode === otp.trim(),
+            receivedType: typeof otp,
+            storedType: typeof session.otpCode
+        });
+        
         if (session.otpCode !== otp.trim()) {
             session.otpAttempts += 1;
             await session.save();
@@ -169,10 +188,29 @@ router.post('/admin/verify-otp', otpVerifyLimiter, async (req, res) => {
 
         // Success - delete session and create admin session
         await AdminSession.deleteOne({ _id: session._id });
+        
+        console.log('Setting admin session:', {
+            email,
+            sessionID: req.sessionID,
+            sessionBefore: { ...req.session }
+        });
+        
         req.session.isAdmin = true;
         req.session.adminEmail = email;
 
-        res.json({ success: true, redirect: '/admin/tournaments' });
+        // Save session before responding
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.status(500).json({ error: 'Failed to create session' });
+            }
+            console.log('Admin session saved successfully:', {
+                sessionID: req.sessionID,
+                isAdmin: req.session.isAdmin,
+                adminEmail: req.session.adminEmail
+            });
+            res.json({ success: true, redirect: '/admin/tournaments' });
+        });
     } catch (error) {
         console.error('Admin OTP verification error:', error);
         res.status(500).json({ error: 'Failed to verify OTP' });
@@ -186,15 +224,15 @@ router.get('/admin/logout', otpVerifyLimiter, (req, res) => {
 });
 
 // Admin sub-pages (protected)
-router.get('/admin/tournaments', otpVerifyLimiter, requireAdmin, (req, res) => {
+router.get('/admin/tournaments', pageViewLimiter, requireAdmin, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-tournaments.html'));
 });
 
-router.get('/admin/registrations', otpVerifyLimiter, requireAdmin, (req, res) => {
+router.get('/admin/registrations', pageViewLimiter, requireAdmin, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-registrations.html'));
 });
 
-router.get('/admin/results', otpVerifyLimiter, requireAdmin, (req, res) => {
+router.get('/admin/results', pageViewLimiter, requireAdmin, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-results.html'));
 });
 

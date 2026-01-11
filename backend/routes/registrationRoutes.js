@@ -405,6 +405,14 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
             return res.status(400).json({ error: 'This tournament is not accepting registrations' });
         }
 
+        // Check if registration is open
+        const now = new Date();
+        const openDate = tournament.registrationOpenDate ? new Date(tournament.registrationOpenDate) : null;
+        
+        if (!tournament.registrationManuallyOpened && openDate && now < openDate) {
+            return res.status(400).json({ error: 'Registration has not opened yet' });
+        }
+
         // Check registration deadline
         if (tournament.registrationDeadline && new Date(tournament.registrationDeadline) < new Date()) {
             return res.status(400).json({ error: 'Registration deadline has passed' });
@@ -497,6 +505,7 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
                 email: sanitizedEmail,
                 playerName: sanitizedName,
                 phone: sanitizedPhone,
+                gender: validGender,
                 currentAverage: validAverage,
                 tournamentsEntered: [{
                     tournament: validTournamentId,
@@ -509,6 +518,9 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
             // Update existing bowler
             bowler.playerName = sanitizedName;
             bowler.phone = sanitizedPhone;
+            if (validGender) {
+                bowler.gender = validGender;
+            }
             if (validAverage) {
                 bowler.currentAverage = validAverage;
             }
@@ -648,6 +660,36 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
         res.json(registration);
     } catch (error) {
         console.error('Error updating registration:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PUT update payment status (admin only)
+router.put('/registrations/:id/payment-status', strictWriteLimiter, requireAdmin, async (req, res) => {
+    try {
+        // Validate registration ID
+        const registrationId = validateObjectId(req.params.id);
+        if (!registrationId) {
+            return res.status(400).json({ error: 'Invalid registration ID' });
+        }
+        
+        const { paymentStatus } = req.body;
+        
+        // Validate payment status
+        const validPaymentStatuses = ['unpaid', 'deposit', 'paid'];
+        if (!validPaymentStatuses.includes(paymentStatus)) {
+            return res.status(400).json({ error: 'Invalid payment status' });
+        }
+        
+        const registration = await Registration.findByIdAndUpdate(
+            registrationId,
+            { paymentStatus },
+            { new: true }
+        ).populate('tournament', 'name');
+        
+        if (!registration) return res.status(404).json({ error: 'Registration not found' });
+        res.json(registration);
+    } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });

@@ -1,14 +1,5 @@
-/**
- * @fileoverview Admin Login with OTP Authentication
- * @module admin-login
- */
-
-// ============================================================
-// STATE MANAGEMENT
-// ============================================================
-
-/** @type {number} Selected admin email index */
 let selectedEmailIndex = null;
+let csrfToken = null;
 
 /** @type {Array<{id: number, masked: string, label: string}>} Available admin email options */
 let emailOptions = [];
@@ -30,29 +21,12 @@ const backBtn = document.getElementById('back-btn');
 // MESSAGE DISPLAY
 // ============================================================
 
-/**
- * Display success message to user
- * @param {string} msg - Success message text
- */
-function showSuccess(msg) {
+function stateMessage(type, msg) {
     message.textContent = msg;
-    message.className = 'success';
+    message.className = type;
     message.style.display = 'block';
 }
 
-/**
- * Display error message to user
- * @param {string} msg - Error message text
- */
-function showError(msg) {
-    message.textContent = msg;
-    message.className = 'error';
-    message.style.display = 'block';
-}
-
-/**
- * Hide message display
- */
 function hideMessage() {
     message.style.display = 'none';
 }
@@ -61,32 +35,36 @@ function hideMessage() {
 // INITIALIZATION
 // ============================================================
 
-/**
- * Load available admin email options from server
- * @async
- */
+
+// Load available admin email options from server
 async function loadEmailOptions() {
     try {
         loading.style.display = 'block';
         emailStep.style.display = 'none';
         
-        const response = await fetch('/admin/email-options');
-        const options = await response.json();
+        const response = await fetch('/admin/email-options', {
+            credentials: 'same-origin'
+        });
+        const data = await response.json();
         
-        emailOptions = options;
+        // Extract CSRF token and options from response
+        csrfToken = data.csrfToken;
+        emailOptions = data.options;
+        
+        console.log('CSRF token fetched:', csrfToken ? 'YES' : 'NO', csrfToken?.substring(0, 10));
+        
         renderEmailButtons();
         
         loading.style.display = 'none';
         emailStep.style.display = 'block';
     } catch (error) {
         loading.style.display = 'none';
-        showError('Failed to load admin options. Please refresh the page.');
+        stateMessage('error', 'Failed to load admin options. Please refresh the page.');
     }
 }
 
-/**
- * Render email selection buttons
- */
+// Render email selection buttons
+
 function renderEmailButtons() {
     emailButtons.innerHTML = emailOptions.map(option => `
         <button class="email-option-btn" data-index="${option.id}">
@@ -110,7 +88,6 @@ function renderEmailButtons() {
 /**
  * Request OTP code for selected admin email
  * Sends verification code to the selected admin email
- * @async
  * @param {number} emailIndex - Index of selected email
  */
 async function requestOTP(emailIndex) {
@@ -122,16 +99,26 @@ async function requestOTP(emailIndex) {
     try {
         const response = await fetch('/admin/request-otp', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ emailIndex })
         });
+
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Request failed:', response.status, text);
+            throw new Error(`Server error: ${response.status}`);
+        }
 
         const data = await response.json();
 
         if (response.ok) {
             loading.style.display = 'none';
             otpStep.style.display = 'block';
-            showSuccess('Verification code sent! Check your email.');
+            stateMessage('success', 'Verification code sent! Check your email.');
             otpInput.focus();
         } else {
             throw new Error(data.error || 'Failed to send code');
@@ -139,19 +126,16 @@ async function requestOTP(emailIndex) {
     } catch (error) {
         loading.style.display = 'none';
         emailStep.style.display = 'block';
-        showError(error.message);
+        stateMessage('error', error.message);
     }
 }
 
-/**
- * Verify OTP code and authenticate admin
- * @async
- */
+// Verify OTP code and authenticate admin
 async function verifyOTP() {
     const otp = otpInput.value.trim();
     
     if (!otp || otp.length !== 6) {
-        showError('Please enter the 6-digit code');
+        stateMessage('error', 'Please enter the 6-digit code');
         return;
     }
 
@@ -162,14 +146,24 @@ async function verifyOTP() {
     try {
         const response = await fetch('/admin/verify-otp', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ emailIndex: selectedEmailIndex, otp })
         });
+
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Request failed:', response.status, text);
+            throw new Error(`Server error: ${response.status}`);
+        }
 
         const data = await response.json();
 
         if (response.ok) {
-            showSuccess('Login successful! Redirecting...');
+            stateMessage('success', 'Login successful! Redirecting...');
             setTimeout(() => {
                 window.location.href = data.redirect || '/admin/tournaments';
             }, 1000);
@@ -179,15 +173,12 @@ async function verifyOTP() {
     } catch (error) {
         loading.style.display = 'none';
         otpStep.style.display = 'block';
-        showError(error.message);
+        stateMessage('error', error.message);
         otpInput.value = '';
         otpInput.focus();
     }
 }
-
-/**
- * Go back to email selection step
- */
+// Go back to email selection step
 function goBack() {
     otpStep.style.display = 'none';
     emailStep.style.display = 'block';

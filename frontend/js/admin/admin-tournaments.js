@@ -1,3 +1,14 @@
+// Helper function to escape HTML and prevent XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// CSRF token for secure requests
+let csrfToken = null;
+
 const form = document.getElementById('tournamentForm');
 const listContainer = document.getElementById('tournamentList');
 const regListContainer = document.getElementById('registrationList');
@@ -11,7 +22,9 @@ let currentTournamentForResults = null;
 
 // Load tournaments on page load
 loadTournaments();
-loadRegistrations();
+if (regListContainer) {
+    loadRegistrations();
+}
 renderSquadsList(); // Initialize empty squad list
 applyTournamentPreset(); // Initialize with default preset
 
@@ -52,6 +65,7 @@ form.addEventListener('submit', async (e) => {
         status: form.status.value,
         description: form.description.value,
         maxParticipants: form.maxParticipants.value ? Number(form.maxParticipants.value) : null,
+        registrationOpenDate: form.registrationOpenDate.value || null,
         registrationDeadline: form.registrationDeadline.value || null,
         squadsRequiredToQualify: form.squadsRequiredToQualify.value ? Number(form.squadsRequiredToQualify.value) : 1,
         allowReentry: document.getElementById('allowReentry').checked,
@@ -99,7 +113,11 @@ form.addEventListener('submit', async (e) => {
         
         const response = await fetch(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify(formData)
         });
 
@@ -920,25 +938,40 @@ function renderSquadsList() {
 }
 
 function editTournament(id) {
+    // Check if we're on the tournaments page by checking for form elements
+    const editingIdField = document.getElementById('editingTournamentId');
+    const formTitle = document.getElementById('formTitle');
+    
+    // If key form elements don't exist, we're not on the tournaments page
+    if (!form || !editingIdField || !formTitle) {
+        console.error('Form elements not found - cannot edit tournament');
+        return;
+    }
+    
     fetch(`/api/tournaments/${id}`)
         .then(res => res.json())
         .then(tournament => {
-            document.getElementById('editingTournamentId').value = id;
-            document.getElementById('formTitle').textContent = 'Edit Tournament';
-            document.getElementById('submitBtn').textContent = 'Update Tournament';
-            document.getElementById('cancelBtn').style.display = 'inline-block';
+            editingIdField.value = id;
+            formTitle.textContent = 'Edit Tournament';
+            const submitBtn = document.getElementById('submitBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            if (submitBtn) submitBtn.textContent = 'Update Tournament';
+            if (cancelBtn) cancelBtn.style.display = 'inline-block';
 
-            // Fill form
-            form.name.value = tournament.name;
-            form.startDate.value = (tournament.startDate || tournament.date).split('T')[0];
-            form.endDate.value = (tournament.endDate || tournament.date).split('T')[0];
-            form.location.value = tournament.location;
-            form.status.value = tournament.status;
-            form.description.value = tournament.description || '';
-            form.maxParticipants.value = tournament.maxParticipants || '';
-            form.registrationDeadline.value = tournament.registrationDeadline ? tournament.registrationDeadline.split('T')[0] : '';
-            form.squadsRequiredToQualify.value = tournament.squadsRequiredToQualify || 1;
-            document.getElementById('allowReentry').checked = tournament.allowReentry !== false; // Default to true for existing tournaments
+            // Fill form with null checks
+            if (form.name) form.name.value = tournament.name;
+            if (form.startDate) form.startDate.value = (tournament.startDate || tournament.date).split('T')[0];
+            if (form.endDate) form.endDate.value = (tournament.endDate || tournament.date).split('T')[0];
+            if (form.location) form.location.value = tournament.location;
+            if (form.status) form.status.value = tournament.status;
+            if (form.description) form.description.value = tournament.description || '';
+            if (form.maxParticipants) form.maxParticipants.value = tournament.maxParticipants || '';
+            if (form.registrationOpenDate) form.registrationOpenDate.value = tournament.registrationOpenDate ? tournament.registrationOpenDate.slice(0, 16) : '';
+            if (form.registrationDeadline) form.registrationDeadline.value = tournament.registrationDeadline ? tournament.registrationDeadline.split('T')[0] : '';
+            if (form.squadsRequiredToQualify) form.squadsRequiredToQualify.value = tournament.squadsRequiredToQualify || 1;
+            
+            const allowReentry = document.getElementById('allowReentry');
+            if (allowReentry) allowReentry.checked = tournament.allowReentry !== false;
 
             // Load squads
             currentSquads = tournament.squads || [];
@@ -948,32 +981,45 @@ function editTournament(id) {
             const format = tournament.format || {};
             const hasStages = format.hasStages || false;
             
-            document.getElementById('gamesPerBowler').value = format.gamesPerBowler || 6;
-            document.getElementById('scoringMethod').value = format.scoringMethod || 'total-pinfall';
-            document.getElementById('hasStages').checked = hasStages;
-            document.getElementById('useHandicap').checked = format.useHandicap || false;
-            document.getElementById('handicapBase').value = format.handicapBase || 200;
-            document.getElementById('handicapPercentage').value = format.handicapPercentage || 90;
-            document.getElementById('separateDivisions').checked = format.separateDivisions || false;
-            document.getElementById('femaleHandicapPins').value = format.femaleHandicapPins || 8;
-            document.getElementById('bonusPointsEnabled').checked = format.bonusPoints?.enabled || false;
-            document.getElementById('bonusPerGame').value = format.bonusPoints?.perGame || 0;
-            document.getElementById('bonusPerSeries').value = format.bonusPoints?.perSeries || 0;
-            document.getElementById('pointsForWin').value = format.matchPlay?.pointsForWin || 30;
-            document.getElementById('pointsForTie').value = format.matchPlay?.pointsForTie || 15;
-            document.getElementById('pointsForLoss').value = format.matchPlay?.pointsForLoss || 0;
-            document.getElementById('includePinfall').checked = format.matchPlay?.includePinfall !== false;
+            const setValueIfExists = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (el.type === 'checkbox') {
+                        el.checked = value;
+                    } else {
+                        el.value = value;
+                    }
+                }
+            };
+            
+            setValueIfExists('gamesPerBowler', format.gamesPerBowler || 6);
+            setValueIfExists('scoringMethod', format.scoringMethod || 'total-pinfall');
+            setValueIfExists('hasStages', hasStages);
+            setValueIfExists('useHandicap', format.useHandicap || false);
+            setValueIfExists('handicapBase', format.handicapBase || 200);
+            setValueIfExists('handicapPercentage', format.handicapPercentage || 90);
+            setValueIfExists('separateDivisions', format.separateDivisions || false);
+            setValueIfExists('femaleHandicapPins', format.femaleHandicapPins || 8);
+            setValueIfExists('bonusPointsEnabled', format.bonusPoints?.enabled || false);
+            setValueIfExists('bonusPerGame', format.bonusPoints?.perGame || 0);
+            setValueIfExists('bonusPerSeries', format.bonusPoints?.perSeries || 0);
+            setValueIfExists('pointsForWin', format.matchPlay?.pointsForWin || 30);
+            setValueIfExists('pointsForTie', format.matchPlay?.pointsForTie || 15);
+            setValueIfExists('pointsForLoss', format.matchPlay?.pointsForLoss || 0);
+            setValueIfExists('includePinfall', format.matchPlay?.includePinfall !== false);
             
             // Show/hide sections based on settings
-            document.getElementById('handicapOptions').style.display = format.useHandicap ? 'grid' : 'none';
-            document.getElementById('bonusPointsOptions').style.display = format.bonusPoints?.enabled ? 'grid' : 'none';
+            const handicapOptions = document.getElementById('handicapOptions');
+            const bonusPointsOptions = document.getElementById('bonusPointsOptions');
+            if (handicapOptions) handicapOptions.style.display = format.useHandicap ? 'grid' : 'none';
+            if (bonusPointsOptions) bonusPointsOptions.style.display = format.bonusPoints?.enabled ? 'grid' : 'none';
             
             // Load stages
             currentStages = format.stages || [];
             renderStagesList();
 
             // Scroll to form
-            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         })
         .catch(error => {
             alert('Failed to load tournament: ' + error.message);
@@ -1006,6 +1052,13 @@ function cancelEdit() {
 // Load and display tournaments
 async function loadTournaments() {
     try {
+        // Fetch CSRF token if not already fetched
+        if (!csrfToken) {
+            const csrfResponse = await fetch('/api/csrf-token');
+            const csrfData = await csrfResponse.json();
+            csrfToken = csrfData.csrfToken;
+        }
+        
         const response = await fetch('/api/tournaments');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -1048,6 +1101,24 @@ async function loadTournaments() {
             const statusClass = `status-${t.status}`;
             const squadCount = t.squads ? t.squads.length : 0;
             
+            // Check registration status
+            const now = new Date();
+            const openDate = t.registrationOpenDate ? new Date(t.registrationOpenDate) : null;
+            const deadlineDate = t.registrationDeadline ? new Date(t.registrationDeadline) : null;
+            let registrationStatus = '';
+            let showReleaseButton = false;
+            
+            if (deadlineDate && now > deadlineDate) {
+                registrationStatus = '<span style="color:#c92a2a">🔒 Registration Closed</span>';
+            } else if (t.registrationManuallyOpened) {
+                registrationStatus = '<span style="color:#51cf66">✅ Registration Open (Manually Released)</span>';
+            } else if (openDate && now < openDate) {
+                registrationStatus = `<span style="color:#ffa94d">⏰ Opens ${openDate.toLocaleString()}</span>`;
+                showReleaseButton = true;
+            } else if (!openDate || now >= openDate) {
+                registrationStatus = '<span style="color:#51cf66">✅ Registration Open</span>';
+            }
+            
             // Format info
             const format = t.format || {};
             const formatDetails = [];
@@ -1072,10 +1143,12 @@ async function loadTournaments() {
                         <h4>${t.name}</h4>
                         <p>${dateStr} • ${t.location} • <span class="status-badge ${statusClass}">${t.status}</span></p>
                         ${t.description ? `<p style="margin-top:4px">${t.description}</p>` : ''}
+                        <p style="margin-top:4px;font-size:.9rem">${registrationStatus}</p>
                         ${squadCount > 0 ? `<p style="margin-top:4px;font-size:.85rem;color:#b9c6d8">📅 ${squadCount} squad${squadCount !== 1 ? 's' : ''} configured</p>` : ''}
                         ${formatInfo}
                     </div>
                     <div class="tournament-actions">
+                        ${showReleaseButton ? `<button class="button" onclick="openRegistration('${t._id}')" style="font-size:.85rem;padding:6px 10px;background:#51cf66;color:#000">Release Registration</button>` : ''}
                         <button class="button" onclick="editTournament('${t._id}')" style="font-size:.85rem;padding:6px 10px;background:#6c757d">Edit</button>
                         <button class="btn-delete" onclick="deleteTournament('${t._id}')">Delete</button>
                     </div>
@@ -1092,12 +1165,42 @@ async function loadTournaments() {
     }
 }
 
+// Manually open registration for a tournament
+async function openRegistration(id) {
+    if (!confirm('Open registration for this tournament immediately?')) return;
+
+    try {
+        const response = await fetch(`/api/tournaments/${id}/open-registration`, { 
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin'
+        });
+        
+        if (response.ok) {
+            alert('Registration opened successfully!');
+            loadTournaments();
+        } else {
+            const error = await response.json();
+            alert('Failed to open registration: ' + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
 // Delete tournament
 async function deleteTournament(id) {
     if (!confirm('Are you sure you want to delete this tournament?')) return;
 
     try {
-        const response = await fetch(`/api/tournaments/${id}`, { method: 'DELETE' });
+        const response = await fetch(`/api/tournaments/${id}`, { 
+            method: 'DELETE',
+            headers: { 'X-CSRF-Token': csrfToken },
+            credentials: 'same-origin'
+        });
         if (response.ok) {
             loadTournaments();
             loadRegistrations();
@@ -1111,6 +1214,11 @@ async function deleteTournament(id) {
 
 // Load registrations
 async function loadRegistrations() {
+    // Skip if registration elements don't exist (not on registrations page)
+    if (!regListContainer || !regFilterSelect || !regCountSpan) {
+        return;
+    }
+    
     try {
         const tournamentId = regFilterSelect.value;
         const url = tournamentId 
@@ -1200,7 +1308,11 @@ async function updateRegistrationStatus(id, status) {
     try {
         const response = await fetch(`/api/registrations/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ status })
         });
 
@@ -1219,7 +1331,11 @@ async function deleteRegistration(id) {
     if (!confirm('Are you sure you want to delete this registration?')) return;
 
     try {
-        const response = await fetch(`/api/registrations/${id}`, { method: 'DELETE' });
+        const response = await fetch(`/api/registrations/${id}`, { 
+            method: 'DELETE',
+            headers: { 'X-CSRF-Token': csrfToken },
+            credentials: 'same-origin'
+        });
         if (response.ok) {
             loadRegistrations();
         } else {
@@ -1298,7 +1414,9 @@ async function exportRegistrations() {
 }
 
 // Listen for filter changes
-regFilterSelect.addEventListener('change', loadRegistrations);
+if (regFilterSelect) {
+    regFilterSelect.addEventListener('change', loadRegistrations);
+}
 
 // ==================== RESULTS MANAGEMENT ====================
 
@@ -1577,7 +1695,11 @@ async function saveResult(bowlerId, squadId, rowId) {
     try {
         const response = await fetch('/api/results', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify(payload)
         });
 

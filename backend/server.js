@@ -21,13 +21,25 @@ app.use(bodyParser.json());
 app.use(session({
     secret: process.env.SECRET_KEY,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     cookie: {
-        secure: 'true', // set to true in HTTPS deployments
-        httpOnly: true
+        secure: false, // set to true only in production with HTTPS
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
-app.use(lusca.csrf());
+
+// CSRF middleware - exclude OTP routes (they have rate limiting + short-lived codes)
+app.use((req, res, next) => {
+    const otpPaths = ['/admin/request-otp', '/admin/verify-otp', '/api/bowlers/request-otp', '/api/bowlers/verify-otp'];
+    if (otpPaths.includes(req.path)) {
+        return next();
+    }
+    return lusca.csrf({
+        header: 'X-CSRF-Token',
+        secret: process.env.SECRET_KEY
+    })(req, res, next);
+});
 
 // Routes
 app.use('/', mainroutes);

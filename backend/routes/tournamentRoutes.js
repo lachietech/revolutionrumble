@@ -94,6 +94,17 @@ router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res
             updateData.squadsRequiredToQualify = req.body.squadsRequiredToQualify;
         }
         
+        // Registration control date fields
+        if (req.body.registrationOpenDate !== undefined) {
+            updateData.registrationOpenDate = req.body.registrationOpenDate;
+        }
+        if (req.body.registrationDeadline !== undefined) {
+            updateData.registrationDeadline = req.body.registrationDeadline;
+        }
+        if (req.body.registrationManuallyOpened !== undefined && typeof req.body.registrationManuallyOpened === 'boolean') {
+            updateData.registrationManuallyOpened = req.body.registrationManuallyOpened;
+        }
+        
         // Status - allowlist validation
         if (req.body.status !== undefined) {
             const validStatuses = ['upcoming', 'active', 'completed', 'cancelled'];
@@ -116,6 +127,34 @@ router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res
         res.json(tournament);
     } catch (error) {
         res.status(400).json({ error: error.message });
+    }
+});
+
+// POST manually open registration for a tournament (admin only)
+router.post('/tournaments/:id/open-registration', strictWriteLimiter, requireAdmin, async (req, res) => {
+    try {
+        // Validate tournament ID
+        const tournamentId = validateObjectId(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ error: 'Invalid tournament ID' });
+        }
+        
+        const tournament = await Tournament.findByIdAndUpdate(
+            tournamentId,
+            { $set: { registrationManuallyOpened: true } },
+            { new: true }
+        );
+        
+        if (!tournament) {
+            return res.status(404).json({ error: 'Tournament not found' });
+        }
+        
+        res.json({ 
+            message: 'Registration opened successfully',
+            tournament 
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 

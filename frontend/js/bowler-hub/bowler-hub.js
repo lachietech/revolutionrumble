@@ -60,6 +60,12 @@
 // ========================================
 
 /**
+ * CSRF token for secure requests
+ * @type {string|null}
+ */
+let csrfToken = null;
+
+/**
  * Current user's email address
  * @type {string}
  */
@@ -135,7 +141,11 @@ async function resendCode(e) {
     try {
         const response = await fetch('/api/bowlers/request-otp', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ email: currentEmail })
         });
         
@@ -159,7 +169,11 @@ async function resendCode(e) {
  */
 async function logout() {
     try {
-        await fetch('/api/bowlers/logout', { method: 'POST' });
+        await fetch('/api/bowlers/logout', { 
+            method: 'POST',
+            headers: { 'X-CSRF-Token': csrfToken },
+            credentials: 'same-origin'
+        });
     } catch (error) {
         console.error('Logout error:', error);
     }
@@ -315,7 +329,11 @@ async function saveProfile(e) {
     try {
         const response = await fetch(`/api/bowlers/${currentBowlerId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify(profileData)
         });
         
@@ -584,7 +602,11 @@ async function saveSquadChanges(regId) {
         
         const response = await fetch(`/api/registrations/${regId}/squads`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ assignedSquads: selectedSquads })
         });
         
@@ -623,7 +645,9 @@ async function cancelRegistration(regId, tournamentName) {
     
     try {
         const response = await fetch(`/api/registrations/${regId}/cancel`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: { 'X-CSRF-Token': csrfToken },
+            credentials: 'same-origin'
         });
         
         const data = await response.json();
@@ -668,7 +692,11 @@ document.getElementById('email-form').addEventListener('submit', async (e) => {
     try {
         const response = await fetch('/api/bowlers/request-otp', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ email })
         });
         
@@ -709,7 +737,11 @@ document.getElementById('otp-form').addEventListener('submit', async (e) => {
     try {
         const response = await fetch('/api/bowlers/verify-otp', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({ email: currentEmail, otp })
         });
         
@@ -735,5 +767,16 @@ document.getElementById('otp-form').addEventListener('submit', async (e) => {
 // APPLICATION START
 // ========================================
 
-// Initialize: Check for existing session
-checkSession();
+// Fetch CSRF token on page load
+async function fetchCsrfToken() {
+    try {
+        const response = await fetch('/api/csrf-token');
+        const data = await response.json();
+        csrfToken = data.csrfToken;
+    } catch (error) {
+        console.error('Failed to fetch CSRF token:', error);
+    }
+}
+
+// Initialize: Fetch CSRF token and check for existing session
+fetchCsrfToken().then(() => checkSession());
