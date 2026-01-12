@@ -14,6 +14,9 @@ import lusca from 'lusca';
 dotenv.config();
 const app = express();
 
+// Trust proxy - important for production behind reverse proxy (Heroku, Vercel, etc.)
+app.set('trust proxy', 1);
+
 mongoose.connect(process.env.MONGO_URI).then(() => console.log('✅ MongoDB connected')).catch(err => console.error('MongoDB connection error:', err));
 
 app.use(express.static(path.join(import.meta.dirname, '../frontend')));
@@ -24,10 +27,12 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: true, // set to true only in production with HTTPS
+        secure: true, // requires HTTPS in production
         httpOnly: true,
+        sameSite: 'lax', // Important for session cookies
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+    },
+    proxy: true // Trust the reverse proxy
 }));
 
 // CSRF middleware - exclude OTP routes (they have rate limiting + short-lived codes)
