@@ -79,6 +79,10 @@ const tournamentSchema = new mongoose.Schema({
         type: Boolean,
         default: false // Manual override to open registration regardless of date
     },
+    registrationManuallyClosed: {
+        type: Boolean,
+        default: false // Manual override to close registration
+    },
     registrationDeadline: {
         type: Date,
         default: null

@@ -1152,7 +1152,8 @@ async function loadTournaments() {
                         ${formatInfo}
                     </div>
                     <div class="tournament-actions">
-                        ${showReleaseButton ? `<button class="button" onclick="openRegistration('${t._id}')" style="font-size:.85rem;padding:6px 10px;background:#51cf66;color:#000">Release Registration</button>` : ''}
+                        ${showReleaseButton ? `<button class="button" onclick="openRegistration('${t._id}')" style="font-size:.85rem;padding:6px 10px;background:#51cf66;color:#000">Open Registration</button>` : ''}
+                        ${isRegistrationOpen && !t.registrationManuallyClosed ? `<button class="button" onclick="closeRegistration('${t._id}')" style="font-size:.85rem;padding:6px 10px;background:#ff6b6b;color:#fff">Close Registration</button>` : ''}
                         <button class="button" onclick="editTournament('${t._id}')" style="font-size:.85rem;padding:6px 10px;background:#6c757d">Edit</button>
                         <button class="btn-delete" onclick="deleteTournament('${t._id}')">Delete</button>
                     </div>
@@ -1189,6 +1190,31 @@ async function openRegistration(id) {
         } else {
             const error = await response.json();
             alert('Failed to open registration: ' + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+async function closeRegistration(id) {
+    if (!confirm('Close registration for this tournament? No new registrations will be accepted.')) return;
+
+    try {
+        const response = await fetch(`/api/tournaments/${id}/close-registration`, { 
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin'
+        });
+        
+        if (response.ok) {
+            alert('Registration closed successfully!');
+            loadTournaments();
+        } else {
+            const error = await response.json();
+            alert('Failed to close registration: ' + (error.error || 'Unknown error'));
         }
     } catch (error) {
         alert('Error: ' + error.message);

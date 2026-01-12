@@ -154,7 +154,7 @@ router.post('/tournaments/:id/open-registration', strictWriteLimiter, requireAdm
         
         const tournament = await Tournament.findByIdAndUpdate(
             tournamentId,
-            { $set: { registrationManuallyOpened: true } },
+            { $set: { registrationManuallyOpened: true, registrationManuallyClosed: false } },
             { new: true }
         );
         
@@ -171,6 +171,34 @@ router.post('/tournaments/:id/open-registration', strictWriteLimiter, requireAdm
     }
 });
 
+// POST manually close registration for a tournament (admin only)
+router.post('/tournaments/:id/close-registration', strictWriteLimiter, requireAdmin, async (req, res) => {
+    try {
+        // Validate tournament ID
+        const tournamentId = validateObjectId(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ error: 'Invalid tournament ID' });
+        }
+        
+        const tournament = await Tournament.findByIdAndUpdate(
+            tournamentId,
+            { $set: { registrationManuallyClosed: true } },
+            { new: true }
+        );
+        
+        if (!tournament) {
+            return res.status(404).json({ error: 'Tournament not found' });
+        }
+        
+        res.json({ 
+            message: 'Registration closed successfully',
+            tournament 
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // DELETE tournament (admin only)
 router.delete('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
@@ -180,9 +208,9 @@ router.delete('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, 
             return res.status(400).json({ error: 'Invalid tournament ID' });
         }
         
-        const tournament = await Tournament.findById(tournamentId);
+        const tournament = await Tournament.findByIdAndDelete(tournamentId);
         if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
-        res.json({ message: 'Tournament deleted' });
+        res.json({ message: 'Tournament deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

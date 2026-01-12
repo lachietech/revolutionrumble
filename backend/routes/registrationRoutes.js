@@ -406,6 +406,11 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
             return res.status(400).json({ error: 'This tournament is not accepting registrations' });
         }
 
+        // Check if registration is manually closed
+        if (tournament.registrationManuallyClosed) {
+            return res.status(400).json({ error: 'Registration has been closed for this tournament' });
+        }
+
         // Check if registration is open
         const now = new Date();
         const openDate = tournament.registrationOpenDate ? new Date(tournament.registrationOpenDate) : null;
