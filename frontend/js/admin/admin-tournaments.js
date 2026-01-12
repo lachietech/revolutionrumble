@@ -1111,16 +1111,21 @@ async function loadTournaments() {
             const deadlineDate = t.registrationDeadline ? new Date(t.registrationDeadline) : null;
             let registrationStatus = '';
             let showReleaseButton = false;
+            let showCloseButton = false;
             
             if (deadlineDate && now > deadlineDate) {
                 registrationStatus = '<span style="color:#c92a2a">🔒 Registration Closed</span>';
+            } else if (t.registrationManuallyClosed) {
+                registrationStatus = '<span style="color:#c92a2a">🔒 Registration Closed (Manually)</span>';
             } else if (t.registrationManuallyOpened) {
                 registrationStatus = '<span style="color:#51cf66">✅ Registration Open (Manually Released)</span>';
+                showCloseButton = true;
             } else if (openDate && now < openDate) {
                 registrationStatus = `<span style="color:#ffa94d">⏰ Opens ${openDate.toLocaleString()}</span>`;
                 showReleaseButton = true;
             } else if (!openDate || now >= openDate) {
                 registrationStatus = '<span style="color:#51cf66">✅ Registration Open</span>';
+                showCloseButton = true;
             }
             
             // Format info
@@ -1153,7 +1158,7 @@ async function loadTournaments() {
                     </div>
                     <div class="tournament-actions">
                         ${showReleaseButton ? `<button class="button" onclick="openRegistration('${t._id}')" style="font-size:.85rem;padding:6px 10px;background:#51cf66;color:#000">Open Registration</button>` : ''}
-                        ${isRegistrationOpen && !t.registrationManuallyClosed ? `<button class="button" onclick="closeRegistration('${t._id}')" style="font-size:.85rem;padding:6px 10px;background:#ff6b6b;color:#fff">Close Registration</button>` : ''}
+                        ${showCloseButton ? `<button class="button" onclick="closeRegistration('${t._id}')" style="font-size:.85rem;padding:6px 10px;background:#ff6b6b;color:#fff">Close Registration</button>` : ''}
                         <button class="button" onclick="editTournament('${t._id}')" style="font-size:.85rem;padding:6px 10px;background:#6c757d">Edit</button>
                         <button class="btn-delete" onclick="deleteTournament('${t._id}')">Delete</button>
                     </div>
