@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email Templates — Admin</title>
+    <link rel="stylesheet" href="../static/css/packages/presets.css" />
+    <link rel="stylesheet" href="../static/css/packages/navbar.css" />
+    <link rel="stylesheet" href="../static/css/mainfiles/admin-tournaments.css" />
+    <link rel="stylesheet" href="../static/css/mainfiles/admin-email-templates.css" />
+</head>
+<body>
+    <header>
+        <div class="container row">
+            <h1 style="margin:0;font-size:1.1rem">Email Templates</h1>
+            <div style="margin-left:auto"><a class="button" href="/admin/logout">Sign out</a></div>
+        </div>
+    </header>
+
+    <nav style="background:#141a22;border-bottom:1px solid rgba(255,255,255,.08);padding:12px 0">
+        <div class="container" style="display:flex;gap:16px;align-items:center">
+            <a href="/admin/tournaments" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">🏆 Tournaments</a>
+            <a href="/admin/registrations" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">📋 Registrations</a>
+            <a href="/admin/results" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">🎯 Scores</a>
+            <a href="/admin/email-templates" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:white;background:#3b82f6">📧 Emails</a>
+            <div style="margin-left:auto"><a href="/" style="text-decoration:none;color:#b9c6d8">← Back to Site</a></div>
+        </div>
+    </nav>
+
+    <special-header></special-header>
+
+    <div class="container">
+        <div style="margin:40px 0 20px">
+            <h2 style="margin:0 0 8px">Email Templates</h2>
+            <p class="sub" style="margin:0;color:#b9c6d8">Customize automated emails sent to bowlers</p>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Registration Confirmation Email</h2>
+                <div class="help-text">
+                    This email is sent automatically when a bowler registers for a tournament.
+                    Use {{variables}} to insert dynamic content.
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="emailSubject">Email Subject</label>
+                <input 
+                    type="text" 
+                    id="emailSubject" 
+                    class="input" 
+                    placeholder="Enter email subject..."
+                />
+                <div class="help-text">Available variables: {{tournamentName}}</div>
+            </div>
+
+            <div class="form-group">
+                <label for="htmlBody">HTML Body</label>
+                <textarea 
+                    id="htmlBody" 
+                    class="textarea" 
+                    rows="15" 
+                    placeholder="Enter HTML email content..."
+                ></textarea>
+                <div class="help-text">
+                    Available variables: {{bowlerName}}, {{tournamentName}}, {{tournamentLocation}}, {{tournamentDate}}, {{entryFee}}, {{squadsList}}, {{paymentInstructions}}, {{registrationId}}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="textBody">Plain Text Body</label>
+                <textarea 
+                    id="textBody" 
+                    class="textarea" 
+                    rows="15" 
+                    placeholder="Enter plain text email content..."
+                ></textarea>
+                <div class="help-text">
+                    Plain text version for email clients that don't support HTML. Use the same variables as above.
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button id="previewBtn" class="btn btn-outline">Preview with Sample Data</button>
+                <button id="saveBtn" class="btn">Save Template</button>
+            </div>
+        </div>
+
+        <!-- Preview Modal -->
+        <div id="previewModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Email Preview</h2>
+                    <button id="closeModal" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="preview-section">
+                        <h3>Subject:</h3>
+                        <div id="previewSubject" class="preview-box"></div>
+                    </div>
+                    <div class="preview-section">
+                        <h3>HTML Preview:</h3>
+                        <div id="previewHtml" class="preview-box preview-html"></div>
+                    </div>
+                    <div class="preview-section">
+                        <h3>Plain Text Preview:</h3>
+                        <div id="previewText" class="preview-box preview-text"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="notification" class="notification" style="display: none;"></div>
+    </div>
+
+    <script src="../js/global/navbar.js"></script>
+    <script src="../js/admin/admin-email-templates.js"></script>
+</body>
+</html>

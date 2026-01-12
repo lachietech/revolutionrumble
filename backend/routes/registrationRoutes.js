@@ -4,6 +4,7 @@ import Tournament from '../models/Tournament.js';
 import Bowler from '../models/Bowler.js';
 import SpotReservation from '../models/SpotReservation.js';
 import crypto from 'crypto';
+import { sendRegistrationConfirmation } from '../utils/emailService.js';
 import { 
     validateObjectId, 
     sanitizeEmail, 
@@ -420,18 +421,12 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
 
         // Validate squad selections if tournament has squads
         if (tournament.squads && tournament.squads.length > 0) {
-            if (!assignedSquads || assignedSquads.length === 0) {
+            if (!validSquads || validSquads.length === 0) {
                 return res.status(400).json({ error: 'Please select at least one squad' });
             }
 
             // Validate each selected squad exists and has capacity
-            for (const squadId of assignedSquads) {
-                // Sanitize squadId
-                const sanitizedSquadId = validateObjectId(squadId);
-                if (!sanitizedSquadId) {
-                    return res.status(400).json({ error: 'Invalid squad ID format' });
-                }
-                
+            for (const sanitizedSquadId of validSquads) {
                 const squad = tournament.squads.id(sanitizedSquadId);
                 if (!squad) {
                     return res.status(400).json({ error: 'Invalid squad selection' });
@@ -452,7 +447,7 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
 
             // Validate qualifying squad requirement
             if (tournament.squadsRequiredToQualify > 0) {
-                const qualifyingSquadsSelected = assignedSquads.filter(squadId => {
+                const qualifyingSquadsSelected = validSquads.filter(squadId => {
                     const squad = tournament.squads.id(squadId);
                     return squad && squad.isQualifying;
                 }).length;
@@ -562,6 +557,32 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
             .populate('tournament', 'name date location')
             .populate('bowler', 'playerName nickname email');
         
+        // Send confirmation email asynchronously (don't wait for it)
+        sendRegistrationConfirmation({
+            to: sanitizedEmail,
+            bowler: {
+                name: sanitizedName
+            },
+            tournament: {
+                name: tournament.name,
+                startDate: tournament.startDate,
+                location: tournament.location,
+                entryFee: tournament.entryFee,
+                paymentInstructions: tournament.paymentInstructions
+            },
+            squads: validSquads.map(squadId => {
+                const squad = tournament.squads.id(squadId);
+                return {
+                    name: squad ? squad.name : 'Unknown Squad',
+                    time: squad ? squad.time : ''
+                };
+            }),
+            registrationId: registration._id.toString()
+        }).catch(err => {
+            console.error('Failed to send confirmation email:', err);
+            // Don't fail the registration if email fails
+        });
+        
         res.status(201).json(populated);
     } catch (error) {
         if (error.code === 11000) {
@@ -598,33 +619,72 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
             currentStageScores: registration.stageScores
         });
 
-        // Update basic fields
-        if (status !== undefined) registration.status = status;
-        if (notes !== undefined) registration.notes = notes;
-        if (currentStage !== undefined) registration.currentStage = currentStage;
+        // Update basic fields with validation
+        if (status !== undefined) {
+            const validStatuses = ['pending', 'confirmed', 'cancelled', 'waitlist'];
+            if (!validStatuses.includes(status)) {
+                return res.status(400).json({ error: 'Invalid status value' });
+            }
+            registration.status = status;
+        }
+        if (notes !== undefined) {
+            registration.notes = sanitizeString(notes, 500);
+        }
+        if (currentStage !== undefined) {
+            const validStage = validateInteger(currentStage, 0, 100);
+            if (validStage === null) {
+                return res.status(400).json({ error: 'Invalid stage number' });
+            }
+            registration.currentStage = validStage;
+        }
 
         // Handle stage-based scoring
         if (stageScores) {
             const { stageIndex, scores, bonusPins, handicap } = stageScores;
             
-            console.log('Processing stageScores:', { stageIndex, scores, bonusPins, handicap });
+            // Validate stageIndex
+            const validStageIndex = validateInteger(stageIndex, 0, 100);
+            if (validStageIndex === null) {
+                return res.status(400).json({ error: 'Invalid stage index' });
+            }
+            
+            // Validate scores array
+            if (!Array.isArray(scores) || scores.length === 0 || scores.length > 50) {
+                return res.status(400).json({ error: 'Invalid scores array' });
+            }
+            
+            // Validate each score (0-300 for bowling)
+            const validScores = scores.map(score => validateInteger(score, 0, 300)).filter(s => s !== null);
+            if (validScores.length !== scores.length) {
+                return res.status(400).json({ error: 'Invalid score values' });
+            }
+            
+            // Validate bonusPins if provided
+            const validBonusPins = Array.isArray(bonusPins) 
+                ? bonusPins.map(bp => validateInteger(bp, -100, 100)).filter(b => b !== null)
+                : [];
+            
+            // Validate handicap
+            const validHandicap = validateInteger(handicap, 0, 200) || 0;
+            
+            console.log('Processing stageScores:', { stageIndex: validStageIndex, scores: validScores, bonusPins: validBonusPins, handicap: validHandicap });
             
             // Find or create stage score entry
-            let stageScoreEntry = registration.stageScores.find(s => s.stageIndex === stageIndex);
+            let stageScoreEntry = registration.stageScores.find(s => s.stageIndex === validStageIndex);
             
             if (stageScoreEntry) {
-                stageScoreEntry.scores = scores;
-                stageScoreEntry.bonusPins = bonusPins || [];
-                stageScoreEntry.handicap = handicap || 0;
-                stageScoreEntry.total = scores.reduce((sum, s) => sum + s, 0);
+                stageScoreEntry.scores = validScores;
+                stageScoreEntry.bonusPins = validBonusPins;
+                stageScoreEntry.handicap = validHandicap;
+                stageScoreEntry.total = validScores.reduce((sum, s) => sum + s, 0);
                 console.log('Updated existing stage entry:', stageScoreEntry);
             } else {
                 const newEntry = {
-                    stageIndex,
-                    scores,
-                    bonusPins: bonusPins || [],
-                    handicap: handicap || 0,
-                    total: scores.reduce((sum, s) => sum + s, 0),
+                    stageIndex: validStageIndex,
+                    scores: validScores,
+                    bonusPins: validBonusPins,
+                    handicap: validHandicap,
+                    total: validScores.reduce((sum, s) => sum + s, 0),
                     carryover: 0
                 };
                 registration.stageScores.push(newEntry);
@@ -634,17 +694,29 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
 
         // Handle carryover to next stage
         if (carryoverToNextStage !== undefined && currentStage !== undefined) {
+            // Validate carryover value
+            const validCarryover = validateInteger(carryoverToNextStage, 0, 10000);
+            if (validCarryover === null) {
+                return res.status(400).json({ error: 'Invalid carryover value' });
+            }
+            
+            // Validate currentStage
+            const validCurrentStage = validateInteger(currentStage, 0, 100);
+            if (validCurrentStage === null) {
+                return res.status(400).json({ error: 'Invalid current stage' });
+            }
+            
             // Add carryover to the next stage entry
-            let nextStageEntry = registration.stageScores.find(s => s.stageIndex === currentStage);
+            let nextStageEntry = registration.stageScores.find(s => s.stageIndex === validCurrentStage);
             
             if (nextStageEntry) {
-                nextStageEntry.carryover = carryoverToNextStage;
+                nextStageEntry.carryover = validCarryover;
             } else {
                 registration.stageScores.push({
-                    stageIndex: currentStage,
+                    stageIndex: validCurrentStage,
                     scores: [],
                     total: 0,
-                    carryover: carryoverToNextStage
+                    carryover: validCarryover
                 });
             }
         }
@@ -675,15 +747,17 @@ router.put('/registrations/:id/payment-status', strictWriteLimiter, requireAdmin
         
         const { paymentStatus } = req.body;
         
-        // Validate payment status
+        // Validate payment status with type checking
         const validPaymentStatuses = ['unpaid', 'deposit', 'paid'];
-        if (!validPaymentStatuses.includes(paymentStatus)) {
+        if (typeof paymentStatus !== 'string' || !validPaymentStatuses.includes(paymentStatus)) {
             return res.status(400).json({ error: 'Invalid payment status' });
         }
         
+        const sanitizedPaymentStatus = paymentStatus.trim().toLowerCase();
+        
         const registration = await Registration.findByIdAndUpdate(
             registrationId,
-            { paymentStatus },
+            { paymentStatus: sanitizedPaymentStatus },
             { new: true }
         ).populate('tournament', 'name');
         
@@ -726,9 +800,12 @@ router.put('/registrations/:id/squads', generalWriteLimiter, async (req, res) =>
         }
 
         const { assignedSquads } = req.body;
+        
+        // Validate and sanitize squad IDs
+        const validSquads = validateObjectIdArray(assignedSquads);
 
         // Validate squad availability
-        if (assignedSquads && assignedSquads.length > 0) {
+        if (validSquads && validSquads.length > 0) {
             // Get current registrations per squad
             const allRegistrations = await Registration.find({
                 tournament: registration.tournament,
@@ -747,19 +824,19 @@ router.put('/registrations/:id/squads', generalWriteLimiter, async (req, res) =>
             });
 
             // Check availability for requested squads
-            for (const squadId of assignedSquads) {
-                const squad = tournament.squads.find(s => s._id.toString() === squadId);
+            for (const sanitizedSquadId of validSquads) {
+                const squad = tournament.squads.find(s => s._id.toString() === sanitizedSquadId);
                 if (!squad) {
                     return res.status(400).json({ error: 'Invalid squad selected' });
                 }
-                const currentCount = squadCounts[squadId] || 0;
+                const currentCount = squadCounts[sanitizedSquadId] || 0;
                 if (currentCount >= squad.capacity) {
                     return res.status(400).json({ error: `Squad ${squad.name} is full` });
                 }
             }
         }
 
-        registration.assignedSquads = assignedSquads;
+        registration.assignedSquads = validSquads || [];
         await registration.save();
         await registration.populate('tournament');
         await registration.populate('assignedSquads');

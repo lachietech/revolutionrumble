@@ -109,6 +109,11 @@ HERO
     position: relative;
 }
 
+.hero-graphic > div:not(.rings) {
+    position: relative;
+    z-index: 2;
+}
+
 .rings {
     position: absolute;
     width: 75%;
@@ -116,6 +121,8 @@ HERO
     border-radius: 50%;
     border: 2px solid rgba(122, 195, 255, .25);
     animation: pulse 5s infinite ease-in-out;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .rings::before,

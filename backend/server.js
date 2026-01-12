@@ -7,6 +7,7 @@ import mainroutes from'./routes/mainroutes.js';
 import tournamentRoutes from './routes/tournamentRoutes.js';
 import registrationRoutes from './routes/registrationRoutes.js';
 import bowlerRoutes from './routes/bowlerRoutes.js';
+import emailTemplateRoutes from './routes/emailTemplateRoutes.js';
 import mongoose from 'mongoose';
 import lusca from 'lusca';
 
@@ -23,7 +24,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // set to true only in production with HTTPS
+        secure: true, // set to true only in production with HTTPS
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
@@ -46,6 +47,7 @@ app.use('/', mainroutes);
 app.use('/api', tournamentRoutes);
 app.use('/api', registrationRoutes);
 app.use('/api', bowlerRoutes);
+app.use('/api', emailTemplateRoutes);
 
 app.listen(5000, () => {
     console.log("Server started");

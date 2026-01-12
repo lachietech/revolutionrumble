@@ -236,4 +236,8 @@ router.get('/admin/results', pageViewLimiter, requireAdmin, (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '../../frontend/admin-results.html'));
 });
 
+router.get('/admin/email-templates', pageViewLimiter, requireAdmin, (req, res) => {
+    res.sendFile(path.join(import.meta.dirname, '../../frontend/admin/admin-email-templates.html'));
+});
+
 export default router;

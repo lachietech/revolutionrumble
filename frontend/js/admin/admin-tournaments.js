@@ -64,6 +64,8 @@ form.addEventListener('submit', async (e) => {
         location: form.location.value,
         status: form.status.value,
         description: form.description.value,
+        entryFee: form.entryFee.value ? Number(form.entryFee.value) : 0,
+        paymentInstructions: form.paymentInstructions.value || '',
         maxParticipants: form.maxParticipants.value ? Number(form.maxParticipants.value) : null,
         registrationOpenDate: form.registrationOpenDate.value || null,
         registrationDeadline: form.registrationDeadline.value || null,
@@ -85,7 +87,7 @@ form.addEventListener('submit', async (e) => {
         }),
         format: {
             gamesPerBowler: totalGames,
-            hasStages: currentStages.length > 1,
+            hasStages: currentStages.length > 0,
             stages: currentStages,
             useHandicap: document.getElementById('useHandicap').checked,
             handicapBase: Number(document.getElementById('handicapBase').value) || 200,
@@ -965,6 +967,8 @@ function editTournament(id) {
             if (form.location) form.location.value = tournament.location;
             if (form.status) form.status.value = tournament.status;
             if (form.description) form.description.value = tournament.description || '';
+            if (form.entryFee) form.entryFee.value = tournament.entryFee || 0;
+            if (form.paymentInstructions) form.paymentInstructions.value = tournament.paymentInstructions || '';
             if (form.maxParticipants) form.maxParticipants.value = tournament.maxParticipants || '';
             if (form.registrationOpenDate) form.registrationOpenDate.value = tournament.registrationOpenDate ? tournament.registrationOpenDate.slice(0, 16) : '';
             if (form.registrationDeadline) form.registrationDeadline.value = tournament.registrationDeadline ? tournament.registrationDeadline.split('T')[0] : '';

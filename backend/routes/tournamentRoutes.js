@@ -74,6 +74,9 @@ router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res
         if (req.body.location !== undefined && typeof req.body.location === 'string') {
             updateData.location = req.body.location.replace(/\$/g, '');
         }
+        if (req.body.paymentInstructions !== undefined && typeof req.body.paymentInstructions === 'string') {
+            updateData.paymentInstructions = req.body.paymentInstructions.replace(/\$/g, '');
+        }
         
         // Date fields
         if (req.body.startDate !== undefined) {
@@ -105,12 +108,22 @@ router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res
             updateData.registrationManuallyOpened = req.body.registrationManuallyOpened;
         }
         
+        // Boolean fields
+        if (req.body.allowReentry !== undefined && typeof req.body.allowReentry === 'boolean') {
+            updateData.allowReentry = req.body.allowReentry;
+        }
+        
         // Status - allowlist validation
         if (req.body.status !== undefined) {
             const validStatuses = ['upcoming', 'active', 'completed', 'cancelled'];
             if (validStatuses.includes(req.body.status)) {
                 updateData.status = req.body.status;
             }
+        }
+        
+        // Format object
+        if (req.body.format !== undefined && typeof req.body.format === 'object') {
+            updateData.format = req.body.format;
         }
         
         // Squads array - needs deep sanitization
@@ -241,7 +254,8 @@ router.get('/tournaments/:id/squads/availability', generalWriteLimiter, async (r
             tournament: {
                 _id: tournament._id,
                 name: tournament.name,
-                squadsRequiredToQualify: tournament.squadsRequiredToQualify
+                squadsRequiredToQualify: tournament.squadsRequiredToQualify,
+                allowReentry: tournament.allowReentry
             },
             squads: squadsWithAvailability
         });

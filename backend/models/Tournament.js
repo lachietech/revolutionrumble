@@ -53,6 +53,15 @@ const tournamentSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    entryFee: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    paymentInstructions: {
+        type: String,
+        default: 'Payment details will be provided via email.'
+    },
     status: {
         type: String,
         enum: ['upcoming', 'ongoing', 'completed'],

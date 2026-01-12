@@ -196,6 +196,11 @@ export function validateObjectIdArray(ids) {
         return [];
     }
     
+    // Limit array size to prevent DoS attacks
+    if (ids.length > 100) {
+        return [];
+    }
+    
     return ids
         .map(id => validateObjectId(id))
         .filter(id => id !== null);

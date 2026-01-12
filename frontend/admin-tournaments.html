@@ -20,6 +20,7 @@
                 <a href="/admin/tournaments" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:white;background:#3b82f6">🏆 Tournaments</a>
                 <a href="/admin/registrations" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">📋 Registrations</a>
                 <a href="/admin/results" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">🎯 Scores</a>
+                <a href="/admin/email-templates" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">📧 Emails</a>
                 <div style="margin-left:auto"><a href="/" style="text-decoration:none;color:#b9c6d8">← Back to Site</a></div>
             </div>
         </nav>
@@ -74,13 +75,22 @@
                             <input type="date" id="registrationDeadline" name="registrationDeadline">
                         </div>
                         <div class="form-group">
+                            <label for="entryFee">Entry Fee ($)</label>
+                            <input type="number" id="entryFee" name="entryFee" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="form-group full">
+                            <label for="paymentInstructions">Payment Instructions</label>
+                            <textarea id="paymentInstructions" name="paymentInstructions" rows="3" placeholder="Bank details, payment methods, etc..."></textarea>
+                            <small style="display:block;margin-top:4px;color:#b9c6d8">These instructions will be included in the registration confirmation email</small>
+                        </div>
+                        <div class="form-group">
                             <label for="squadsRequiredToQualify">Squads Required to Qualify</label>
                             <input type="number" id="squadsRequiredToQualify" name="squadsRequiredToQualify" min="1" value="1">
                             <small style="display:block;margin-top:4px;color:#b9c6d8">Minimum number of squads a bowler must bowl to qualify</small>
                         </div>
                         <div class="form-group">
                             <label style="display:flex;align-items:center;gap:8px;margin-top:8px">
-                                <input type="checkbox" id="allowReentry" name="allowReentry" style="width:auto;margin:0">
+                                <input type="checkbox" id="allowReentry" name="allowReentry" style="width:auto;margin:0" checked>
                                 <span>Allow Re-entry (Bowlers can bowl more squads than required)</span>
                             </label>
                             <small style="display:block;margin-top:4px;color:#b9c6d8">If disabled, bowlers can only register for the exact number of squads required to qualify</small>
