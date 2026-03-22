@@ -29,11 +29,10 @@ const router = express.Router();
 router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
     try {
         const { email } = req.body;
-        
         // Validate and sanitize email
         const sanitizedEmail = sanitizeEmail(email);
         if (!sanitizedEmail) {
-            return res.status(400).json({ error: 'Valid email required' });
+            return res.status(400).json({ error: 'Valid email required' })
         }
 
         // Find or create bowler

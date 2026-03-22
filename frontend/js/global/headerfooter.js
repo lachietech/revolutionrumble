@@ -27,9 +27,13 @@ class SpecialHeader extends HTMLElement {
         this.innerHTML = `
         <header>
             <div class="container nav">
-                <div class="brand">
-                    <h1>Revolution Rumble Tenpin Tour</h1>
-                </div>
+                <!-- Hamburger (always visible) -->
+                <button class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+
 
                 <!-- Keep this for progressive enhancement (hidden via CSS) -->
                 <nav id="desktopMenu" class="nav-links desktop-nav" hidden>
@@ -41,12 +45,12 @@ class SpecialHeader extends HTMLElement {
                     <a href="/bowler-hub">My Hub</a>
                 </nav>
 
-                <!-- Hamburger (always visible) -->
-                <button class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
+                <div class="brand">
+                    <img src="static/images/whitebghighres.png" alt="Revolution Rumble Logo" style="height: 80px; width: auto; margin-right: 8px;">
+                </div>
+                
+
+
 
                 <!-- Dropdown (moved inside .nav so it anchors to the hamburger) -->
                 <nav id="mobileMenu" class="mobile-menu" hidden>
@@ -86,7 +90,7 @@ class SpecialFooter extends HTMLElement {
         this.innerHTML = `
         <footer>
             <div style="bottom: 0; text-align:center; padding:8px 0; color:var(--muted); font-size:.9rem">
-                <span>©2025 Revolution Bowling Supplies & Nielsen Innovations</span>
+                <span>©2026 Revolution Bowling Supplies & Nielsen Innovations</span>
             </div>
         </footer>
         `;

@@ -9,10 +9,10 @@
 // ============================================================================
 
 /** @type {Date} Target date for countdown (defaults to fallback) */
-let eventDate = new Date('2026-04-10T08:00:00');
+let eventDate = new Date('2026-01-10T08:00:00');
 
 /** @type {string} Name of the upcoming event */
-let eventName = 'Logan City Cup';
+let eventName = 'Tournament Coming Soon';
 
 // ============================================================================
 // DOM ELEMENTS
@@ -62,9 +62,16 @@ async function loadNextTournament() {
                 eventNameEl.textContent = eventName;
             }
         }
+        else {
+            console.warn('No upcoming tournaments found. Using fallback date and name.');
+            if (eventNameEl) {
+                eventNameEl.textContent = eventName;
+            }
+        }
     } catch (error) {
         console.error('Failed to load tournament:', error);
         // Keep using fallback date and name
+
     }
 }
 

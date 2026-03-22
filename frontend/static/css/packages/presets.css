@@ -15,6 +15,19 @@ THEME & RESET
     --grey-700: #23262d;
     --grey-600: #2d313a;
     --grey-500: #3a404b;
+
+    --bronze-600: #b87333;
+    --bronze-500: #b87333;
+    --bronze-400: #cfa16e;
+    --bronze-300: #d6bc9d;
+
+    --gold-900: #b8860b;
+    --gold-800: #d4af37;
+    --gold-700: #d4af37;
+    --gold-600: #e8b923;
+    --gold-500: #e8b923;
+    --gold-400: #f1c95b;
+
     --text: #e9eef7;
     --text-primary: #e9eef7;
     --muted: #b9c6d8;
@@ -35,7 +48,7 @@ html,
 body {
     margin: 0;
     height: 100%;
-    background: var(--black);
+    background: var(--grey-900);
     color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
@@ -87,13 +100,6 @@ img {
     border-radius: 999px;
     color: var(--muted);
     font-size: .85rem;
-}
-
-.eyebrow {
-    letter-spacing: .2em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-size: .8rem;
 }
 
 .h1 {

@@ -5,7 +5,7 @@ header {
     position: sticky;
     top: 0;
     z-index: 50;
-    background: linear-gradient(180deg, var(--grey-700), var(--black));
+    background: linear-gradient(180deg, var(--blue-900), var(--grey-900));
     backdrop-filter: blur(10px);
     padding: 20px 0;
 }
@@ -26,12 +26,20 @@ header {
 .brand h1 {
     font-size: 1.1rem;
     margin: 0;
-    font-weight: 800;
+    font-weight: 800;    
     letter-spacing: .4px;
 }
 
 .nav a {
     color: var(--muted);
+    transition: all .3s ease;
+}
+
+.nav a:hover {
+    color: var(--text-primary);
+    text-shadow: 0 0 20px rgba(46, 143, 220, 0.8),
+                 0 0 30px rgba(46, 143, 220, 0.5),
+                 0 0 40px rgba(46, 143, 220, 0.3);
 }
 
 .nav-links {
@@ -53,7 +61,13 @@ button {
     cursor: pointer;
     align-items: center;
     justify-content: center;
-    
+    transition: all .3s ease;
+}
+
+.hamburger:hover {
+    box-shadow: 0 0 20px rgba(46, 143, 220, 0.2),
+                0 0 30px rgba(46, 143, 220, 0.2),
+                inset 0 0 50px rgba(46, 143, 220, 0.2);
 }
 
 .hamburger span {
@@ -146,12 +160,12 @@ DESKTOP MENU
         position: fixed;
         left: 0;
         right: 0;
-        top: 64px;
+        top: 110px;
         width: 100%;
         height: auto;
         border-radius: 0;
         padding: 16px 12px;
-        max-height: calc(100vh - 64px);
+        max-height: calc(100vh - 110px);
         display: grid;
         gap: 12px;
     }
@@ -173,6 +187,14 @@ DESKTOP MENU
     border-radius: 5px;
     border: 1px solid rgba(255, 255, 255, 0.3);
     background: linear-gradient(180deg, var(--black), var(--grey-900));
+    transition: all .3s ease;
+}
+
+.mobile-menu a:hover {
+    border-color: var(--blue-500);
+    box-shadow: 0 0 20px rgba(46, 143, 220, 0.5),
+                inset 0 0 20px rgba(46, 143, 220, 0.1);
+    text-shadow: 0 0 10px rgba(46, 143, 220, 0.8);
 }
 
 /* Ensure the hidden attribute actually hides the panel (override any resets) */
