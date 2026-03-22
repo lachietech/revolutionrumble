@@ -139,8 +139,7 @@ DESKTOP MENU
     padding: 8px;
     width: min(360px, 92%);
     border-radius: 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    background: linear-gradient(180deg, var(--black), var(--grey-800));
+    background: linear-gradient(180deg, var(--grey-900), var(--blue-900));
     backdrop-filter: blur(10px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
     z-index: 60;
@@ -185,14 +184,14 @@ DESKTOP MENU
 .mobile-menu a {
     padding: 10px;
     border-radius: 5px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    background: linear-gradient(180deg, var(--black), var(--grey-900));
+    border: 1px solid rgba(184, 135, 11, 0.301);
+    background: linear-gradient(90deg, var(--blue-900), var(--grey-900));
     transition: all .3s ease;
 }
 
 .mobile-menu a:hover {
-    border-color: var(--blue-500);
-    box-shadow: 0 0 20px rgba(46, 143, 220, 0.5),
+    border-color: var(--gold-900);
+    box-shadow: 0 0 20px rgba(211, 160, 19, 0.2),
                 inset 0 0 20px rgba(46, 143, 220, 0.1);
     text-shadow: 0 0 10px rgba(46, 143, 220, 0.8);
 }
