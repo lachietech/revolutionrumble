@@ -54,6 +54,7 @@ const setButtonState = (open) => {
 /**
  * Toggles menu visibility based on viewport size and desired state.
  * Handles switching between mobile and desktop menus appropriately.
+ * Locks/unlocks body scroll on mobile when menu is toggled.
  * @param {boolean} [open] - Desired open state. If undefined, toggles current state
  */
 const toggle = (open) => {
@@ -64,6 +65,8 @@ const toggle = (open) => {
     } else {
         menu.hidden = !wantOpen;
         if (desktop) desktop.hidden = true;
+        // Lock/unlock body scroll on mobile
+        document.body.classList.toggle('menu-open', wantOpen);
     }
     setButtonState(wantOpen);
 };
@@ -114,12 +117,15 @@ const handleDocumentClick = (e) => {
 /**
  * Handles window resize events.
  * Ensures correct menu is shown for current viewport and syncs button state.
+ * Unlocks body scroll when switching to desktop view.
  * @listens Window#resize
  */
 const handleResize = () => {
     if (isDesktopView()) {
         // moving to desktop view
         if (!menu.hidden) menu.hidden = true;
+        // Unlock body scroll when switching to desktop
+        document.body.classList.remove('menu-open');
     } else {
         if (desktop && !desktop.hidden) desktop.hidden = true;
     }

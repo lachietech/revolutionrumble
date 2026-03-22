@@ -154,46 +154,58 @@ DESKTOP MENU
     .desktop-nav {
         display: none;
     }
-    /* Anchor under header on mobile — adjust top if your header height differs */
+    /* Mobile menu below header with scroll lock */
     .mobile-menu {
         position: fixed;
         left: 0;
         right: 0;
-        top: 110px;
-        width: 100%;
-        height: auto;
+        top: 120px;
+        bottom: 0;
+        width: 100vw;
+        height: calc(100vh - 120px);
         border-radius: 0;
-        padding: 16px 12px;
-        max-height: calc(100vh - 110px);
-        display: grid;
-        gap: 12px;
+        padding: 0;
+        max-height: calc(100vh - 120px);
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        background: var(--grey-900);
+        overflow-y: auto;
     }
 
     .mobile-menu a {
-        font-size: 1.05rem;
-        padding: 10px;
+        font-size: 1.1rem;
+        padding: 20px 32px;
+        border-radius: 0;
+        border: none;
+        border-bottom: 2px solid rgba(212, 167, 44, 0.3);
+        background: transparent;
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+    
+    .mobile-menu a:hover {
+        background: rgba(255, 255, 255, 0.05);
     }
 
     .mobile-menu .btn {
-        padding: .7rem .9rem;
-        border-radius: 10px;
-        width: 100%;
+        padding: 1rem 2rem;
+        border-radius: 8px;
+        width: calc(100% - 64px);
+        margin: 20px 32px;
     }
 }
 
-.mobile-menu a {
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid rgba(184, 135, 11, 0.301);
-    background: linear-gradient(90deg, var(--blue-900), var(--grey-900));
-    transition: all .3s ease;
+/* Lock body scroll when mobile menu is open */
+body.menu-open {
+    overflow: hidden;
 }
+
 
 .mobile-menu a:hover {
     border-color: var(--gold-900);
     box-shadow: 0 0 20px rgba(211, 160, 19, 0.2),
                 inset 0 0 20px rgba(46, 143, 220, 0.1);
-    text-shadow: 0 0 10px rgba(46, 143, 220, 0.8);
 }
 
 /* Ensure the hidden attribute actually hides the panel (override any resets) */
