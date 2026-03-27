@@ -56,8 +56,8 @@ class SpecialHeader extends HTMLElement {
                     <a href="/">Home</a>
                     <a href="/events">Events</a>
                     <a href="/results">Results & Stats</a>
-                    <a href="/register">Register</a>
-                    <a href="/bowler-hub">My Hub</a>
+                    <a href="/register">Registration</a>
+                    <a href="/bowler-hub">My Bowling Portal</a>
                 </nav>
             </div>
         </header>
