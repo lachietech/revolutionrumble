@@ -39,10 +39,9 @@ class SpecialHeader extends HTMLElement {
                 <nav id="desktopMenu" class="nav-links desktop-nav" hidden>
                     <a href="/">Home</a>
                     <a href="/events">Events</a>
-                    <a href="/results">Results</a>
-                    <a href="/bowlerstats">Player Stats</a>
-                    <a href="/register">Register</a>
-                    <a href="/bowler-hub">My Hub</a>
+                    <a href="/results">Results & Stats</a>
+                    <a href="/register">Registration</a>
+                    <a href="/bowler-hub">My Bowling Portal</a>
                 </nav>
 
                 <div class="brand">
@@ -56,8 +55,7 @@ class SpecialHeader extends HTMLElement {
                 <nav id="mobileMenu" class="mobile-menu" hidden>
                     <a href="/">Home</a>
                     <a href="/events">Events</a>
-                    <a href="/results">Results</a>
-                    <a href="/bowlerstats">Player Stats</a>
+                    <a href="/results">Results & Stats</a>
                     <a href="/register">Register</a>
                     <a href="/bowler-hub">My Hub</a>
                 </nav>

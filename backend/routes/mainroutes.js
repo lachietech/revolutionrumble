@@ -27,11 +27,11 @@ router.get('/register', pageViewLimiter, (req, res) => {
 });
 
 router.get('/playerstats', pageViewLimiter, (req, res) => {
-    res.sendFile(path.join(import.meta.dirname, '../../frontend/bowlerstats.html'));
+    res.redirect('/results?tab=stats');
 });
 
 router.get('/bowlerstats', pageViewLimiter, (req, res) => {
-    res.sendFile(path.join(import.meta.dirname, '../../frontend/bowlerstats.html'));
+    res.redirect('/results?tab=stats');
 });
 
 router.get('/bowler-hub', pageViewLimiter, (req, res) => {

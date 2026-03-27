@@ -3,43 +3,161 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>The Revolution Rumble — Results</title>
-        <meta name="description" content="Live and historical results for The Revolution Rumble."/>
+        <title>Results & Player Stats — Revolution Rumble</title>
+        <meta name="description" content="Tournament results, leaderboards, and player statistics for The Revolution Rumble."/>
         <link rel="stylesheet" href="static/css/packages/navbar.css" />
         <link rel="stylesheet" href="static/css/packages/presets.css" />
         <link rel="stylesheet" href="static/css/mainfiles/results.css" />
+        <link rel="stylesheet" href="static/css/mainfiles/bowlerstats.css" />
+        <style>
+            /* ── Tab Navigation ── */
+            .tab-nav {
+                background: var(--black);
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+                padding: 0;
+                position: sticky;
+                top: 0;
+                z-index: 50;
+            }
+            .tab-nav .container {
+                display: flex;
+                gap: 0;
+            }
+            .tab-btn {
+                padding: 16px 28px;
+                font-size: 0.95rem;
+                font-weight: 600;
+                color: var(--muted);
+                background: none;
+                border: none;
+                border-bottom: 3px solid transparent;
+                cursor: pointer;
+                transition: color 0.2s, border-color 0.2s;
+                white-space: nowrap;
+            }
+            .tab-btn:hover {
+                color: var(--text);
+            }
+            .tab-btn.active {
+                color: var(--blue-400, #5eb6f5);
+                border-bottom-color: var(--blue-400, #5eb6f5);
+            }
+            /* ── Tab Content ── */
+            .tab-content {
+                display: none;
+            }
+            .tab-content.active {
+                display: block;
+            }
+        </style>
     </head>
     <body>
         <!-- ===================== HEADER ===================== -->
         <special-header></special-header>
 
-        <section class="section">
+        <!-- ===================== TAB NAV ===================== -->
+        <div class="tab-nav">
             <div class="container">
-                <h1 class="h1" id="tournamentTitle" style="text-align:center">Select a Tournament</h1>
-                <p class="sub" id="tournamentSubtitle" style="text-align:center">Choose a tournament to view complete results and leaderboards.</p>
+                <button class="tab-btn active" data-tab="results">Tournament Results</button>
+                <button class="tab-btn" data-tab="stats">Player Stats</button>
+            </div>
+        </div>
 
-                <div class="card" style="padding:16px 16px 6px;margin-top:14px">
-                    <div style="max-width:500px;margin:0 auto 24px">
-                        <label for="tournamentSelect" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:8px;color:#b9c6d8">Select Tournament</label>
-                        <select id="tournamentSelect" style="width:100%;padding:12px 16px;font-size:1rem;border-radius:8px;background:#141a22;border:1px solid rgba(255,255,255,0.1);color:#e9eef7;cursor:pointer;transition:all 0.2s">
-                            <option value="">Choose a tournament...</option>
-                        </select>
-                    </div>
+        <!-- ===================== RESULTS TAB ===================== -->
+        <div class="tab-content active" id="tab-results">
+            <section class="section">
+                <div class="container">
+                    <h1 class="h1" id="tournamentTitle" style="text-align:center">Select a Tournament</h1>
+                    <p class="sub" id="tournamentSubtitle" style="text-align:center">Choose a tournament to view complete results and leaderboards.</p>
 
-                    <!-- Results Container -->
-                    <div id="resultsContainer">
-                        <div style="text-align:center;padding:48px;color:#888">
-                            <p>Please select a tournament to view results</p>
+                    <div class="card" style="padding:16px 16px 6px;margin-top:14px">
+                        <div style="max-width:500px;margin:0 auto 24px">
+                            <label for="tournamentSelect" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:8px;color:#b9c6d8">Select Tournament</label>
+                            <select id="tournamentSelect" style="width:100%;padding:12px 16px;font-size:1rem;border-radius:8px;background:#141a22;border:1px solid rgba(255,255,255,0.1);color:#e9eef7;cursor:pointer;transition:all 0.2s">
+                                <option value="">Choose a tournament...</option>
+                            </select>
+                        </div>
+
+                        <!-- Results Container -->
+                        <div id="resultsContainer">
+                            <div style="text-align:center;padding:48px;color:#888">
+                                <p>Please select a tournament to view results</p>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </section>
+        </div>
+
+        <!-- ===================== PLAYER STATS TAB ===================== -->
+        <div class="tab-content" id="tab-stats">
+            <div class="page-header">
+                <h1>Player Stats</h1>
+                <p id="subtitle">Browse bowler profiles and tournament statistics</p>
             </div>
-        </section>
+
+            <main class="container wide">
+                <!-- Search and Filter Controls -->
+                <div class="controls-bar">
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        class="search-input"
+                        placeholder="🔍 Search by name or nickname..."
+                    />
+                    <select id="sort-select" class="sort-select">
+                        <option value="tournamentAvg-desc">Highest Tournament Avg</option>
+                        <option value="tournamentAvg-asc">Lowest Tournament Avg</option>
+                        <option value="currentAvg-desc">Highest Book Avg</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="tournaments-desc">Most Tournaments</option>
+                    </select>
+                </div>
+
+                <!-- Bowlers Grid -->
+                <div id="bowlers-grid" class="bowlers-grid"></div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="empty-state" style="display:none">
+                    <div class="empty-state-icon">🎳</div>
+                    <h3>No Bowlers Found</h3>
+                    <p>Try adjusting your search or filters</p>
+                </div>
+            </main>
+        </div>
 
         <special-footer></special-footer>
+
         <!-- ===================== JS ===================== -->
         <script src="js/global/headerfooter.js"></script>
         <script src="js/results/results.js"></script>
+        <script src="js/bowlerstats/bowlerstats.js"></script>
         <script src="js/global/navbar.js"></script>
+        <script>
+            // ── Tab switching ──
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            function activateTab(tabId) {
+                tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+                tabContents.forEach(c => c.classList.toggle('active', c.id === 'tab-' + tabId));
+                // Persist active tab in URL without reloading
+                const url = new URL(window.location);
+                if (tabId === 'stats') {
+                    url.searchParams.set('tab', 'stats');
+                } else {
+                    url.searchParams.delete('tab');
+                }
+                window.history.replaceState({}, '', url);
+            }
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+            });
+
+            // Open correct tab from URL param
+            const urlTab = new URLSearchParams(window.location.search).get('tab');
+            if (urlTab === 'stats') activateTab('stats');
+        </script>
     </body>
 </html>
