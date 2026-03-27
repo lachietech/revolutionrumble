@@ -1,4 +1,3 @@
-import express from 'express';
 import Bowler from '../models/Bowler.js';
 import Registration from '../models/Registration.js';
 import TournamentResult from '../models/TournamentResult.js';
@@ -23,16 +22,16 @@ import {
     requireAdmin
 } from '../middleware/auth.js';
 
-const router = express.Router();
+async function bowlerRoutes(fastify, options) {
 
 // POST request OTP code via email
-router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
+fastify.post('/bowlers/request-otp', { config: { rateLimit: otpRequestLimiter } }, async (req, res) => {
     try {
         const { email } = req.body;
         // Validate and sanitize email
         const sanitizedEmail = sanitizeEmail(email);
         if (!sanitizedEmail) {
-            return res.status(400).json({ error: 'Valid email required' })
+            return res.status(400).send({ error: 'Valid email required' });
         }
 
         // Find or create bowler
@@ -81,20 +80,20 @@ router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
             });
 
             console.log('✅ OTP email sent successfully:', result);
-            res.json({ success: true, message: 'OTP sent to your email' });
+            return res.send({ success: true, message: 'OTP sent to your email' });
         } catch (emailError) {
             console.error('❌ Failed to send OTP email:', emailError);
             console.error('Error details:', JSON.stringify(emailError, null, 2));
-            res.status(500).json({ error: 'Failed to send OTP email', details: emailError.message });
+            return res.status(500).send({ error: 'Failed to send OTP email', details: emailError.message });
         }
     } catch (error) {
         console.error('OTP request error:', error);
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // POST verify OTP and log in
-router.post('/bowlers/verify-otp', otpVerifyLimiter, async (req, res) => {
+fastify.post('/bowlers/verify-otp', { config: { rateLimit: otpVerifyLimiter } }, async (req, res) => {
     try {
         const { email, otp } = req.body;
         
@@ -103,29 +102,29 @@ router.post('/bowlers/verify-otp', otpVerifyLimiter, async (req, res) => {
         const sanitizedOtp = sanitizeString(otp, 6);
         
         if (!sanitizedEmail || !sanitizedOtp || sanitizedOtp.length !== 6) {
-            return res.status(400).json({ error: 'Valid email and 6-digit OTP required' });
+            return res.status(400).send({ error: 'Valid email and 6-digit OTP required' });
         }
 
         const bowler = await Bowler.findOne({ email: sanitizedEmail });
         if (!bowler) {
-            return res.status(404).json({ error: 'Email not found' });
+            return res.status(404).send({ error: 'Email not found' });
         }
 
         // Check if OTP is expired
         if (!bowler.otpExpires || bowler.otpExpires < new Date()) {
-            return res.status(400).json({ error: 'OTP expired. Please request a new code.' });
+            return res.status(400).send({ error: 'OTP expired. Please request a new code.' });
         }
 
         // Check attempts (max 5)
         if (bowler.otpAttempts >= 5) {
-            return res.status(429).json({ error: 'Too many failed attempts. Please request a new code.' });
+            return res.status(429).send({ error: 'Too many failed attempts. Please request a new code.' });
         }
 
         // Verify OTP
         if (bowler.otpCode !== sanitizedOtp) {
             bowler.otpAttempts += 1;
             await bowler.save();
-            return res.status(400).json({ error: 'Invalid OTP code' });
+            return res.status(400).send({ error: 'Invalid OTP code' });
         }
 
         // Success! Clear OTP and set session
@@ -142,8 +141,8 @@ router.post('/bowlers/verify-otp', otpVerifyLimiter, async (req, res) => {
         req.session.bowlerId = bowler._id.toString();
         req.session.bowlerEmail = bowler.email;
 
-        res.json({ 
-            success: true, 
+        return res.send({
+            success: true,
             bowler: {
                 _id: bowler._id,
                 email: bowler.email,
@@ -153,106 +152,106 @@ router.post('/bowlers/verify-otp', otpVerifyLimiter, async (req, res) => {
         });
     } catch (error) {
         console.error('OTP verification error:', error);
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET current bowler session
-router.get('/bowlers/session', generalWriteLimiter, (req, res) => {
+fastify.get('/bowlers/session', { config: { rateLimit: generalWriteLimiter } }, (req, res) => {
     if (req.session.bowlerId) {
-        res.json({ 
-            authenticated: true, 
+        return res.send({
+            authenticated: true,
             bowlerId: req.session.bowlerId,
-            email: req.session.bowlerEmail 
+            email: req.session.bowlerEmail
         });
     } else {
-        res.json({ authenticated: false });
+        return res.send({ authenticated: false });
     }
 });
 
 // POST logout
-router.post('/bowlers/logout', generalWriteLimiter, (req, res) => {
+fastify.post('/bowlers/logout', { config: { rateLimit: generalWriteLimiter } }, (req, res) => {
     req.session.bowlerId = undefined;
     req.session.bowlerEmail = undefined;
-    res.json({ success: true });
+    return res.send({ success: true });
 });
 
 // GET bowler by email (public - for profile lookup)
-router.get('/bowlers/lookup', generalWriteLimiter, async (req, res) => {
+fastify.get('/bowlers/lookup', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         const { email } = req.query;
         // Validate and sanitize email
         const sanitizedEmail = sanitizeEmail(email);
         if (!sanitizedEmail) {
-            return res.status(400).json({ error: 'Valid email required' });
+            return res.status(400).send({ error: 'Valid email required' });
         }
 
         const bowler = await Bowler.findOne({ email: sanitizedEmail })
             .populate('tournamentsEntered.tournament', 'name date location status');
         
         if (!bowler) {
-            return res.status(404).json({ error: 'Bowler not found' });
+            return res.status(404).send({ error: 'Bowler not found' });
         }
 
-        res.json(bowler);
+        return res.send(bowler);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET bowler by ID (public)
-router.get('/bowlers/:id', generalWriteLimiter, async (req, res) => {
+fastify.get('/bowlers/:id', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         const bowlerId = validateObjectId(req.params.id);
         if (!bowlerId) {
-            return res.status(400).json({ error: 'Invalid bowler ID' });
+            return res.status(400).send({ error: 'Invalid bowler ID' });
         }
         
         const bowler = await Bowler.findById(bowlerId)
             .populate('tournamentsEntered.tournament', 'name date location status');
         
         if (!bowler) {
-            return res.status(404).json({ error: 'Bowler not found' });
+            return res.status(404).send({ error: 'Bowler not found' });
         }
 
-        res.json(bowler);
+        return res.send(bowler);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET all bowlers (public - for leaderboards, etc.)
-router.get('/bowlers', generalWriteLimiter, async (req, res) => {
+fastify.get('/bowlers', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         const bowlers = await Bowler.find()
             .select('playerName nickname email tournamentAverage currentAverage highGame highSeries tournamentsEntered')
             .sort({ tournamentAverage: -1 });
         
-        res.json(bowlers);
+        return res.send(bowlers);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // PUT update bowler profile (requires authentication)
-router.put('/bowlers/:id', generalWriteLimiter, requireBowlerAuth, async (req, res) => {
+fastify.put('/bowlers/:id', { config: { rateLimit: generalWriteLimiter }, preHandler: [requireBowlerAuth] }, async (req, res) => {
     try {
         const { playerName, nickname, hand, bio, homeCenter, yearsExperience, currentAverage, highGame, highSeries, gender } = req.body;
 
         // Validate ObjectId
         const bowlerId = validateObjectId(req.params.id);
         if (!bowlerId) {
-            return res.status(400).json({ error: 'Invalid bowler ID' });
+            return res.status(400).send({ error: 'Invalid bowler ID' });
         }
 
         // Ensure bowler can only update their own profile
         if (bowlerId !== req.session.bowlerId) {
-            return res.status(403).json({ error: 'You can only update your own profile' });
+            return res.status(403).send({ error: 'You can only update your own profile' });
         }
 
         const bowler = await Bowler.findById(bowlerId);
         if (!bowler) {
-            return res.status(404).json({ error: 'Bowler not found' });
+            return res.status(404).send({ error: 'Bowler not found' });
         }
 
         // Track if playerName changed for syncing
@@ -281,19 +280,19 @@ router.put('/bowlers/:id', generalWriteLimiter, requireBowlerAuth, async (req, r
             );
         }
 
-        res.json(bowler);
+        return res.send(bowler);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET current authenticated bowler's registrations
-router.get('/bowlers/my/registrations', generalWriteLimiter, requireBowlerAuth, async (req, res) => {
+fastify.get('/bowlers/my/registrations', { config: { rateLimit: generalWriteLimiter }, preHandler: [requireBowlerAuth] }, async (req, res) => {
     try {
         // Get bowler to find their email
         const bowler = await Bowler.findById(req.session.bowlerId);
         if (!bowler) {
-            return res.status(404).json({ error: 'Bowler not found' });
+            return res.status(404).send({ error: 'Bowler not found' });
         }
 
         // Find registrations by email (since they may not have bowler ID linked)
@@ -312,24 +311,24 @@ router.get('/bowlers/my/registrations', generalWriteLimiter, requireBowlerAuth, 
             return regObj;
         });
 
-        res.json(populatedRegistrations);
+        return res.send(populatedRegistrations);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET bowler tournament history with results
-router.get('/bowlers/:id/history', generalWriteLimiter, async (req, res) => {
+fastify.get('/bowlers/:id/history', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         // Validate bowler ID
         const bowlerId = validateObjectId(req.params.id);
         if (!bowlerId) {
-            return res.status(400).json({ error: 'Invalid bowler ID' });
+            return res.status(400).send({ error: 'Invalid bowler ID' });
         }
         
         const bowler = await Bowler.findById(bowlerId);
         if (!bowler) {
-            return res.status(404).json({ error: 'Bowler not found' });
+            return res.status(404).send({ error: 'Bowler not found' });
         }
 
         // Get all registrations
@@ -354,7 +353,7 @@ router.get('/bowlers/:id/history', generalWriteLimiter, async (req, res) => {
 
         const overallAverage = totalGames > 0 ? Math.round(totalPins / totalGames) : null;
 
-        res.json({
+        return res.send({
             bowler: {
                 _id: bowler._id,
                 playerName: bowler.playerName,
@@ -371,12 +370,12 @@ router.get('/bowlers/:id/history', generalWriteLimiter, async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // POST create/update tournament result (admin only)
-router.post('/results', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.post('/results', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         const { bowlerId, tournamentId, registrationId, squadResults, finalPosition, totalParticipants } = req.body;
 
@@ -386,13 +385,13 @@ router.post('/results', strictWriteLimiter, requireAdmin, async (req, res) => {
         const validRegistrationId = registrationId ? validateObjectId(registrationId) : null;
         
         if (!validBowlerId || !validTournamentId) {
-            return res.status(400).json({ error: 'Valid bowler and tournament IDs required' });
+            return res.status(400).send({ error: 'Valid bowler and tournament IDs required' });
         }
 
         // Verify bowler exists
         const bowler = await Bowler.findById(validBowlerId);
         if (!bowler) {
-            return res.status(404).json({ error: 'Bowler not found' });
+            return res.status(404).send({ error: 'Bowler not found' });
         }
 
         // Check if result already exists
@@ -432,9 +431,9 @@ router.post('/results', strictWriteLimiter, requireAdmin, async (req, res) => {
         await result.populate('bowler', 'playerName email');
         await result.populate('tournament', 'name date');
 
-        res.status(201).json(result);
+        return res.status(201).send(result);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
@@ -504,7 +503,7 @@ async function updateBowlerStats(bowlerId) {
 }
 
 // POST admin utility to sync all bowler stats from results
-router.post('/bowlers/sync-stats', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.post('/bowlers/sync-stats', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         const bowlers = await Bowler.find();
         let syncedCount = 0;
@@ -514,17 +513,17 @@ router.post('/bowlers/sync-stats', strictWriteLimiter, requireAdmin, async (req,
             syncedCount++;
         }
         
-        res.json({ 
+        return res.send({
             message: `Successfully synced stats for ${syncedCount} bowlers`,
-            syncedCount 
+            syncedCount
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // POST admin utility to sync bowler names to all registrations
-router.post('/bowlers/sync-names', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.post('/bowlers/sync-names', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         const bowlers = await Bowler.find();
         let updatedCount = 0;
@@ -537,28 +536,28 @@ router.post('/bowlers/sync-names', strictWriteLimiter, requireAdmin, async (req,
             updatedCount += result.modifiedCount;
         }
         
-        res.json({ 
+        return res.send({
             message: `Successfully updated ${updatedCount} registrations`,
-            updatedCount 
+            updatedCount
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET diagnostic route to check bowler sync status
-router.get('/bowlers/check-sync/:email', generalWriteLimiter, requireAdmin, async (req, res) => {
+fastify.get('/bowlers/check-sync/:email', { config: { rateLimit: generalWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         // Sanitize email parameter
         const sanitizedEmail = sanitizeEmail(req.params.email);
         if (!sanitizedEmail) {
-            return res.status(400).json({ error: 'Valid email required' });
+            return res.status(400).send({ error: 'Valid email required' });
         }
         
         // Find bowler
         const bowler = await Bowler.findOne({ email: sanitizedEmail });
         if (!bowler) {
-            return res.status(404).json({ error: 'Bowler not found' });
+            return res.status(404).send({ error: 'Bowler not found' });
         }
         
         // Find all registrations
@@ -595,7 +594,7 @@ router.get('/bowlers/check-sync/:email', generalWriteLimiter, requireAdmin, asyn
 
         const calculatedAverage = totalGames > 0 ? Math.round(totalPins / totalGames) : null;
         
-        res.json({
+        return res.send({
             bowler: {
                 _id: bowler._id,
                 email: bowler.email,
@@ -631,21 +630,21 @@ router.get('/bowlers/check-sync/:email', generalWriteLimiter, requireAdmin, asyn
             )
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // POST fix/link results to bowler by email match
-router.post('/bowlers/link-results/:bowlerId', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.post('/bowlers/link-results/:bowlerId', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         const bowlerId = validateObjectId(req.params.bowlerId);
         if (!bowlerId) {
-            return res.status(400).json({ error: 'Invalid bowler ID' });
+            return res.status(400).send({ error: 'Invalid bowler ID' });
         }
         
         const bowler = await Bowler.findById(bowlerId);
         if (!bowler) {
-            return res.status(404).json({ error: 'Bowler not found' });
+            return res.status(404).send({ error: 'Bowler not found' });
         }
         
         // Find registrations by this bowler's email
@@ -676,7 +675,7 @@ router.post('/bowlers/link-results/:bowlerId', strictWriteLimiter, requireAdmin,
         // Get updated bowler
         const updatedBowler = await Bowler.findById(bowler._id);
         
-        res.json({
+        return res.send({
             message: 'Results linked and stats updated',
             linkedNew: linkResult.modifiedCount,
             fixedWrong: fixWrongLink.modifiedCount,
@@ -687,12 +686,12 @@ router.post('/bowlers/link-results/:bowlerId', strictWriteLimiter, requireAdmin,
             }
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // POST find and fix bowler by name (for cases where results have wrong name)
-router.post('/bowlers/fix-by-name', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.post('/bowlers/fix-by-name', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         const { searchName, correctEmail } = req.body;
         
@@ -701,13 +700,13 @@ router.post('/bowlers/fix-by-name', strictWriteLimiter, requireAdmin, async (req
         const sanitizedEmail = sanitizeEmail(correctEmail);
         
         if (!sanitizedName || !sanitizedEmail) {
-            return res.status(400).json({ error: 'Valid searchName and correctEmail required' });
+            return res.status(400).send({ error: 'Valid searchName and correctEmail required' });
         }
         
         // Find the bowler by email
         const bowler = await Bowler.findOne({ email: sanitizedEmail });
         if (!bowler) {
-            return res.status(404).json({ error: 'Bowler not found with that email' });
+            return res.status(404).send({ error: 'Bowler not found with that email' });
         }
         
         // Find registrations by email and update names
@@ -732,7 +731,7 @@ router.post('/bowlers/fix-by-name', strictWriteLimiter, requireAdmin, async (req
         // Get updated bowler
         const updatedBowler = await Bowler.findById(bowler._id);
         
-        res.json({
+        return res.send({
             message: 'Bowler data synced successfully',
             bowler: {
                 _id: bowler._id,
@@ -748,25 +747,25 @@ router.post('/bowlers/fix-by-name', strictWriteLimiter, requireAdmin, async (req
             }
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // POST force sync specific email (temporary debug route - remove in production)
-router.post('/bowlers/force-sync', strictWriteLimiter, async (req, res) => {
+fastify.post('/bowlers/force-sync', { config: { rateLimit: strictWriteLimiter } }, async (req, res) => {
     try {
         const { email } = req.body;
         
         // Validate and sanitize email
         const sanitizedEmail = sanitizeEmail(email);
         if (!sanitizedEmail) {
-            return res.status(400).json({ error: 'Valid email required' });
+            return res.status(400).send({ error: 'Valid email required' });
         }
         
         // Find the bowler by email
         const bowler = await Bowler.findOne({ email: sanitizedEmail });
         if (!bowler) {
-            return res.status(404).json({ error: 'Bowler not found with that email' });
+            return res.status(404).send({ error: 'Bowler not found with that email' });
         }
         
         // Find registrations by email and update names
@@ -817,7 +816,7 @@ router.post('/bowlers/force-sync', strictWriteLimiter, async (req, res) => {
         const allResults = await TournamentResult.find({}).populate('tournament', 'name');
         const bowlerResults = await TournamentResult.find({ bowler: bowler._id });
         
-        res.json({
+        return res.send({
             success: true,
             message: 'Bowler data synced successfully',
             bowler: {
@@ -843,8 +842,10 @@ router.post('/bowlers/force-sync', strictWriteLimiter, async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
-export default router;
+}
+
+export default bowlerRoutes;

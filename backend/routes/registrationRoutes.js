@@ -1,4 +1,3 @@
-import express from 'express';
 import Registration from '../models/Registration.js';
 import Tournament from '../models/Tournament.js';
 import Bowler from '../models/Bowler.js';
@@ -25,10 +24,10 @@ import {
 } from '../middleware/auth.js';
 
 
-const router = express.Router();
+async function registrationRoutes(fastify, options) {
 
 // POST create spot reservation (holds spots for 10 minutes)
-router.post('/reservations', reservationLimiter, async (req, res) => {
+fastify.post('/reservations', { config: { rateLimit: reservationLimiter } }, async (req, res) => {
     try {
         const { tournamentId, squads } = req.body;
         
@@ -46,7 +45,7 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
         });
         
         if (existingReservation) {
-            return res.json({ 
+            return res.send({
                 reservation: existingReservation,
                 message: 'Using existing reservation'
             });
@@ -63,18 +62,18 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
         
         await reservation.save();
         
-        res.json({ 
+        return res.send({
             reservation,
             expiresAt,
             message: 'Spot reserved for 10 minutes'
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET check reservation status
-router.get('/reservations/:sessionId', generalWriteLimiter, async (req, res) => {
+fastify.get('/reservations/:sessionId', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         const reservation = await SpotReservation.findOne({
             sessionId: req.params.sessionId,
@@ -82,47 +81,47 @@ router.get('/reservations/:sessionId', generalWriteLimiter, async (req, res) => 
         });
         
         if (!reservation) {
-            return res.status(404).json({ error: 'Reservation not found or expired' });
+            return res.status(404).send({ error: 'Reservation not found or expired' });
         }
         
         const timeRemaining = Math.max(0, Math.floor((reservation.expiresAt - new Date()) / 1000));
         
-        res.json({ 
+        return res.send({
             reservation,
             timeRemaining,
             expiresAt: reservation.expiresAt
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // DELETE release reservation
-router.delete('/reservations/:sessionId', reservationLimiter, async (req, res) => {
+fastify.delete('/reservations/:sessionId', { config: { rateLimit: reservationLimiter } }, async (req, res) => {
     try {
         await SpotReservation.deleteOne({ sessionId: req.params.sessionId });
-        res.json({ success: true, message: 'Reservation released' });
+        return res.send({ success: true, message: 'Reservation released' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
-// 
+//
 // GET all registrations for a specific tournament (public - for displaying count)
-router.get('/tournaments/:tournamentId/registrations/count', generalWriteLimiter, async (req, res) => {
+fastify.get('/tournaments/:tournamentId/registrations/count', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         const count = await Registration.countDocuments({
             tournament: req.params.tournamentId,
             status: { $in: ['pending', 'confirmed'] }
         });
-        res.json({ count });
+        return res.send({ count });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET registrations for a tournament (public - for results page)
-router.get('/tournaments/:tournamentId/registrations', generalWriteLimiter, async (req, res) => {
+fastify.get('/tournaments/:tournamentId/registrations', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         const registrations = await Registration.find({
             tournament: req.params.tournamentId,
@@ -132,24 +131,24 @@ router.get('/tournaments/:tournamentId/registrations', generalWriteLimiter, asyn
             .select('playerName email bowler assignedSquads')
             .sort({ playerName: 1 });
         
-        res.json(registrations);
+        return res.send(registrations);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET tournament results with stage scores (public - for results leaderboard)
-router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req, res) => {
+fastify.get('/tournaments/:tournamentId/results', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.tournamentId);
         if (!tournamentId) {
-            return res.status(400).json({ error: 'Invalid tournament ID' });
+                return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
         const tournament = await Tournament.findById(tournamentId);
         if (!tournament) {
-            return res.status(404).json({ error: 'Tournament not found' });
+                return res.status(404).send({ error: 'Tournament not found' });
         }
 
         const registrations = await Registration.find({
@@ -229,7 +228,7 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
                 };
             });
 
-            res.json({
+            res.send({
                 tournament: {
                     _id: tournament._id,
                     name: tournament.name,
@@ -295,7 +294,7 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
                 .sort((a, b) => b.total - a.total)
                 .map((p, i) => ({ ...p, position: i + 1 }));
 
-            res.json({
+            res.send({
                 tournament: {
                     _id: tournament._id,
                     name: tournament.name,
@@ -308,12 +307,12 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
             });
         }
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).send({ error: error.message });
     }
 });
 
 // GET all registrations (admin only - with optional tournament filter)
-router.get('/registrations', generalWriteLimiter, requireAdmin, async (req, res) => {
+fastify.get('/registrations', { config: { rateLimit: generalWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         const filter = {};
         if (req.query.tournamentId) {
@@ -333,63 +332,63 @@ router.get('/registrations', generalWriteLimiter, requireAdmin, async (req, res)
             .populate('tournament', 'name date location')
             .sort({ createdAt: -1 });
         
-        res.json(registrations);
+            return res.send(registrations);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).send({ error: error.message });
     }
 });
 
 // GET single registration (admin only)
-router.get('/registrations/:id', generalWriteLimiter, requireAdmin, async (req, res) => {
+fastify.get('/registrations/:id', { config: { rateLimit: generalWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         // Validate registration ID
         const registrationId = validateObjectId(req.params.id);
         if (!registrationId) {
-            return res.status(400).json({ error: 'Invalid registration ID' });
+            return res.status(400).send({ error: 'Invalid registration ID' });
         }
         
         const registration = await Registration.findById(registrationId)
             .populate('tournament');
         
         if (!registration) {
-            return res.status(404).json({ error: 'Registration not found' });
+            return res.status(404).send({ error: 'Registration not found' });
         }
         
-        res.json(registration);
+            return res.send(registration);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).send({ error: error.message });
     }
 });
 
 // POST new registration (public)
-router.post('/registrations', registrationLimiter, async (req, res) => {
+fastify.post('/registrations', { config: { rateLimit: registrationLimiter } }, async (req, res) => {
     try {
         const { tournamentId, playerName, email, phone, gender, averageScore, notes, assignedSquads } = req.body;
 
         // Validate and sanitize inputs
         const validTournamentId = validateObjectId(tournamentId);
         if (!validTournamentId) {
-            return res.status(400).json({ error: 'Invalid tournament ID' });
+            return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
         const sanitizedName = sanitizeString(playerName, 100);
         if (!sanitizedName || sanitizedName.length < 2) {
-            return res.status(400).json({ error: 'Valid player name is required' });
+            return res.status(400).send({ error: 'Valid player name is required' });
         }
         
         const sanitizedEmail = sanitizeEmail(email);
         if (!sanitizedEmail) {
-            return res.status(400).json({ error: 'Valid email is required' });
+            return res.status(400).send({ error: 'Valid email is required' });
         }
         
         const sanitizedPhone = sanitizePhone(phone);
         if (!sanitizedPhone) {
-            return res.status(400).json({ error: 'Valid phone number is required' });
+            return res.status(400).send({ error: 'Valid phone number is required' });
         }
         
         const validGender = validateGender(gender);
         if (!validGender) {
-            return res.status(400).json({ error: 'Valid gender selection is required' });
+            return res.status(400).send({ error: 'Valid gender selection is required' });
         }
         
         const validAverage = validateInteger(averageScore, 0, 300);
@@ -399,16 +398,16 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
         // Verify tournament exists and is accepting registrations
         const tournament = await Tournament.findById(validTournamentId);
         if (!tournament) {
-            return res.status(404).json({ error: 'Tournament not found' });
+            return res.status(404).send({ error: 'Tournament not found' });
         }
 
         if (tournament.status !== 'upcoming') {
-            return res.status(400).json({ error: 'This tournament is not accepting registrations' });
+            return res.status(400).send({ error: 'This tournament is not accepting registrations' });
         }
 
         // Check if registration is manually closed
         if (tournament.registrationManuallyClosed) {
-            return res.status(400).json({ error: 'Registration has been closed for this tournament' });
+            return res.status(400).send({ error: 'Registration has been closed for this tournament' });
         }
 
         // Check if registration is open
@@ -416,25 +415,25 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
         const openDate = tournament.registrationOpenDate ? new Date(tournament.registrationOpenDate) : null;
         
         if (!tournament.registrationManuallyOpened && openDate && now < openDate) {
-            return res.status(400).json({ error: 'Registration has not opened yet' });
+            return res.status(400).send({ error: 'Registration has not opened yet' });
         }
 
         // Check registration deadline
         if (tournament.registrationDeadline && new Date(tournament.registrationDeadline) < new Date()) {
-            return res.status(400).json({ error: 'Registration deadline has passed' });
+            return res.status(400).send({ error: 'Registration deadline has passed' });
         }
 
         // Validate squad selections if tournament has squads
         if (tournament.squads && tournament.squads.length > 0) {
             if (!validSquads || validSquads.length === 0) {
-                return res.status(400).json({ error: 'Please select at least one squad' });
+                return res.status(400).send({ error: 'Please select at least one squad' });
             }
 
             // Validate each selected squad exists and has capacity
             for (const sanitizedSquadId of validSquads) {
                 const squad = tournament.squads.id(sanitizedSquadId);
                 if (!squad) {
-                    return res.status(400).json({ error: 'Invalid squad selection' });
+                    return res.status(400).send({ error: 'Invalid squad selection' });
                 }
 
                 // Count current registrations for this squad
@@ -446,7 +445,7 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
                 });
 
                 if (registrationsWithSquad >= squad.capacity) {
-                    return res.status(400).json({ error: `Squad "${squad.name}" is full. Please select different squads.` });
+                    return res.status(400).send({ error: `Squad "${squad.name}" is full. Please select different squads.` });
                 }
             }
 
@@ -458,16 +457,16 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
                 }).length;
 
                 if (qualifyingSquadsSelected < tournament.squadsRequiredToQualify) {
-                    return res.status(400).json({ 
-                        error: `Must select at least ${tournament.squadsRequiredToQualify} qualifying squad${tournament.squadsRequiredToQualify > 1 ? 's' : ''}` 
+                    return res.status(400).send({
+                        error: `Must select at least ${tournament.squadsRequiredToQualify} qualifying squad${tournament.squadsRequiredToQualify > 1 ? 's' : ''}`
                     });
                 }
 
                 // If re-entry is NOT allowed, cap squad selection to squadsRequiredToQualify
                 if (tournament.allowReentry === false) {
                     if (qualifyingSquadsSelected > tournament.squadsRequiredToQualify) {
-                        return res.status(400).json({ 
-                            error: `Re-entry is not allowed. You can only register for ${tournament.squadsRequiredToQualify} qualifying squad${tournament.squadsRequiredToQualify > 1 ? 's' : ''}` 
+                        return res.status(400).send({
+                            error: `Re-entry is not allowed. You can only register for ${tournament.squadsRequiredToQualify} qualifying squad${tournament.squadsRequiredToQualify > 1 ? 's' : ''}`
                         });
                     }
                 }
@@ -482,7 +481,7 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
             });
 
             if (currentCount >= tournament.maxParticipants) {
-                return res.status(400).json({ error: 'Tournament is full', waitlistAvailable: true });
+                return res.status(400).send({ error: 'Tournament is full', waitlistAvailable: true });
             }
         }
 
@@ -493,7 +492,7 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
         });
 
         if (existingReg) {
-            return res.status(400).json({ error: 'You have already registered for this tournament' });
+            return res.status(400).send({ error: 'You have already registered for this tournament' });
         }
 
         // Find or create bowler profile
@@ -588,24 +587,24 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
             // Don't fail the registration if email fails
         });
         
-        res.status(201).json(populated);
+            res.status(201).send(populated);
     } catch (error) {
         if (error.code === 11000) {
-            return res.status(400).json({ error: 'You have already registered for this tournament' });
+            return res.status(400).send({ error: 'You have already registered for this tournament' });
         }
-        res.status(500).json({ error: error.message });
+        res.status(500).send({ error: error.message });
     }
 });
 
 // PUT update registration status (admin only)
-router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.put('/registrations/:id', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         const { status, notes, stageScores, currentStage, carryoverToNextStage } = req.body;
         
         // Validate registration ID
         const registrationId = validateObjectId(req.params.id);
         if (!registrationId) {
-            return res.status(400).json({ error: 'Invalid registration ID' });
+            return res.status(400).send({ error: 'Invalid registration ID' });
         }
         
         console.log('PUT /registrations/:id - Received:', { 
@@ -616,7 +615,7 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
         
         const registration = await Registration.findById(registrationId);
         if (!registration) {
-            return res.status(404).json({ error: 'Registration not found' });
+            return res.status(404).send({ error: 'Registration not found' });
         }
 
         console.log('Registration before update:', {
@@ -628,7 +627,7 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
         if (status !== undefined) {
             const validStatuses = ['pending', 'confirmed', 'cancelled', 'waitlist'];
             if (!validStatuses.includes(status)) {
-                return res.status(400).json({ error: 'Invalid status value' });
+                return res.status(400).send({ error: 'Invalid status value' });
             }
             registration.status = status;
         }
@@ -638,7 +637,7 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
         if (currentStage !== undefined) {
             const validStage = validateInteger(currentStage, 0, 100);
             if (validStage === null) {
-                return res.status(400).json({ error: 'Invalid stage number' });
+                return res.status(400).send({ error: 'Invalid stage number' });
             }
             registration.currentStage = validStage;
         }
@@ -650,18 +649,18 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
             // Validate stageIndex
             const validStageIndex = validateInteger(stageIndex, 0, 100);
             if (validStageIndex === null) {
-                return res.status(400).json({ error: 'Invalid stage index' });
+                return res.status(400).send({ error: 'Invalid stage index' });
             }
             
             // Validate scores array
             if (!Array.isArray(scores) || scores.length === 0 || scores.length > 50) {
-                return res.status(400).json({ error: 'Invalid scores array' });
+                return res.status(400).send({ error: 'Invalid scores array' });
             }
             
             // Validate each score (0-300 for bowling)
             const validScores = scores.map(score => validateInteger(score, 0, 300)).filter(s => s !== null);
             if (validScores.length !== scores.length) {
-                return res.status(400).json({ error: 'Invalid score values' });
+                return res.status(400).send({ error: 'Invalid score values' });
             }
             
             // Validate bonusPins if provided
@@ -702,13 +701,13 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
             // Validate carryover value
             const validCarryover = validateInteger(carryoverToNextStage, 0, 10000);
             if (validCarryover === null) {
-                return res.status(400).json({ error: 'Invalid carryover value' });
+                return res.status(400).send({ error: 'Invalid carryover value' });
             }
             
             // Validate currentStage
             const validCurrentStage = validateInteger(currentStage, 0, 100);
             if (validCurrentStage === null) {
-                return res.status(400).json({ error: 'Invalid current stage' });
+                return res.status(400).send({ error: 'Invalid current stage' });
             }
             
             // Add carryover to the next stage entry
@@ -734,20 +733,20 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
             stageScores: registration.stageScores
         });
 
-        res.json(registration);
+        return res.send(registration);
     } catch (error) {
         console.error('Error updating registration:', error);
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // PUT update payment status (admin only)
-router.put('/registrations/:id/payment-status', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.put('/registrations/:id/payment-status', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         // Validate registration ID
         const registrationId = validateObjectId(req.params.id);
         if (!registrationId) {
-            return res.status(400).json({ error: 'Invalid registration ID' });
+            return res.status(400).send({ error: 'Invalid registration ID' });
         }
         
         const { paymentStatus } = req.body;
@@ -755,7 +754,7 @@ router.put('/registrations/:id/payment-status', strictWriteLimiter, requireAdmin
         // Validate payment status with type checking
         const validPaymentStatuses = ['unpaid', 'deposit', 'paid'];
         if (typeof paymentStatus !== 'string' || !validPaymentStatuses.includes(paymentStatus)) {
-            return res.status(400).json({ error: 'Invalid payment status' });
+            return res.status(400).send({ error: 'Invalid payment status' });
         }
         
         const sanitizedPaymentStatus = paymentStatus.trim().toLowerCase();
@@ -766,42 +765,42 @@ router.put('/registrations/:id/payment-status', strictWriteLimiter, requireAdmin
             { new: true }
         ).populate('tournament', 'name');
         
-        if (!registration) return res.status(404).json({ error: 'Registration not found' });
-        res.json(registration);
+        if (!registration) return res.status(404).send({ error: 'Registration not found' });
+        return res.send(registration);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // PUT update bowler's own registration (bowler must be authenticated)
-router.put('/registrations/:id/squads', generalWriteLimiter, async (req, res) => {
+fastify.put('/registrations/:id/squads', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         // Check if bowler is authenticated
         if (!req.session || !req.session.bowlerId) {
-            return res.status(403).json({ error: 'Authentication required' });
+            return res.status(403).send({ error: 'Authentication required' });
         }
 
         // Validate registration ID
         const registrationId = validateObjectId(req.params.id);
         if (!registrationId) {
-            return res.status(400).json({ error: 'Invalid registration ID' });
+            return res.status(400).send({ error: 'Invalid registration ID' });
         }
 
         const registration = await Registration.findById(registrationId);
         if (!registration) {
-            return res.status(404).json({ error: 'Registration not found' });
+            return res.status(404).send({ error: 'Registration not found' });
         }
 
         // Verify this registration belongs to the authenticated bowler
         const bowler = await Bowler.findById(req.session.bowlerId);
         if (registration.email !== bowler.email) {
-            return res.status(403).json({ error: 'You can only modify your own registrations' });
+            return res.status(403).send({ error: 'You can only modify your own registrations' });
         }
 
         // Only allow squad changes for upcoming tournaments
         const tournament = await Tournament.findById(registration.tournament);
         if (tournament.status !== 'upcoming') {
-            return res.status(400).json({ error: 'Cannot modify registration for tournaments that have started or completed' });
+            return res.status(400).send({ error: 'Cannot modify registration for tournaments that have started or completed' });
         }
 
         const { assignedSquads } = req.body;
@@ -832,11 +831,11 @@ router.put('/registrations/:id/squads', generalWriteLimiter, async (req, res) =>
             for (const sanitizedSquadId of validSquads) {
                 const squad = tournament.squads.find(s => s._id.toString() === sanitizedSquadId);
                 if (!squad) {
-                    return res.status(400).json({ error: 'Invalid squad selected' });
+                    return res.status(400).send({ error: 'Invalid squad selected' });
                 }
                 const currentCount = squadCounts[sanitizedSquadId] || 0;
                 if (currentCount >= squad.capacity) {
-                    return res.status(400).json({ error: `Squad ${squad.name} is full` });
+                    return res.status(400).send({ error: `Squad ${squad.name} is full` });
                 }
             }
         }
@@ -846,70 +845,72 @@ router.put('/registrations/:id/squads', generalWriteLimiter, async (req, res) =>
         await registration.populate('tournament');
         await registration.populate('assignedSquads');
 
-        res.json(registration);
+        return res.send(registration);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // DELETE bowler's own registration (bowler must be authenticated)
-router.delete('/registrations/:id/cancel', generalWriteLimiter, async (req, res) => {
+fastify.delete('/registrations/:id/cancel', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         // Check if bowler is authenticated
         if (!req.session || !req.session.bowlerId) {
-            return res.status(403).json({ error: 'Authentication required' });
+            return res.status(403).send({ error: 'Authentication required' });
         }
 
         // Validate registration ID
         const registrationId = validateObjectId(req.params.id);
         if (!registrationId) {
-            return res.status(400).json({ error: 'Invalid registration ID' });
+            return res.status(400).send({ error: 'Invalid registration ID' });
         }
 
         const registration = await Registration.findById(registrationId);
         if (!registration) {
-            return res.status(404).json({ error: 'Registration not found' });
+            return res.status(404).send({ error: 'Registration not found' });
         }
 
         // Verify this registration belongs to the authenticated bowler
         const bowler = await Bowler.findById(req.session.bowlerId);
         if (registration.email !== bowler.email) {
-            return res.status(403).json({ error: 'You can only cancel your own registrations' });
+            return res.status(403).send({ error: 'You can only cancel your own registrations' });
         }
 
         // Only allow cancellation for upcoming tournaments
         const tournament = await Tournament.findById(registration.tournament);
         if (tournament.status !== 'upcoming') {
-            return res.status(400).json({ error: 'Cannot cancel registration for tournaments that have started or completed' });
+            return res.status(400).send({ error: 'Cannot cancel registration for tournaments that have started or completed' });
         }
 
         await Registration.findByIdAndDelete(registrationId);
 
-        res.json({ message: 'Registration cancelled successfully' });
+        return res.send({ message: 'Registration cancelled successfully' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // DELETE registration (admin only)
-router.delete('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.delete('/registrations/:id', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         // Validate registration ID
         const registrationId = validateObjectId(req.params.id);
         if (!registrationId) {
-            return res.status(400).json({ error: 'Invalid registration ID' });
+            return res.status(400).send({ error: 'Invalid registration ID' });
         }
         
         const registration = await Registration.findByIdAndDelete(registrationId);
         
         if (!registration) {
-            return res.status(404).json({ error: 'Registration not found' });
+            return res.status(404).send({ error: 'Registration not found' });
         }
 
-        res.json({ message: 'Registration deleted successfully' });
+        return res.send({ message: 'Registration deleted successfully' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
-export default router;
+}
+
+export default registrationRoutes;

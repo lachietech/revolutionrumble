@@ -1,14 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Events — Revolution Rumble</title>
+        <title>Events - Revolution Rumble</title>
         <link rel="icon" src="static/images/whitebghighres.png" />
         <meta name="description" content="View all Revolution Rumble tournaments - past, present, and upcoming events." />
         <link rel="stylesheet" href="static/css/packages/presets.css" />
         <link rel="stylesheet" href="static/css/packages/navbar.css" />
         <link rel="stylesheet" href="static/css/mainfiles/events.css" />
+        <link rel="preload" as="image" href="static/images/whitebghighres.png" />
     </head>
 
     <body>
@@ -24,25 +25,25 @@
         <main class="container" style="padding: 0 20px;">
             <!-- Ongoing Tournaments -->
             <section class="events-section" id="ongoing-section" style="display:none">
-                <h2 class="section-title">🔴 Live Now</h2>
+                <h2 class="section-title">Live Now</h2>
                 <div class="events-grid" id="ongoing-events"></div>
             </section>
 
             <!-- Upcoming Tournaments -->
             <section class="events-section" id="upcoming-section" style="display:none">
-                <h2 class="section-title">📅 Upcoming Events</h2>
+                <h2 class="section-title">Upcoming Events</h2>
                 <div class="events-grid" id="upcoming-events"></div>
             </section>
 
             <!-- Past Tournaments -->
             <section class="events-section" id="completed-section" style="display:none">
-                <h2 class="section-title">🏆 Past Events</h2>
+                <h2 class="section-title">Past Events</h2>
                 <div class="events-grid" id="completed-events"></div>
             </section>
 
             <!-- Empty State -->
             <div id="empty-state" class="empty-state" style="display:none">
-                <div class="empty-state-icon">📅</div>
+                <div class="empty-state-icon">Calendar</div>
                 <h3>No Events Yet</h3>
                 <p>Check back soon for upcoming tournaments!</p>
             </div>
@@ -55,3 +56,4 @@
         <script src="js/events/events.js"></script>
     </body>
 </html>
+

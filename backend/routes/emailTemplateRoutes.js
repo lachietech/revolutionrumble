@@ -1,20 +1,19 @@
-import express from 'express';
 import EmailTemplate from '../models/EmailTemplate.js';
 import { sanitizeString } from '../middleware/validation.js';
 
-const router = express.Router();
+async function emailTemplateRoutes(fastify, options) {
 
 /**
  * GET /api/email-templates
  * Get all email templates
  */
-router.get('/email-templates', async (req, res) => {
+fastify.get('/email-templates', async (req, res) => {
     try {
         const templates = await EmailTemplate.find();
-        res.json(templates);
+        res.send(templates);
     } catch (error) {
         console.error('Error fetching email templates:', error);
-        res.status(500).json({ error: 'Failed to fetch email templates' });
+        res.status(500).send({ error: 'Failed to fetch email templates' });
     }
 });
 
@@ -22,16 +21,16 @@ router.get('/email-templates', async (req, res) => {
  * GET /api/email-templates/:name
  * Get a specific email template by name
  */
-router.get('/email-templates/:name', async (req, res) => {
+fastify.get('/email-templates/:name', async (req, res) => {
     try {
         const template = await EmailTemplate.findOne({ name: req.params.name });
         if (!template) {
-            return res.status(404).json({ error: 'Template not found' });
+            return res.status(404).send({ error: 'Template not found' });
         }
-        res.json(template);
+        res.send(template);
     } catch (error) {
         console.error('Error fetching email template:', error);
-        res.status(500).json({ error: 'Failed to fetch email template' });
+        res.status(500).send({ error: 'Failed to fetch email template' });
     }
 });
 
@@ -39,13 +38,13 @@ router.get('/email-templates/:name', async (req, res) => {
  * PUT /api/email-templates/:name
  * Update an email template
  */
-router.put('/email-templates/:name', async (req, res) => {
+fastify.put('/email-templates/:name', async (req, res) => {
     try {
         const { subject, htmlBody, textBody } = req.body;
         
         // Validate inputs
         if (!subject || !htmlBody || !textBody) {
-            return res.status(400).json({ error: 'Subject, HTML body, and text body are required' });
+            return res.status(400).send({ error: 'Subject, HTML body, and text body are required' });
         }
         
         // Sanitize inputs (basic length limits)
@@ -71,10 +70,10 @@ router.put('/email-templates/:name', async (req, res) => {
             await template.save();
         }
         
-        res.json(template);
+        res.send(template);
     } catch (error) {
         console.error('Error updating email template:', error);
-        res.status(500).json({ error: 'Failed to update email template' });
+        res.status(500).send({ error: 'Failed to update email template' });
     }
 });
 
@@ -82,7 +81,7 @@ router.put('/email-templates/:name', async (req, res) => {
  * POST /api/email-templates/preview
  * Preview an email template with sample data
  */
-router.post('/email-templates/preview', async (req, res) => {
+fastify.post('/email-templates/preview', async (req, res) => {
     try {
         const { subject, htmlBody, textBody } = req.body;
         
@@ -109,15 +108,17 @@ router.post('/email-templates/preview', async (req, res) => {
         const previewHtml = replaceVariables(htmlBody, sampleData);
         const previewText = replaceVariables(textBody, sampleData);
         
-        res.json({
+        res.send({
             subject: previewSubject,
             htmlBody: previewHtml,
             textBody: previewText
         });
     } catch (error) {
         console.error('Error generating preview:', error);
-        res.status(500).json({ error: 'Failed to generate preview' });
+        res.status(500).send({ error: 'Failed to generate preview' });
     }
 });
 
-export default router;
+}
+
+export default emailTemplateRoutes;

@@ -1,4 +1,3 @@
-import express from 'express';
 import Tournament from '../models/Tournament.js';
 import Registration from '../models/Registration.js';
 import SpotReservation from '../models/SpotReservation.js';
@@ -13,52 +12,53 @@ import {
     requireAdmin 
 } from '../middleware/auth.js';
 
-const router = express.Router();
+async function tournamentRoutes(fastify, options) {
+
 // GET all tournaments
-router.get('/tournaments', generalWriteLimiter, async (req, res) => {
+fastify.get('/tournaments', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         const tournaments = await Tournament.find().sort({ startDate: 1 });
-        res.json(tournaments);
+        return res.send(tournaments);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET single tournament by ID
-router.get('/tournaments/:id', generalWriteLimiter, async (req, res) => {
+fastify.get('/tournaments/:id', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
         if (!tournamentId) {
-            return res.status(400).json({ error: 'Invalid tournament ID' });
+            return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
         const tournament = await Tournament.findById(tournamentId);
-        if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
-        res.json(tournament);
+        if (!tournament) return res.status(404).send({ error: 'Tournament not found' });
+        return res.send(tournament);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // POST create new tournament (admin only)
-router.post('/tournaments', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.post('/tournaments', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         const tournament = new Tournament(req.body);
         await tournament.save();
-        res.status(201).json(tournament);
+        return res.status(201).send(tournament);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        return res.status(400).send({ error: error.message });
     }
 });
 
 // PUT update tournament (admin only)
-router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.put('/tournaments/:id', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
         if (!tournamentId) {
-            return res.status(400).json({ error: 'Invalid tournament ID' });
+            return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
         // Build sanitized update object explicitly field by field
@@ -136,20 +136,20 @@ router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res
             { $set: updateData },
             { new: true, runValidators: true }
         );
-        if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
-        res.json(tournament);
+        if (!tournament) return res.status(404).send({ error: 'Tournament not found' });
+        return res.send(tournament);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        return res.status(400).send({ error: error.message });
     }
 });
 
 // POST manually open registration for a tournament (admin only)
-router.post('/tournaments/:id/open-registration', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.post('/tournaments/:id/open-registration', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
         if (!tournamentId) {
-            return res.status(400).json({ error: 'Invalid tournament ID' });
+            return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
         const tournament = await Tournament.findByIdAndUpdate(
@@ -159,25 +159,22 @@ router.post('/tournaments/:id/open-registration', strictWriteLimiter, requireAdm
         );
         
         if (!tournament) {
-            return res.status(404).json({ error: 'Tournament not found' });
+            return res.status(404).send({ error: 'Tournament not found' });
         }
-        
-        res.json({ 
-            message: 'Registration opened successfully',
-            tournament 
-        });
+
+        return res.send({ message: 'Registration opened successfully', tournament });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // POST manually close registration for a tournament (admin only)
-router.post('/tournaments/:id/close-registration', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.post('/tournaments/:id/close-registration', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
         if (!tournamentId) {
-            return res.status(400).json({ error: 'Invalid tournament ID' });
+            return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
         const tournament = await Tournament.findByIdAndUpdate(
@@ -187,45 +184,42 @@ router.post('/tournaments/:id/close-registration', strictWriteLimiter, requireAd
         );
         
         if (!tournament) {
-            return res.status(404).json({ error: 'Tournament not found' });
+            return res.status(404).send({ error: 'Tournament not found' });
         }
-        
-        res.json({ 
-            message: 'Registration closed successfully',
-            tournament 
-        });
+
+        return res.send({ message: 'Registration closed successfully', tournament });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // DELETE tournament (admin only)
-router.delete('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
+fastify.delete('/tournaments/:id', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
         if (!tournamentId) {
-            return res.status(400).json({ error: 'Invalid tournament ID' });
+            return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
         const tournament = await Tournament.findByIdAndDelete(tournamentId);
-        if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
-        res.json({ message: 'Tournament deleted successfully' });
+        if (!tournament) return res.status(404).send({ error: 'Tournament not found' });
+        return res.send({ message: 'Tournament deleted successfully' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET squad availability for a tournament (public)
-router.get('/tournaments/:id/squads/availability', generalWriteLimiter, async (req, res) => {
+fastify.get('/tournaments/:id/squads/availability', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         const tournamentId = validateObjectId(req.params.id);
         if (!tournamentId) {
-            return res.status(400).json({ error: 'Invalid tournament ID' });
+            return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
         const tournament = await Tournament.findById(tournamentId);
-        if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+        if (!tournament) return res.status(404).send({ error: 'Tournament not found' });
 
         // Get all confirmed registrations for this tournament
         const registrations = await Registration.find({
@@ -278,7 +272,7 @@ router.get('/tournaments/:id/squads/availability', generalWriteLimiter, async (r
             };
         });
 
-        res.json({
+        return res.send({
             tournament: {
                 _id: tournament._id,
                 name: tournament.name,
@@ -288,21 +282,21 @@ router.get('/tournaments/:id/squads/availability', generalWriteLimiter, async (r
             squads: squadsWithAvailability
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
 // GET squad lists with bowler names (public)
-router.get('/tournaments/:id/squads/list', generalWriteLimiter, async (req, res) => {
+fastify.get('/tournaments/:id/squads/list', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
         if (!tournamentId) {
-            return res.status(400).json({ error: 'Invalid tournament ID' });
+            return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
         const tournament = await Tournament.findById(tournamentId);
-        if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+        if (!tournament) return res.status(404).send({ error: 'Tournament not found' });
 
         // Get all confirmed registrations for this tournament
         const registrations = await Registration.find({
@@ -342,7 +336,7 @@ router.get('/tournaments/:id/squads/list', generalWriteLimiter, async (req, res)
             };
         });
 
-        res.json({
+        return res.send({
             tournament: {
                 _id: tournament._id,
                 name: tournament.name,
@@ -355,8 +349,10 @@ router.get('/tournaments/:id/squads/list', generalWriteLimiter, async (req, res)
             squads: squadData
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).send({ error: error.message });
     }
 });
 
-export default router;
+}
+
+export default tournamentRoutes;

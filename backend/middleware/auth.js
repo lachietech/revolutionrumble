@@ -1,7 +1,7 @@
-// Middleware to check bowler authentication
-export function requireBowlerAuth(req, res, next) {
-    if (req.session && req.session.bowlerId) return next();
-    return res.status(403).json({ error: 'Authentication required' });
+// Fastify preHandler: check bowler authentication
+export async function requireBowlerAuth(req, reply) {
+    if (req.session && req.session.bowlerId) return;
+    return reply.code(403).send({ error: 'Authentication required' });
 }
 
 // Allowed admin emails (from environment variable)
@@ -10,15 +10,15 @@ export function getAllowedAdminEmails() {
     return emails.split(',').map(e => e.trim().toLowerCase()).filter(e => e);
 }
 
-// simple admin-check middleware
-export function requireAdmin(req, res, next) {
+// Fastify preHandler: check admin session
+export async function requireAdmin(req, reply) {
     console.log('requireAdmin check:', {
         hasSession: !!req.session,
         isAdmin: req.session?.isAdmin,
         adminEmail: req.session?.adminEmail,
-        sessionID: req.sessionID
+        sessionId: req.session?.sessionId
     });
-    if (req.session && req.session.isAdmin) return next();
+    if (req.session && req.session.isAdmin) return;
     console.log('Admin check failed - redirecting to login');
-    return res.redirect('/admin/login');
+    return reply.redirect('/admin/login');
 }
