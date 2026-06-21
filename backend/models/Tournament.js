@@ -22,8 +22,87 @@ const squadSchema = new mongoose.Schema({
     isQualifying: {
         type: Boolean,
         default: false
+    },
+    stageKey: {
+        type: String,
+        default: null
+    },
+    stageName: {
+        type: String,
+        default: ''
+    },
+    stageType: {
+        type: String,
+        enum: ['qualifying', 'round_robin', 'tri_matchplay', 'elimination', 'stepladder', ''],
+        default: ''
     }
 }, { _id: true });
+
+const stageSchema = new mongoose.Schema({
+    key: {
+        type: String,
+        default: null
+    },
+    type: {
+        type: String,
+        enum: ['qualifying', 'round_robin', 'tri_matchplay', 'elimination', 'stepladder'],
+        default: 'qualifying'
+    },
+    name: {
+        type: String,
+        required: true
+    },
+    description: {
+        type: String,
+        default: ''
+    },
+    games: {
+        type: Number,
+        required: true,
+        min: 1
+    },
+    carryoverPinfall: {
+        type: Boolean,
+        default: false
+    },
+    carryoverPercentage: {
+        type: Number,
+        default: 100,
+        min: 0,
+        max: 100
+    },
+    advancingBowlers: {
+        type: Number,
+        default: null
+    },
+    matchPlaySettings: {
+        pointsForWin: {
+            type: Number,
+            default: 30
+        },
+        pointsForTie: {
+            type: Number,
+            default: 15
+        },
+        pointsForLoss: {
+            type: Number,
+            default: 0
+        },
+        includePinfall: {
+            type: Boolean,
+            default: true
+        },
+        matchFormat: {
+            type: String,
+            enum: ['single-game', 'best-of-3', 'best-of-5', 'total-pinfall-2', 'total-pinfall-3'],
+            default: 'single-game'
+        }
+    },
+    stageConfig: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
+    }
+}, { _id: false });
 
 const tournamentSchema = new mongoose.Schema({
     name: {
@@ -108,31 +187,7 @@ const tournamentSchema = new mongoose.Schema({
             type: Boolean,
             default: false
         },
-        stages: [{
-            name: {
-                type: String,
-                required: true
-            },
-            games: {
-                type: Number,
-                required: true,
-                min: 1
-            },
-            carryoverPinfall: {
-                type: Boolean,
-                default: false
-            },
-            carryoverPercentage: {
-                type: Number,
-                default: 100,
-                min: 0,
-                max: 100
-            },
-            advancingBowlers: {
-                type: Number,
-                default: null
-            }
-        }],
+        stages: [stageSchema],
         // Scoring Options
         useHandicap: {
             type: Boolean,

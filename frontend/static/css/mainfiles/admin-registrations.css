@@ -4,37 +4,167 @@
     gap: 6px;
 }
 
-#registrationList {
-    background: rgba(255, 252, 245, 0.75);
-    border: 1px solid #d8ccb4;
-    border-radius: 12px;
-    padding: 10px;
+.admin-page-registrations .admin-surface {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
 }
 
-table {
+.registration-table-wrap {
+    overflow-x: auto;
+}
+
+.registration-table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 980px;
 }
 
-th {
+.registration-table th {
+    padding: 12px 10px;
     color: #5b5447;
-    font: 600 0.8rem/1.2 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
-    letter-spacing: 0.03em;
+    font: 600 0.78rem/1.2 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: left;
+    border-bottom: 1px solid rgba(112, 95, 70, 0.16);
+}
+
+.registration-table td {
+    padding: 14px 10px;
+    color: #28251e;
+    border-bottom: 1px solid rgba(112, 95, 70, 0.1);
+    vertical-align: top;
+}
+
+.registration-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.registration-player {
+    display: grid;
+    gap: 6px;
+}
+
+.registration-player strong {
+    font-size: 0.98rem;
+}
+
+.registration-meta,
+.registration-contact,
+.registration-squads {
+    color: #61584b;
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.registration-gender {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font: 600 0.72rem/1 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+}
+
+.registration-gender.is-female {
+    background: rgba(236, 72, 153, 0.14);
+    color: #b83280;
+}
+
+.registration-gender.is-male {
+    background: rgba(59, 130, 246, 0.14);
+    color: #2563eb;
+}
+
+.registration-status-select,
+.registration-payment-select {
+    width: 100%;
+    min-width: 110px;
+    padding: 8px 10px;
+    font-size: 0.84rem;
+}
+
+.registration-payment-select.is-paid {
+    background: rgba(81, 207, 102, 0.16);
+    color: #206a36;
+}
+
+.registration-payment-select.is-deposit {
+    background: rgba(255, 169, 77, 0.18);
+    color: #9a5711;
+}
+
+.registration-payment-select.is-unpaid {
+    background: rgba(201, 42, 42, 0.12);
+    color: #9f1d1d;
+}
+
+.registration-date {
+    color: #61584b;
+    font-size: 0.84rem;
+    white-space: nowrap;
+}
+
+.registration-card-list {
+    display: none;
+    gap: 14px;
+}
+
+.registration-card {
+    background: rgba(255, 253, 248, 0.9);
+    border: 1px solid rgba(112, 95, 70, 0.14);
+    border-radius: 16px;
+    padding: 16px;
+    display: grid;
+    gap: 14px;
+}
+
+.registration-card-header,
+.registration-card-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.registration-card-label {
+    color: #7b6f5d;
+    font: 700 0.72rem/1 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
 }
 
-td {
-    color: #28251e;
+.registration-card-value {
+    color: #2e2a22;
+    font-size: 0.92rem;
+    text-align: right;
+    line-height: 1.45;
 }
 
-select,
-input,
-textarea {
-    background: #fffdf7;
+.registration-card-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.registration-card-actions .button,
+.registration-card-actions .btn-delete {
+    flex: 1 1 140px;
 }
 
 @media (max-width: 900px) {
-    #registrationList {
-        overflow-x: auto;
+    .registration-table {
+        min-width: 860px;
+    }
+}
+
+@media (max-width: 700px) {
+    .registration-table-wrap {
+        display: none;
+    }
+
+    .registration-card-list {
+        display: grid;
     }
 }

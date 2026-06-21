@@ -3,44 +3,57 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Score Management — Admin — Revolution Rumble</title>
+        <title>Score Management - Admin - Revolution Rumble</title>
         <link rel="stylesheet" href="/static/css/packages/presets.css" />
         <link rel="stylesheet" href="/static/css/packages/admin-shell.css" />
         <link rel="stylesheet" href="/static/css/mainfiles/admin-results.css" />
     </head>
-    <body>
+    <body class="admin-page admin-page-results">
         <header>
-            <div class="container row">
+            <div class="container admin-header-row">
                 <h1 style="margin:0;font-size:1.1rem">Score Management</h1>
-                <div style="margin-left:auto"><a class="button" href="/admin/logout">Sign out</a></div>
+                <nav class="admin-nav admin-nav-inline" aria-label="Admin">
+                    <a href="/admin/tournaments" class="admin-nav-link">Tournaments</a>
+                    <a href="/admin/registrations" class="admin-nav-link">Registrations</a>
+                    <a href="/admin/results" class="admin-nav-link is-active">Scores</a>
+                    <a href="/admin/email-templates" class="admin-nav-link">Emails</a>
+                    <a href="/" class="admin-nav-link">Back to Site</a>
+                </nav>
+                <div class="admin-header-actions"><a class="button" href="/admin/logout">Sign out</a></div>
             </div>
         </header>
 
         <nav class="admin-nav">
             <div class="container">
-                <a href="/admin/tournaments" class="admin-nav-link">🏆 Tournaments</a>
-                <a href="/admin/registrations" class="admin-nav-link">📋 Registrations</a>
-                <a href="/admin/results" class="admin-nav-link is-active">🎯 Scores</a>
-                <a href="/admin/email-templates" class="admin-nav-link">📧 Emails</a>
-                <div class="admin-nav-spacer"><a href="/" class="admin-nav-link">← Back to Site</a></div>
+                <a href="/admin/tournaments" class="admin-nav-link">Tournaments</a>
+                <a href="/admin/registrations" class="admin-nav-link">Registrations</a>
+                <a href="/admin/results" class="admin-nav-link is-active">Scores</a>
+                <a href="/admin/email-templates" class="admin-nav-link">Emails</a>
+                <div class="admin-nav-spacer"><a href="/" class="admin-nav-link">Back to Site</a></div>
             </div>
         </nav>
 
-        <main class="container admin-main">
-
-            <!-- Results Management -->
-            <div class="card">
-                <h2 style="margin-top:0">🎯 Results & Scores</h2>
-                
-                <div class="form-group" style="margin-bottom:16px">
-                    <label for="resultsTournamentFilter">Select Tournament</label>
-                    <select id="resultsTournamentFilter" onchange="loadTournamentResults()" style="max-width:400px">
-                        <option value="">Choose a tournament...</option>
-                    </select>
+        <main class="container admin-main admin-main-full">
+            <div class="card admin-surface">
+                <div class="admin-page-heading">
+                    <div>
+                        <p class="admin-page-eyebrow">Admin Workspace</p>
+                        <h2 class="admin-page-title">Results & Scores</h2>
+                        <p class="admin-page-copy">Select a tournament to manage stage scoring, advancement, and saved results.</p>
+                    </div>
                 </div>
 
-                <div id="resultsContainer">
-                    <p style="color:#b9c6d8;text-align:center">Select a tournament to manage results</p>
+                <div class="admin-toolbar">
+                    <div class="form-group admin-filter-group">
+                        <label for="resultsTournamentFilter">Select Tournament</label>
+                        <select id="resultsTournamentFilter" onchange="loadTournamentResults()">
+                            <option value="">Choose a tournament...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="resultsContainer" class="admin-data-region admin-results-region">
+                    <p class="admin-empty-state">Select a tournament to manage results</p>
                 </div>
             </div>
         </main>

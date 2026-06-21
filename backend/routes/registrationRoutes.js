@@ -222,6 +222,7 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
 
                 return {
                     stageName: stage.name,
+                    type: stage.type,
                     stageIndex,
                     games: stage.games,
                     advancingBowlers: stage.advancingBowlers,

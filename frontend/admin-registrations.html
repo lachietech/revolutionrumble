@@ -3,52 +3,66 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Registration Management — Admin — Revolution Rumble</title>
+        <title>Registration Management - Admin - Revolution Rumble</title>
         <link rel="stylesheet" href="/static/css/packages/presets.css" />
         <link rel="stylesheet" href="/static/css/packages/admin-shell.css" />
         <link rel="stylesheet" href="/static/css/mainfiles/admin-registrations.css" />
     </head>
-    <body>
+    <body class="admin-page admin-page-registrations">
         <header>
-            <div class="container row">
+            <div class="container admin-header-row">
                 <h1 style="margin:0;font-size:1.1rem">Registration Management</h1>
-                <div style="margin-left:auto"><a class="button" href="/admin/logout">Sign out</a></div>
+                <nav class="admin-nav admin-nav-inline" aria-label="Admin">
+                    <a href="/admin/tournaments" class="admin-nav-link">Tournaments</a>
+                    <a href="/admin/registrations" class="admin-nav-link is-active">Registrations</a>
+                    <a href="/admin/results" class="admin-nav-link">Scores</a>
+                    <a href="/admin/email-templates" class="admin-nav-link">Emails</a>
+                    <a href="/" class="admin-nav-link">Back to Site</a>
+                </nav>
+                <div class="admin-header-actions"><a class="button" href="/admin/logout">Sign out</a></div>
             </div>
         </header>
 
         <nav class="admin-nav">
             <div class="container">
-                <a href="/admin/tournaments" class="admin-nav-link">🏆 Tournaments</a>
-                <a href="/admin/registrations" class="admin-nav-link is-active">📋 Registrations</a>
-                <a href="/admin/results" class="admin-nav-link">🎯 Scores</a>
-                <a href="/admin/email-templates" class="admin-nav-link">📧 Emails</a>
-                <div class="admin-nav-spacer"><a href="/" class="admin-nav-link">← Back to Site</a></div>
+                <a href="/admin/tournaments" class="admin-nav-link">Tournaments</a>
+                <a href="/admin/registrations" class="admin-nav-link is-active">Registrations</a>
+                <a href="/admin/results" class="admin-nav-link">Scores</a>
+                <a href="/admin/email-templates" class="admin-nav-link">Emails</a>
+                <div class="admin-nav-spacer"><a href="/" class="admin-nav-link">Back to Site</a></div>
             </div>
         </nav>
 
-        <main class="container admin-main">
-
-            <!-- Registration Management -->
-            <div class="card">
-                <h2 style="margin-top:0">📋 Registration Management</h2>
-                
-                <div class="form-group" style="margin-bottom:16px">
-                    <label for="regTournamentFilter">Filter by Tournament</label>
-                    <select id="regTournamentFilter" style="max-width:400px">
-                        <option value="">All Tournaments</option>
-                    </select>
-                </div>
-
-                <div style="margin-top:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-                    <h3 style="margin:0">Registrations (<span id="regCount">0</span>)</h3>
-                    <div style="display:flex;gap:8px">
-                        <button class="button" style="font-size:.85rem;padding:6px 12px" onclick="loadRegistrations()">Refresh</button>
-                        <button class="button" style="font-size:.85rem;padding:6px 12px" onclick="exportRegistrations()">Export CSV</button>
+        <main class="container admin-main admin-main-full">
+            <div class="card admin-surface">
+                <div class="admin-page-heading">
+                    <div>
+                        <p class="admin-page-eyebrow">Admin Workspace</p>
+                        <h2 class="admin-page-title">Registration Management</h2>
+                        <p class="admin-page-copy">Review bowlers, update statuses and payment states, and export the field when needed.</p>
                     </div>
                 </div>
 
-                <div id="registrationList" style="max-height:500px;overflow-y:auto">
-                    <p style="color:#b9c6d8;text-align:center">Loading registrations...</p>
+                <div class="admin-toolbar">
+                    <div class="form-group admin-filter-group">
+                        <label for="regTournamentFilter">Filter by Tournament</label>
+                        <select id="regTournamentFilter">
+                            <option value="">All Tournaments</option>
+                        </select>
+                    </div>
+                    <div class="admin-toolbar-actions">
+                        <button class="button" type="button" onclick="loadRegistrations()">Refresh</button>
+                        <button class="button" type="button" onclick="exportRegistrations()">Export CSV</button>
+                    </div>
+                </div>
+
+                <div class="admin-section-heading">
+                    <h3>Registrations</h3>
+                    <span class="admin-count-pill"><span id="regCount">0</span> total</span>
+                </div>
+
+                <div id="registrationList" class="admin-data-region">
+                    <p class="admin-empty-state">Loading registrations...</p>
                 </div>
             </div>
         </main>

@@ -257,7 +257,8 @@ router.get('/tournaments/:id/squads/availability', generalWriteLimiter, async (r
         });
 
         // Build availability data
-        const squadsWithAvailability = tournament.squads.map(squad => {
+        const qualifyingSquads = tournament.squads.filter((squad) => squad.isQualifying !== false);
+        const squadsWithAvailability = qualifyingSquads.map(squad => {
             const registered = squadCounts[squad._id.toString()] || 0;
             const reserved = reservationCounts[squad._id.toString()] || 0;
             return {
@@ -267,6 +268,9 @@ router.get('/tournaments/:id/squads/availability', generalWriteLimiter, async (r
                 time: squad.time,
                 capacity: squad.capacity,
                 isQualifying: squad.isQualifying,
+                stageKey: squad.stageKey,
+                stageName: squad.stageName,
+                stageType: squad.stageType,
                 registered,
                 reserved,
                 available: squad.capacity - registered - reserved
@@ -331,6 +335,9 @@ router.get('/tournaments/:id/squads/list', generalWriteLimiter, async (req, res)
                 time: squad.time,
                 capacity: squad.capacity,
                 isQualifying: squad.isQualifying,
+                stageKey: squad.stageKey,
+                stageName: squad.stageName,
+                stageType: squad.stageType,
                 registered: bowlers.length,
                 spotsRemaining: squad.capacity - bowlers.length,
                 bowlers: bowlers

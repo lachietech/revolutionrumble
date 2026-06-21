@@ -35,6 +35,17 @@ header {
     padding: 14px 0;
 }
 
+.admin-header-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.admin-header-actions {
+    margin-left: auto;
+}
+
 header h1 {
     margin: 0;
     font: 700 1.1rem/1.2 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
@@ -55,7 +66,13 @@ header h1 {
 
 .admin-main {
     margin-top: 24px;
-    margin-bottom: 28px;
+    margin-bottom: 56px;
+    padding-bottom: 12px;
+}
+
+.admin-main-full.container {
+    width: calc(100% - 40px);
+    max-width: none;
 }
 
 .admin-nav {
@@ -66,6 +83,26 @@ header h1 {
     top: 62px;
     z-index: 20;
     backdrop-filter: blur(8px);
+}
+
+.admin-nav-inline {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    position: static;
+    top: auto;
+    z-index: auto;
+    backdrop-filter: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 520px;
+    justify-content: center;
+    min-width: 0;
+}
+
+header + .admin-nav:not(.admin-nav-inline) {
+    display: none;
 }
 
 .admin-nav .container {
@@ -112,6 +149,103 @@ header h1 {
     box-shadow: var(--admin-shadow);
     border-radius: 18px;
     padding: 24px;
+}
+
+.admin-surface {
+    padding: 28px;
+    margin-bottom: 12px;
+}
+
+.admin-page-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-end;
+    margin-bottom: 24px;
+}
+
+.admin-page-eyebrow {
+    margin: 0 0 8px;
+    color: var(--admin-brand-strong);
+    font: 700 0.74rem/1 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.admin-page-title {
+    margin: 0;
+    font-size: clamp(1.5rem, 2vw, 2rem);
+}
+
+.admin-page-copy {
+    margin: 10px 0 0;
+    max-width: 780px;
+    color: var(--admin-muted);
+    font-size: 0.95rem;
+}
+
+.admin-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: end;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+.admin-filter-group {
+    min-width: min(360px, 100%);
+}
+
+.admin-filter-group select,
+.admin-filter-group input {
+    width: min(420px, 100%);
+}
+
+.admin-toolbar-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.admin-section-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.admin-section-heading h3 {
+    margin: 0;
+}
+
+.admin-count-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(26, 111, 99, 0.08);
+    border: 1px solid rgba(26, 111, 99, 0.16);
+    color: #145449;
+    font: 600 0.84rem/1 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+}
+
+.admin-data-region {
+    background: rgba(255, 252, 245, 0.75);
+    border: 1px solid #d8ccb4;
+    border-radius: 16px;
+    padding: 16px;
+    min-height: 180px;
+}
+
+.admin-empty-state {
+    color: #6b6458;
+    text-align: center;
+    padding: 28px 12px;
+    margin: 0;
 }
 
 h2,
@@ -208,17 +342,39 @@ a.button:hover,
 }
 
 @media (max-width: 900px) {
-    .admin-nav {
+    .admin-nav:not(.admin-nav-inline) {
         top: 58px;
     }
 
     .card {
         padding: 18px;
     }
+
+    .admin-surface {
+        padding: 20px;
+    }
+
+    .admin-header-row {
+        align-items: flex-start;
+    }
+
+    .admin-nav-inline {
+        order: 3;
+        justify-content: flex-start;
+        flex-basis: 100%;
+    }
+
+    .admin-header-actions {
+        margin-left: 0;
+    }
+
+    .admin-main-full.container {
+        width: calc(100% - 24px);
+    }
 }
 
 @media (max-width: 700px) {
-    .admin-nav .container {
+    .admin-nav:not(.admin-nav-inline) .container {
         gap: 8px;
     }
 
@@ -230,5 +386,33 @@ a.button:hover,
     .admin-nav-spacer {
         margin-left: 0;
         width: 100%;
+    }
+
+    .admin-nav-inline {
+        gap: 8px;
+    }
+
+    .admin-page-heading,
+    .admin-toolbar,
+    .admin-section-heading {
+        align-items: stretch;
+    }
+
+    .admin-toolbar-actions {
+        width: 100%;
+    }
+
+    .admin-toolbar-actions .button,
+    .admin-toolbar-actions .btn {
+        flex: 1 1 180px;
+    }
+
+    .admin-main-full.container {
+        width: calc(100% - 16px);
+    }
+
+    .admin-main {
+        margin-bottom: 40px;
+        padding-bottom: 8px;
     }
 }

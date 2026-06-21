@@ -3,45 +3,50 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Tournament Management — Admin — Revolution Rumble</title>
+        <title>Tournament Management - Admin - Revolution Rumble</title>
         <link rel="stylesheet" href="/static/css/packages/presets.css" />
         <link rel="stylesheet" href="/static/css/packages/admin-shell.css" />
         <link rel="stylesheet" href="/static/css/mainfiles/admin-tournaments.css" />
     </head>
-    <body>
+    <body class="admin-tournaments-page">
         <header>
-            <div class="container row">
+            <div class="container admin-header-row">
                 <h1 style="margin:0;font-size:1.1rem">Tournament Management</h1>
-                <div style="margin-left:auto"><a class="button" href="/admin/logout">Sign out</a></div>
+                <nav class="admin-nav admin-nav-inline" aria-label="Admin">
+                    <a href="/admin/tournaments" class="admin-nav-link is-active">Tournaments</a>
+                    <a href="/admin/registrations" class="admin-nav-link">Registrations</a>
+                    <a href="/admin/results" class="admin-nav-link">Scores</a>
+                    <a href="/admin/email-templates" class="admin-nav-link">Emails</a>
+                    <a href="/" class="admin-nav-link">Back to Site</a>
+                </nav>
+                <div class="admin-header-actions"><a class="button" href="/admin/logout">Sign out</a></div>
             </div>
         </header>
 
         <nav class="admin-nav">
             <div class="container">
-                <a href="/admin/tournaments" class="admin-nav-link is-active">🏆 Tournaments</a>
-                <a href="/admin/registrations" class="admin-nav-link">📋 Registrations</a>
-                <a href="/admin/results" class="admin-nav-link">🎯 Scores</a>
-                <a href="/admin/email-templates" class="admin-nav-link">📧 Emails</a>
-                <div class="admin-nav-spacer"><a href="/" class="admin-nav-link">← Back to Site</a></div>
+                <a href="/admin/tournaments" class="admin-nav-link is-active">Tournaments</a>
+                <a href="/admin/registrations" class="admin-nav-link">Registrations</a>
+                <a href="/admin/results" class="admin-nav-link">Scores</a>
+                <a href="/admin/email-templates" class="admin-nav-link">Emails</a>
+                <div class="admin-nav-spacer"><a href="/" class="admin-nav-link">Back to Site</a></div>
             </div>
         </nav>
 
-        <main class="container admin-main">
-
-            <!-- Tournament Management -->
+        <main class="container admin-main admin-main-full">
             <div class="card">
-                <h2 style="margin-top:0">🏆 Tournament Management</h2>
+                <h2 style="margin-top:0">Tournament Management</h2>
 
                 <section class="calendar-wrap">
                     <div class="calendar-toolbar">
                         <div>
                             <h3 style="margin:0">Tournament Calendar</h3>
-                            <p style="margin:4px 0 0;font-size:.85rem;color:#6b6458">Click a day to add a tournament. Select a tournament chip, then use Edit Tournament for advanced setup.</p>
+                            <p style="margin:4px 0 0;font-size:.85rem;color:#6b6458">Click a day to add a tournament. Select a tournament chip to open the editor.</p>
                         </div>
-                        <div style="display:flex;gap:8px;align-items:center">
-                            <button type="button" class="button" id="calendarPrevBtn" style="padding:6px 10px">←</button>
-                            <strong id="calendarMonthLabel" style="min-width:150px;text-align:center">Month Year</strong>
-                            <button type="button" class="button" id="calendarNextBtn" style="padding:6px 10px">→</button>
+                        <div class="calendar-toolbar-actions" style="display:flex;gap:8px;align-items:center">
+                            <button type="button" class="button" id="calendarPrevBtn" style="padding:6px 10px">Prev</button>
+                            <strong id="calendarMonthLabel" class="calendar-month-label" style="min-width:150px;text-align:center">Month Year</strong>
+                            <button type="button" class="button" id="calendarNextBtn" style="padding:6px 10px">Next</button>
                             <button type="button" class="button" id="calendarTodayBtn" style="padding:6px 10px">Today</button>
                         </div>
                     </div>
@@ -50,265 +55,417 @@
                     </div>
                 </section>
 
-                <section id="selectedTournamentPanel" class="selected-tournament-panel" style="display:none"></section>
-                
-                <!-- Advanced Edit Form (hidden until a tournament is selected) -->
-                <div id="advancedEditorWrap" style="display:none;margin-top:16px">
-                <form id="tournamentForm">
-                    <input type="hidden" id="editingTournamentId" value="">
-                    <h3 id="formTitle" style="margin-bottom:16px">Edit Tournament</h3>
-                    
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="name">Tournament Name *</label>
-                            <input type="text" id="name" name="name" required placeholder="Logan City Cup 2026">
+                <div id="advancedEditorWrap" class="editor-drawer" aria-hidden="true">
+                    <div class="editor-drawer-backdrop" id="editorDrawerBackdrop"></div>
+                    <div class="editor-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+                        <div class="editor-drawer-header">
+                            <div>
+                                <p class="editor-drawer-eyebrow">Tournament Editor</p>
+                                <h3 id="formTitle" style="margin:0">Edit Tournament</h3>
+                            </div>
+                            <div class="editor-drawer-header-actions">
+                                <button type="submit" form="tournamentForm" class="button" id="submitBtn">Update Tournament</button>
+                                <button type="button" class="button" onclick="cancelEdit()" id="cancelBtn" style="display:none;background:#6c757d">Cancel Edit</button>
+                                <button type="button" class="button editor-drawer-close" id="hideEditorBtn">Close</button>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="startDate">Start Date *</label>
-                            <input type="date" id="startDate" name="startDate" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="endDate">End Date *</label>
-                            <input type="date" id="endDate" name="endDate" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="location">Location *</label>
-                            <input type="text" id="location" name="location" required placeholder="Logan City Tenpin">
-                        </div>
-                        <div class="form-group">
-                            <label for="status">Status</label>
-                            <select id="status" name="status">
-                                <option value="upcoming">Upcoming</option>
-                                <option value="ongoing">Ongoing</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="maxParticipants">Max Participants</label>
-                            <input type="number" id="maxParticipants" name="maxParticipants" placeholder="Optional">
-                        </div>
-                        <div class="form-group">
-                            <label for="registrationOpenDate">Registration Opens</label>
-                            <input type="datetime-local" id="registrationOpenDate" name="registrationOpenDate">
-                            <small style="display:block;margin-top:4px;color:#b9c6d8">Leave empty to open registration immediately</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="registrationDeadline">Registration Deadline</label>
-                            <input type="date" id="registrationDeadline" name="registrationDeadline">
+                        <div class="editor-drawer-body">
+                            <form id="tournamentForm">
+                                <input type="hidden" id="editingTournamentId" value="" />
+
+                                <div class="editor-form-stack">
+                                    <details class="editor-section" open>
+                                        <summary class="editor-section-summary">
+                                            <span>Overview</span>
+                                            <small>Core event details and dates</small>
+                                        </summary>
+                                        <div class="editor-section-body">
+                                            <div class="form-grid">
+                                                <div class="form-group">
+                                                    <label for="name">Tournament Name *</label>
+                                                    <input type="text" id="name" name="name" required placeholder="Logan City Cup 2026" />
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="startDate">Start Date *</label>
+                                                    <input type="date" id="startDate" name="startDate" required />
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="endDate">End Date *</label>
+                                                    <input type="date" id="endDate" name="endDate" required />
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="location">Location *</label>
+                                                    <input type="text" id="location" name="location" required placeholder="Logan City Tenpin" />
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="status">Status</label>
+                                                    <select id="status" name="status">
+                                                        <option value="upcoming">Upcoming</option>
+                                                        <option value="ongoing">Ongoing</option>
+                                                        <option value="completed">Completed</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="maxParticipants">Max Participants</label>
+                                                    <input type="number" id="maxParticipants" name="maxParticipants" placeholder="Optional" />
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="registrationOpenDate">Registration Opens</label>
+                                                    <input type="datetime-local" id="registrationOpenDate" name="registrationOpenDate" />
+                                                    <small style="display:block;margin-top:4px;color:#b9c6d8">Leave empty to open registration immediately</small>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="registrationDeadline">Registration Deadline</label>
+                                                    <input type="date" id="registrationDeadline" name="registrationDeadline" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </details>
+
+                                    <div id="editOnlySection">
+                                        <details class="editor-section">
+                                            <summary class="editor-section-summary">
+                                                <span>Registration Details</span>
+                                                <small>Fees, entry rules, and public description</small>
+                                            </summary>
+                                            <div class="editor-section-body">
+                                                <div class="form-grid">
+                                                    <div class="form-group">
+                                                        <label for="entryFee">Entry Fee ($)</label>
+                                                        <input type="number" id="entryFee" name="entryFee" min="0" step="0.01" placeholder="0.00" />
+                                                    </div>
+                                                    <div class="form-group full">
+                                                        <label for="paymentInstructions">Payment Instructions</label>
+                                                        <textarea id="paymentInstructions" name="paymentInstructions" rows="3" placeholder="Bank details, payment methods, etc..."></textarea>
+                                                        <small style="display:block;margin-top:4px;color:#b9c6d8">These instructions will be included in the registration confirmation email</small>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="squadsRequiredToQualify">Squads Required to Qualify</label>
+                                                        <input type="number" id="squadsRequiredToQualify" name="squadsRequiredToQualify" min="1" value="1" />
+                                                        <small style="display:block;margin-top:4px;color:#b9c6d8">Minimum number of squads a bowler must bowl to qualify</small>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label style="display:flex;align-items:center;gap:8px;margin-top:8px">
+                                                            <input type="checkbox" id="allowReentry" name="allowReentry" style="width:auto;margin:0" checked />
+                                                            <span>Allow Re-entry (bowlers can bowl more squads than required)</span>
+                                                        </label>
+                                                        <small style="display:block;margin-top:4px;color:#b9c6d8">If disabled, bowlers can only register for the exact number of squads required to qualify</small>
+                                                    </div>
+                                                    <div class="form-group full">
+                                                        <label for="description">Description</label>
+                                                        <textarea id="description" name="description" rows="3" placeholder="Optional details about the tournament..."></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </details>
+
+                                        <details class="editor-section">
+                                            <summary class="editor-section-summary">
+                                                <span>Tournament Format</span>
+                                                <small>Stages, scoring settings, and advanced rules</small>
+                                            </summary>
+                                            <div class="editor-section-body">
+                                                <div class="editor-subsection">
+                                                    <h4 style="margin:0 0 8px 0;color:var(--blue-500)">Tournament Format</h4>
+                                                    <p class="stage-section-note">Build the tournament stage by stage. Mix qualifying, round robin, tri-matchplay, elimination, and stepladder phases in the order bowlers will actually compete.</p>
+
+                                                    <div id="stagesList" class="stage-list"></div>
+
+                                                    <div class="stage-builder">
+                                                        <div class="stage-builder-heading">
+                                                            <div>
+                                                                <h5 id="stageBuilderTitle">Add Stage</h5>
+                                                                <p id="stageBuilderCopy">Create each phase manually so the tournament flow matches your event.</p>
+                                                            </div>
+                                                            <button type="button" class="button button-subtle" id="resetStageBuilderBtn">Clear</button>
+                                                        </div>
+
+                                                        <div class="stage-builder-grid">
+                                                            <div class="form-group">
+                                                                <label for="stageName">Stage Name</label>
+                                                                <input type="text" id="stageName" placeholder="e.g., Qualifying, Match Play Finals" />
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="stageType">Stage Type</label>
+                                                                <select id="stageType">
+                                                                    <option value="qualifying">Qualifying</option>
+                                                                    <option value="round_robin">Round Robin Matchplay</option>
+                                                                    <option value="tri_matchplay">Tri Matchplay</option>
+                                                                    <option value="elimination">Elimination</option>
+                                                                    <option value="stepladder">Stepladder</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="stageGames">Games</label>
+                                                                <input type="number" id="stageGames" min="1" value="6" />
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="stageAdvancing">Advancing Bowlers</label>
+                                                                <input type="number" id="stageAdvancing" min="1" placeholder="Optional" />
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="stage-builder-grid">
+                                                            <div class="form-group full">
+                                                                <label for="stageDescription">Stage Notes</label>
+                                                                <textarea id="stageDescription" rows="3" placeholder="Optional public/admin notes about how this stage works."></textarea>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="stage-toggle-row">
+                                                            <label class="checkbox-row">
+                                                                <input type="checkbox" id="stageCarryover" />
+                                                                <span>Carry scores into this stage</span>
+                                                            </label>
+                                                            <div class="form-group compact">
+                                                                <label for="stageCarryoverPct">Carryover %</label>
+                                                                <input type="number" id="stageCarryoverPct" min="0" max="100" value="100" />
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="stage-type-fields" data-stage-type-fields="qualifying">
+                                                            <div class="stage-type-grid">
+                                                                <div class="form-group">
+                                                                    <label for="stageQualifyingSpots">Qualifying Spots</label>
+                                                                    <input type="number" id="stageQualifyingSpots" min="1" placeholder="Usually matches advancing bowlers" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stageScoresToCount">Squads / Scores to Count</label>
+                                                                    <input type="number" id="stageScoresToCount" min="1" value="1" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stageQualifyingLabel">Cut Line Label</label>
+                                                                    <input type="text" id="stageQualifyingLabel" placeholder="e.g., Top 24 to finals" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="stage-type-fields" data-stage-type-fields="round_robin" hidden>
+                                                            <div class="stage-type-grid">
+                                                                <div class="form-group">
+                                                                    <label for="stageMatchesPerBowler">Matches Per Bowler</label>
+                                                                    <input type="number" id="stageMatchesPerBowler" min="1" value="7" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stageMatchFormat">Match Format</label>
+                                                                    <select id="stageMatchFormat">
+                                                                        <option value="single-game">Single Game</option>
+                                                                        <option value="best-of-3">Best of 3</option>
+                                                                        <option value="best-of-5">Best of 5</option>
+                                                                        <option value="total-pinfall-2">Total Pinfall (2 Games)</option>
+                                                                        <option value="total-pinfall-3">Total Pinfall (3 Games)</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stagePositionRoundInterval">Position Round After</label>
+                                                                    <input type="number" id="stagePositionRoundInterval" min="0" value="0" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="stage-type-grid">
+                                                                <div class="form-group">
+                                                                    <label for="stagePointsWin">Points for Win</label>
+                                                                    <input type="number" id="stagePointsWin" min="0" value="30" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stagePointsTie">Points for Tie</label>
+                                                                    <input type="number" id="stagePointsTie" min="0" value="15" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stagePointsLoss">Points for Loss</label>
+                                                                    <input type="number" id="stagePointsLoss" min="0" value="0" />
+                                                                </div>
+                                                            </div>
+                                                            <label class="checkbox-row">
+                                                                <input type="checkbox" id="stageIncludePinfall" checked />
+                                                                <span>Include pinfall in standings totals</span>
+                                                            </label>
+                                                        </div>
+
+                                                        <div class="stage-type-fields" data-stage-type-fields="tri_matchplay" hidden>
+                                                            <div class="stage-type-grid">
+                                                                <div class="form-group">
+                                                                    <label for="stageTriRounds">Tri Matchplay Rounds</label>
+                                                                    <input type="number" id="stageTriRounds" min="1" value="8" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stageTriPointsWin">Points for Top Score</label>
+                                                                    <input type="number" id="stageTriPointsWin" min="0" value="30" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stageTriPointsMiddle">Points for Middle Score</label>
+                                                                    <input type="number" id="stageTriPointsMiddle" min="0" value="15" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stageTriPointsLoss">Points for Low Score</label>
+                                                                    <input type="number" id="stageTriPointsLoss" min="0" value="0" />
+                                                                </div>
+                                                            </div>
+                                                            <label class="checkbox-row">
+                                                                <input type="checkbox" id="stageTriIncludePinfall" checked />
+                                                                <span>Blend pinfall into tri-matchplay standings</span>
+                                                            </label>
+                                                        </div>
+
+                                                        <div class="stage-type-fields" data-stage-type-fields="elimination" hidden>
+                                                            <div class="stage-type-grid">
+                                                                <div class="form-group">
+                                                                    <label for="stageEliminationStyle">Elimination Style</label>
+                                                                    <select id="stageEliminationStyle">
+                                                                        <option value="single">Single Elimination</option>
+                                                                        <option value="double">Double Elimination</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stageBracketSize">Bracket Size</label>
+                                                                    <input type="number" id="stageBracketSize" min="2" step="2" value="8" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stageEliminationRounds">Rounds to Play</label>
+                                                                    <input type="number" id="stageEliminationRounds" min="1" value="3" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stageEliminationFormat">Match Format</label>
+                                                                    <select id="stageEliminationFormat">
+                                                                        <option value="single-game">Single Game</option>
+                                                                        <option value="best-of-3">Best of 3</option>
+                                                                        <option value="best-of-5">Best of 5</option>
+                                                                        <option value="total-pinfall-2">Total Pinfall (2 Games)</option>
+                                                                        <option value="total-pinfall-3">Total Pinfall (3 Games)</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="stage-type-fields" data-stage-type-fields="stepladder" hidden>
+                                                            <div class="stage-type-grid">
+                                                                <div class="form-group">
+                                                                    <label for="stageStepladderFinalists">Stepladder Finalists</label>
+                                                                    <input type="number" id="stageStepladderFinalists" min="2" value="5" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stageStepladderFormat">Match Format</label>
+                                                                    <select id="stageStepladderFormat">
+                                                                        <option value="single-game">Single Game</option>
+                                                                        <option value="best-of-3">Best of 3</option>
+                                                                        <option value="best-of-5">Best of 5</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="stageStepladderSeedNote">Seeding Note</label>
+                                                                    <input type="text" id="stageStepladderSeedNote" placeholder="e.g., Seeds 5 to 1 by qualifying total" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="stage-builder-actions">
+                                                            <button type="button" class="button" id="addStageBtn">Add Stage</button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="editor-panel">
+                                                        <h5 style="margin:0 0 12px;font-weight:600">Advanced Options</h5>
+
+                                                        <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+                                                            <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600">
+                                                                <input type="checkbox" id="useHandicap" style="width:auto;margin:0" />
+                                                                <span>Use Handicap Scoring</span>
+                                                            </label>
+                                                            <div id="handicapOptions" style="display:none;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+                                                                <div class="form-group" style="margin:0">
+                                                                    <label for="handicapBase" style="font-size:.85rem">Handicap Base</label>
+                                                                    <input type="number" id="handicapBase" value="200" min="100" max="300" />
+                                                                </div>
+                                                                <div class="form-group" style="margin:0">
+                                                                    <label for="handicapPercentage" style="font-size:.85rem">Handicap % (0-100)</label>
+                                                                    <input type="number" id="handicapPercentage" value="90" min="0" max="100" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+                                                            <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600">
+                                                                <input type="checkbox" id="separateDivisions" style="width:auto;margin:0" />
+                                                                <span>Separate Male/Female Divisions</span>
+                                                            </label>
+                                                            <small style="display:block;margin-bottom:8px;color:#b9c6d8">If disabled, females receive a pin handicap instead.</small>
+                                                            <div id="genderDivisionOptions" style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px">
+                                                                <div class="form-group" style="margin:0">
+                                                                    <label for="femaleHandicapPins" style="font-size:.85rem">Female Pin Handicap (when combined division)</label>
+                                                                    <input type="number" id="femaleHandicapPins" value="8" min="0" max="50" />
+                                                                    <small style="display:block;margin-top:4px;color:#b9c6d8">Pins added to female scores when not using separate divisions.</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div style="margin-bottom:0">
+                                                            <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600">
+                                                                <input type="checkbox" id="bonusPointsEnabled" style="width:auto;margin:0" />
+                                                                <span>Award Bonus Points</span>
+                                                            </label>
+                                                            <div id="bonusPointsOptions" style="display:none;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+                                                                <div class="form-group" style="margin:0">
+                                                                    <label for="bonusPerGame" style="font-size:.85rem">Bonus Per Game (e.g., 250+)</label>
+                                                                    <input type="number" id="bonusPerGame" value="0" min="0" />
+                                                                </div>
+                                                                <div class="form-group" style="margin:0">
+                                                                    <label for="bonusPerSeries" style="font-size:.85rem">Bonus Per Series (e.g., 700+)</label>
+                                                                    <input type="number" id="bonusPerSeries" value="0" min="0" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </details>
+
+                                        <details class="editor-section">
+                                            <summary class="editor-section-summary">
+                                                <span>Squad Scheduling</span>
+                                                <small>Build qualifying squads and capacities</small>
+                                            </summary>
+                                            <div class="editor-section-body">
+                                                <div class="editor-subsection">
+                                                    <h4 style="margin:0 0 8px 0">Squad Scheduling</h4>
+                                                    <p style="margin:0 0 16px;font-size:.85rem;color:#b9c6d8">Create qualifying squads with specific dates and times. All qualifying squads contribute to overall qualifying standings.</p>
+                                                    <div id="squadsList" style="display:grid;gap:10px;margin-bottom:12px"></div>
+
+                                                    <div style="background:#141a22;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,.05)">
+                                                        <div style="display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
+                                                            <div class="form-group" style="margin:0">
+                                                                <label style="font-size:.8rem">Squad Name</label>
+                                                                <input type="text" id="squadName" placeholder="e.g., Squad A, Squad B" style="padding:6px 8px;font-size:.9rem" />
+                                                            </div>
+                                                            <div class="form-group" style="margin:0">
+                                                                <label style="font-size:.8rem">Applies To</label>
+                                                                <select id="squadStageKey" style="padding:6px 8px;font-size:.9rem">
+                                                                    <option value="">Qualifying</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="form-group" style="margin:0">
+                                                                <label style="font-size:.8rem">Date</label>
+                                                                <input type="date" id="squadDate" style="padding:6px 8px;font-size:.9rem" />
+                                                            </div>
+                                                            <div class="form-group" style="margin:0">
+                                                                <label style="font-size:.8rem">Time</label>
+                                                                <input type="time" id="squadTime" style="padding:6px 8px;font-size:.9rem" />
+                                                            </div>
+                                                            <div class="form-group" style="margin:0">
+                                                                <label style="font-size:.8rem">Capacity</label>
+                                                                <input type="number" id="squadCapacity" min="1" placeholder="24" style="padding:6px 8px;font-size:.9rem" />
+                                                            </div>
+                                                            <div>
+                                                                <button type="button" class="button" onclick="addSquad()" style="padding:6px 12px;font-size:.85rem;white-space:nowrap;margin-top:18px">Add Squad</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </details>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
                     </div>
-
-                    <div id="editOnlySection">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="entryFee">Entry Fee ($)</label>
-                            <input type="number" id="entryFee" name="entryFee" min="0" step="0.01" placeholder="0.00">
-                        </div>
-                        <div class="form-group full">
-                            <label for="paymentInstructions">Payment Instructions</label>
-                            <textarea id="paymentInstructions" name="paymentInstructions" rows="3" placeholder="Bank details, payment methods, etc..."></textarea>
-                            <small style="display:block;margin-top:4px;color:#b9c6d8">These instructions will be included in the registration confirmation email</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="squadsRequiredToQualify">Squads Required to Qualify</label>
-                            <input type="number" id="squadsRequiredToQualify" name="squadsRequiredToQualify" min="1" value="1">
-                            <small style="display:block;margin-top:4px;color:#b9c6d8">Minimum number of squads a bowler must bowl to qualify</small>
-                        </div>
-                        <div class="form-group">
-                            <label style="display:flex;align-items:center;gap:8px;margin-top:8px">
-                                <input type="checkbox" id="allowReentry" name="allowReentry" style="width:auto;margin:0" checked>
-                                <span>Allow Re-entry (Bowlers can bowl more squads than required)</span>
-                            </label>
-                            <small style="display:block;margin-top:4px;color:#b9c6d8">If disabled, bowlers can only register for the exact number of squads required to qualify</small>
-                        </div>
-                        <div class="form-group full">
-                            <label for="description">Description</label>
-                            <textarea id="description" name="description" rows="3" placeholder="Optional details about the tournament..."></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Tournament Format Configuration -->
-                    <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)">
-                        <h4 style="margin:0 0 8px 0;color:var(--blue-500)">⚙️ Tournament Format</h4>
-                        <p style="margin:0 0 16px;font-size:.85rem;color:#b9c6d8">Build your tournament format manually by adding custom stages</p>
-                        
-                        <!-- Tournament Type Selector -->
-                        <div class="form-group" style="margin-bottom:20px">
-                            <label for="tournamentType" style="font-weight:600;font-size:.95rem">Format Mode</label>
-                            <select id="tournamentType" onchange="applyTournamentPreset()" style="font-size:.95rem;padding:10px">
-                                <option value="custom">Custom Builder</option>
-                            </select>
-                            <small style="display:block;margin-top:6px;color:#b9c6d8" id="typeDescription">
-                                Build your own tournament with custom stages
-                            </small>
-                        </div>
-
-                        <!-- Format Details Summary -->
-                        <div id="formatSummary" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);padding:12px;border-radius:8px;margin-bottom:16px;display:none">
-                            <h5 style="margin:0 0 8px;color:var(--blue-500);font-size:.9rem">📋 Format Preview</h5>
-                            <div id="formatSummaryContent" style="font-size:.85rem;color:#b9c6d8"></div>
-                        </div>
-
-                        <!-- Match Play Settings (when match play is included) -->
-                        <div id="matchPlaySettings" style="display:none;background:rgba(255,255,255,.02);padding:12px;border-radius:8px;margin-bottom:12px">
-                            <h5 style="margin:0 0 12px;font-size:.9rem;font-weight:600">Match Play Configuration</h5>
-                            <div class="form-group" style="margin-bottom:12px">
-                                <label for="matchPlayFormat">Match Format</label>
-                                <select id="matchPlayFormat" onchange="updateMatchPlayDetails()">
-                                    <option value="best-of-3">Best of 3 Games</option>
-                                    <option value="best-of-5">Best of 5 Games</option>
-                                    <option value="single-game">Single Game Eliminations</option>
-                                    <option value="total-pinfall-2">Total Pinfall (2 games)</option>
-                                    <option value="total-pinfall-3">Total Pinfall (3 games)</option>
-                                </select>
-                            </div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-                                <div class="form-group" style="margin:0">
-                                    <label for="pointsForWin" style="font-size:.85rem">Points for Win</label>
-                                    <input type="number" id="pointsForWin" value="30" min="0">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label for="pointsForTie" style="font-size:.85rem">Points for Tie</label>
-                                    <input type="number" id="pointsForTie" value="15" min="0">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label for="pointsForLoss" style="font-size:.85rem">Points for Loss</label>
-                                    <input type="number" id="pointsForLoss" value="0" min="0">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Custom Stages (only for custom type) -->
-                        <div id="customStagesSection" style="display:none;margin-bottom:16px">
-                            <h5 style="margin:0 0 12px;font-size:.9rem;color:var(--blue-500)">📊 Custom Tournament Stages</h5>
-                            <div id="stagesList" style="display:grid;gap:8px;margin-bottom:12px"></div>
-                            <div style="background:#141a22;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,.05)">
-                                <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
-                                    <div class="form-group" style="margin:0">
-                                        <label style="font-size:.8rem">Stage Name</label>
-                                        <input type="text" id="stageName" placeholder="e.g., Qualifying, Finals" style="padding:6px 8px;font-size:.9rem">
-                                    </div>
-                                    <div class="form-group" style="margin:0">
-                                        <label style="font-size:.8rem">Games</label>
-                                        <input type="number" id="stageGames" min="1" value="6" style="padding:6px 8px;font-size:.9rem">
-                                    </div>
-                                    <div class="form-group" style="margin:0">
-                                        <label style="font-size:.8rem">Advancing</label>
-                                        <input type="number" id="stageAdvancing" min="1" placeholder="16" style="padding:6px 8px;font-size:.9rem">
-                                    </div>
-                                    <div class="form-group" style="margin:0">
-                                        <label style="font-size:.8rem">Carryover %</label>
-                                        <input type="number" id="stageCarryoverPct" min="0" max="100" value="100" style="padding:6px 8px;font-size:.9rem">
-                                    </div>
-                                    <div class="form-group" style="margin:0;display:flex;align-items:end;padding-bottom:8px">
-                                        <label style="font-size:.8rem;display:flex;align-items:center;gap:4px;margin:0">
-                                            <input type="checkbox" id="stageCarryover" checked style="width:auto;margin:0">
-                                            <span style="white-space:nowrap">Carryover</span>
-                                        </label>
-                                    </div>
-                                    <button type="button" class="button" onclick="addStage()" style="padding:6px 12px;font-size:.85rem;white-space:nowrap">+ Add</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Preset quick settings removed: all formats are now built manually via custom stages -->
-
-                        <!-- Advanced Options -->
-                        <div style="background:rgba(255,255,255,.02);padding:12px;border-radius:8px;margin-bottom:12px">
-                            <h5 style="margin:0 0 12px;font-weight:600">⚙️ Advanced Options</h5>
-                            
-                            <!-- Handicap Configuration -->
-                            <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-                                <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600">
-                                    <input type="checkbox" id="useHandicap" style="width:auto;margin:0">
-                                    <span>Use Handicap Scoring</span>
-                                </label>
-                                <div id="handicapOptions" style="display:none;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
-                                    <div class="form-group" style="margin:0">
-                                        <label for="handicapBase" style="font-size:.85rem">Handicap Base</label>
-                                        <input type="number" id="handicapBase" value="200" min="100" max="300">
-                                    </div>
-                                    <div class="form-group" style="margin:0">
-                                        <label for="handicapPercentage" style="font-size:.85rem">Handicap % (0-100)</label>
-                                        <input type="number" id="handicapPercentage" value="90" min="0" max="100">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Gender Division Configuration -->
-                            <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
-                                <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600">
-                                    <input type="checkbox" id="separateDivisions" style="width:auto;margin:0">
-                                    <span>Separate Male/Female Divisions</span>
-                                </label>
-                                <small style="display:block;margin-bottom:8px;color:#b9c6d8">If disabled, females receive a pin handicap instead</small>
-                                <div id="genderDivisionOptions" style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px">
-                                    <div class="form-group" style="margin:0">
-                                        <label for="femaleHandicapPins" style="font-size:.85rem">Female Pin Handicap (when combined division)</label>
-                                        <input type="number" id="femaleHandicapPins" value="8" min="0" max="50">
-                                        <small style="display:block;margin-top:4px;color:#b9c6d8">Pins added to female scores when not using separate divisions (standard: 8 pins)</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Bonus Points Configuration -->
-                            <div style="margin-bottom:0">
-                                <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600">
-                                    <input type="checkbox" id="bonusPointsEnabled" style="width:auto;margin:0">
-                                    <span>Award Bonus Points</span>
-                                </label>
-                                <div id="bonusPointsOptions" style="display:none;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
-                                    <div class="form-group" style="margin:0">
-                                        <label for="bonusPerGame" style="font-size:.85rem">Bonus Per Game (e.g., 250+)</label>
-                                        <input type="number" id="bonusPerGame" value="0" min="0">
-                                    </div>
-                                    <div class="form-group" style="margin:0">
-                                        <label for="bonusPerSeries" style="font-size:.85rem">Bonus Per Series (e.g., 700+)</label>
-                                        <input type="number" id="bonusPerSeries" value="0" min="0">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Squad Management -->
-                    <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)">
-                        <h4 style="margin:0 0 8px 0">🎳 Squad Scheduling</h4>
-                        <p style="margin:0 0 16px;font-size:.85rem;color:#b9c6d8">Create qualifying squads with specific dates/times. All qualifying squads contribute to overall qualifying standings.</p>
-                        <div id="squadsList" style="display:grid;gap:10px;margin-bottom:12px"></div>
-                        
-                        <div style="background:#141a22;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,.05)">
-                            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
-                                <div class="form-group" style="margin:0">
-                                    <label style="font-size:.8rem">Squad Name</label>
-                                    <input type="text" id="squadName" placeholder="e.g., Squad A, Squad B" style="padding:6px 8px;font-size:.9rem">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label style="font-size:.8rem">Date</label>
-                                    <input type="date" id="squadDate" style="padding:6px 8px;font-size:.9rem">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label style="font-size:.8rem">Time</label>
-                                    <input type="time" id="squadTime" style="padding:6px 8px;font-size:.9rem">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label style="font-size:.8rem">Capacity</label>
-                                    <input type="number" id="squadCapacity" min="1" placeholder="24" style="padding:6px 8px;font-size:.9rem">
-                                </div>
-                                <div>
-                                    <button type="button" class="button" onclick="addSquad()" style="padding:6px 12px;font-size:.85rem;white-space:nowrap;margin-top:18px">+ Add Squad</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-
-                    <div style="display:flex;gap:8px;margin-top:16px">
-                        <button type="submit" class="button" id="submitBtn">Update Tournament</button>
-                        <button type="button" class="button" onclick="cancelEdit()" id="cancelBtn" style="display:none;background:#6c757d">Cancel Edit</button>
-                        <button type="button" class="button" id="hideEditorBtn" style="background:#6c757d">Hide Editor</button>
-                    </div>
-                </form>
                 </div>
             </div>
 
@@ -316,24 +473,24 @@
                 <div class="quick-add-backdrop" onclick="closeQuickAddModal()"></div>
                 <div class="quick-add-dialog">
                     <h3 style="margin-top:0">Add Tournament</h3>
-                    <p style="margin-top:-6px;color:#6b6458;font-size:.85rem">Basic info only. Advanced setup is available from Edit Tournament.</p>
+                    <p style="margin-top:-6px;color:#6b6458;font-size:.85rem">Basic info only. Advanced setup is available from the tournament editor.</p>
                     <form id="quickAddForm">
                         <div class="form-grid">
                             <div class="form-group">
                                 <label for="quickAddName">Tournament Name *</label>
-                                <input id="quickAddName" type="text" required placeholder="Logan City Cup 2026">
+                                <input id="quickAddName" type="text" required placeholder="Logan City Cup 2026" />
                             </div>
                             <div class="form-group">
                                 <label for="quickAddLocation">Location *</label>
-                                <input id="quickAddLocation" type="text" required placeholder="Logan City Tenpin">
+                                <input id="quickAddLocation" type="text" required placeholder="Logan City Tenpin" />
                             </div>
                             <div class="form-group">
                                 <label for="quickAddStartDate">Start Date *</label>
-                                <input id="quickAddStartDate" type="date" required>
+                                <input id="quickAddStartDate" type="date" required />
                             </div>
                             <div class="form-group">
                                 <label for="quickAddEndDate">End Date *</label>
-                                <input id="quickAddEndDate" type="date" required>
+                                <input id="quickAddEndDate" type="date" required />
                             </div>
                             <div class="form-group">
                                 <label for="quickAddStatus">Status</label>
@@ -345,7 +502,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="quickAddMaxParticipants">Max Participants</label>
-                                <input id="quickAddMaxParticipants" type="number" placeholder="Optional">
+                                <input id="quickAddMaxParticipants" type="number" placeholder="Optional" />
                             </div>
                             <div class="form-group full">
                                 <label for="quickAddDescription">Description</label>

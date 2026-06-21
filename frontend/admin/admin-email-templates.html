@@ -3,40 +3,47 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Email Templates — Admin</title>
+    <title>Email Templates - Admin</title>
     <link rel="stylesheet" href="../static/css/packages/presets.css" />
     <link rel="stylesheet" href="../static/css/packages/admin-shell.css" />
-    <link rel="stylesheet" href="../static/css/packages/navbar.css" />
     <link rel="stylesheet" href="../static/css/mainfiles/admin-tournaments.css" />
     <link rel="stylesheet" href="../static/css/mainfiles/admin-email-templates.css" />
 </head>
-<body>
+<body class="admin-page admin-page-email">
     <header>
-        <div class="container row">
+        <div class="container admin-header-row">
             <h1 style="margin:0;font-size:1.1rem">Email Templates</h1>
-            <div style="margin-left:auto"><a class="button" href="/admin/logout">Sign out</a></div>
+            <nav class="admin-nav admin-nav-inline" aria-label="Admin">
+                <a href="/admin/tournaments" class="admin-nav-link">Tournaments</a>
+                <a href="/admin/registrations" class="admin-nav-link">Registrations</a>
+                <a href="/admin/results" class="admin-nav-link">Scores</a>
+                <a href="/admin/email-templates" class="admin-nav-link is-active">Emails</a>
+                <a href="/" class="admin-nav-link">Back to Site</a>
+            </nav>
+            <div class="admin-header-actions"><a class="button" href="/admin/logout">Sign out</a></div>
         </div>
     </header>
 
     <nav class="admin-nav">
         <div class="container">
-            <a href="/admin/tournaments" class="admin-nav-link">🏆 Tournaments</a>
-            <a href="/admin/registrations" class="admin-nav-link">📋 Registrations</a>
-            <a href="/admin/results" class="admin-nav-link">🎯 Scores</a>
-            <a href="/admin/email-templates" class="admin-nav-link is-active">📧 Emails</a>
-            <div class="admin-nav-spacer"><a href="/" class="admin-nav-link">← Back to Site</a></div>
+            <a href="/admin/tournaments" class="admin-nav-link">Tournaments</a>
+            <a href="/admin/registrations" class="admin-nav-link">Registrations</a>
+            <a href="/admin/results" class="admin-nav-link">Scores</a>
+            <a href="/admin/email-templates" class="admin-nav-link is-active">Emails</a>
+            <div class="admin-nav-spacer"><a href="/" class="admin-nav-link">Back to Site</a></div>
         </div>
     </nav>
 
-    <special-header></special-header>
+    <main class="container admin-main admin-main-full">
+        <div class="card admin-surface">
+            <div class="admin-page-heading">
+                <div>
+                    <p class="admin-page-eyebrow">Admin Workspace</p>
+                    <h2 class="admin-page-title">Email Templates</h2>
+                    <p class="admin-page-copy">Customize the automated emails bowlers receive after registration.</p>
+                </div>
+            </div>
 
-    <div class="container">
-        <div style="margin:40px 0 20px">
-            <h2 style="margin:0 0 8px">Email Templates</h2>
-            <p class="sub" style="margin:0;color:#b9c6d8">Customize automated emails sent to bowlers</p>
-        </div>
-
-        <div class="card">
             <div class="card-header">
                 <h2>Registration Confirmation Email</h2>
                 <div class="help-text">
@@ -47,10 +54,10 @@
 
             <div class="form-group">
                 <label for="emailSubject">Email Subject</label>
-                <input 
-                    type="text" 
-                    id="emailSubject" 
-                    class="input" 
+                <input
+                    type="text"
+                    id="emailSubject"
+                    class="input"
                     placeholder="Enter email subject..."
                 />
                 <div class="help-text">Available variables: {{tournamentName}}</div>
@@ -58,10 +65,10 @@
 
             <div class="form-group">
                 <label for="htmlBody">HTML Body</label>
-                <textarea 
-                    id="htmlBody" 
-                    class="textarea" 
-                    rows="15" 
+                <textarea
+                    id="htmlBody"
+                    class="textarea"
+                    rows="15"
                     placeholder="Enter HTML email content..."
                 ></textarea>
                 <div class="help-text">
@@ -71,10 +78,10 @@
 
             <div class="form-group">
                 <label for="textBody">Plain Text Body</label>
-                <textarea 
-                    id="textBody" 
-                    class="textarea" 
-                    rows="15" 
+                <textarea
+                    id="textBody"
+                    class="textarea"
+                    rows="15"
                     placeholder="Enter plain text email content..."
                 ></textarea>
                 <div class="help-text">
@@ -88,7 +95,6 @@
             </div>
         </div>
 
-        <!-- Preview Modal -->
         <div id="previewModal" class="modal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -113,9 +119,8 @@
         </div>
 
         <div id="notification" class="notification" style="display: none;"></div>
-    </div>
+    </main>
 
-    <script src="../js/global/navbar.js"></script>
     <script src="../js/admin/admin-email-templates.js"></script>
 </body>
 </html>

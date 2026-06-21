@@ -8,6 +8,7 @@
 .login-card {
     width: min(460px, 94vw);
     padding: 28px;
+    background: linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(248, 243, 233, 0.96));
 }
 
 .login-title {

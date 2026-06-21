@@ -1,6 +1,58 @@
-/* =====================
-   EMAIL TEMPLATE STYLES
-   ===================== */
+/* Email Templates */
+
+.admin-page-email .admin-surface {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+}
+
+.admin-page-email .card-header {
+    margin-bottom: 20px;
+}
+
+.admin-page-email .card-header h2 {
+    margin: 0 0 8px;
+}
+
+.admin-page-email .form-group {
+    margin-bottom: 18px;
+}
+
+.admin-page-email input,
+.admin-page-email textarea {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255, 252, 245, 0.9);
+}
+
+.admin-page-email textarea {
+    min-height: 280px;
+    resize: vertical;
+}
+
+.help-text {
+    font-size: 0.85rem;
+    color: #6b6458;
+    margin-top: 0.5rem;
+}
+
+.button-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-outline {
+    background: rgba(255, 252, 245, 0.92);
+    color: #6d1f11;
+    border: 1px solid rgba(179, 54, 31, 0.28);
+}
+
+.btn-outline:hover {
+    background: rgba(247, 232, 220, 0.94);
+}
 
 .modal {
     display: none;
@@ -13,18 +65,21 @@
     background-color: rgba(44, 33, 24, 0.58);
     align-items: center;
     justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .modal-content {
     background-color: #fffaf2;
     border: 1px solid #d8ccb3;
     padding: 2rem;
-    border-radius: var(--radius);
-    max-width: 900px;
-    width: 90%;
+    border-radius: 18px;
+    max-width: 980px;
+    width: min(100%, 980px);
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
+    box-shadow: var(--admin-shadow);
 }
 
 .modal-header {
@@ -71,7 +126,7 @@
 .preview-box {
     background: #fffdf8;
     padding: 1rem;
-    border-radius: 8px;
+    border-radius: 12px;
     border: 1px solid #d8ccb3;
     color: #28251e;
 }
@@ -86,23 +141,17 @@
     font-family: monospace;
 }
 
-.help-text {
-    font-size: 0.85rem;
-    color: #6b6458;
-    margin-top: 0.5rem;
-}
-
 .notification {
     position: fixed;
     top: 20px;
     right: 20px;
     padding: 1rem 1.5rem;
-    border-radius: 8px;
+    border-radius: 12px;
     background: #fff8ec;
     border: 1px solid #d8ccb3;
     border-left: 4px solid #b3361f;
     color: #2f2a23;
-    box-shadow: var(--shadow);
+    box-shadow: var(--admin-shadow);
     z-index: 2000;
     max-width: 400px;
 }
@@ -115,19 +164,17 @@
     border-left-color: #b3361f;
 }
 
-.button-group {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-
 @media (max-width: 768px) {
     .modal-content {
-        width: 95%;
-        padding: 1.5rem;
+        width: 100%;
+        padding: 1.25rem;
     }
-    
+
     .button-group {
         flex-direction: column;
+    }
+
+    .button-group .btn {
+        width: 100%;
     }
 }

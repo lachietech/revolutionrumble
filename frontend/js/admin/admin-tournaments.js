@@ -21,6 +21,7 @@ let currentStages = [];
 let currentTournamentForResults = null;
 let loadedTournaments = [];
 let currentCalendarDate = new Date();
+let editingStageIndex = null;
 
 const calendarGrid = document.getElementById('calendarGrid');
 const calendarMonthLabel = document.getElementById('calendarMonthLabel');
@@ -29,12 +30,37 @@ const calendarNextBtn = document.getElementById('calendarNextBtn');
 const calendarTodayBtn = document.getElementById('calendarTodayBtn');
 const editOnlySection = document.getElementById('editOnlySection');
 const createModeHint = document.getElementById('createModeHint');
-const selectedTournamentPanel = document.getElementById('selectedTournamentPanel');
 const advancedEditorWrap = document.getElementById('advancedEditorWrap');
 const quickAddModal = document.getElementById('quickAddModal');
 const quickAddForm = document.getElementById('quickAddForm');
 const hideEditorBtn = document.getElementById('hideEditorBtn');
+const editorDrawerBackdrop = document.getElementById('editorDrawerBackdrop');
+const stageTypeSelect = document.getElementById('stageType');
+const addStageBtn = document.getElementById('addStageBtn');
+const resetStageBuilderBtn = document.getElementById('resetStageBuilderBtn');
 let selectedTournamentId = null;
+
+const STAGE_TYPE_LABELS = {
+    qualifying: 'Qualifying',
+    round_robin: 'Round Robin Matchplay',
+    tri_matchplay: 'Tri Matchplay',
+    elimination: 'Elimination',
+    stepladder: 'Stepladder'
+};
+
+const MATCH_FORMAT_LABELS = {
+    'single-game': 'Single Game',
+    'best-of-3': 'Best of 3',
+    'best-of-5': 'Best of 5',
+    'total-pinfall-2': 'Total Pinfall (2 Games)',
+    'total-pinfall-3': 'Total Pinfall (3 Games)'
+};
+
+const MATCH_STAGE_TYPES = new Set(['round_robin', 'tri_matchplay', 'elimination', 'stepladder']);
+
+function generateStageKey() {
+    return `stage_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 // Load tournaments on page load
 loadTournaments();
@@ -42,13 +68,15 @@ if (regListContainer) {
     loadRegistrations();
 }
 renderSquadsList(); // Initialize empty squad list
-applyTournamentPreset(); // Initialize custom builder mode
+initializeCustomStageBuilder();
 updateFormModeUI(false);
 
 if (hideEditorBtn) {
-    hideEditorBtn.addEventListener('click', () => {
-        if (advancedEditorWrap) advancedEditorWrap.style.display = 'none';
-    });
+    hideEditorBtn.addEventListener('click', closeEditorDrawer);
+}
+
+if (editorDrawerBackdrop) {
+    editorDrawerBackdrop.addEventListener('click', closeEditorDrawer);
 }
 
 if (quickAddForm) {
@@ -59,25 +87,34 @@ if (quickAddForm) {
 }
 
 if (calendarPrevBtn) {
-    calendarPrevBtn.addEventListener('click', () => {
-        currentCalendarDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1, 1);
-        renderTournamentCalendar(loadedTournaments);
-    });
+    calendarPrevBtn.addEventListener('click', (event) => navigateCalendarMonth(-1, event));
 }
 
 if (calendarNextBtn) {
-    calendarNextBtn.addEventListener('click', () => {
-        currentCalendarDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 1);
-        renderTournamentCalendar(loadedTournaments);
-    });
+    calendarNextBtn.addEventListener('click', (event) => navigateCalendarMonth(1, event));
 }
 
 if (calendarTodayBtn) {
-    calendarTodayBtn.addEventListener('click', () => {
-        currentCalendarDate = new Date();
-        renderTournamentCalendar(loadedTournaments);
-    });
+    calendarTodayBtn.addEventListener('click', (event) => jumpCalendarToToday(event));
 }
+
+if (stageTypeSelect) {
+    stageTypeSelect.addEventListener('change', syncStageTypeFields);
+}
+
+if (addStageBtn) {
+    addStageBtn.addEventListener('click', handleStageSave);
+}
+
+if (resetStageBuilderBtn) {
+    resetStageBuilderBtn.addEventListener('click', resetStageBuilder);
+}
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && advancedEditorWrap?.classList.contains('is-open')) {
+        closeEditorDrawer();
+    }
+});
 
 function toDateOnlyKey(value) {
     if (typeof value === 'string') {
@@ -99,14 +136,34 @@ function formatSquadTime(timeValue) {
 
 function updateFormModeUI(isEditing) {
     if (advancedEditorWrap) {
-        advancedEditorWrap.style.display = isEditing ? 'block' : 'none';
+        advancedEditorWrap.classList.toggle('is-open', isEditing);
+        advancedEditorWrap.setAttribute('aria-hidden', isEditing ? 'false' : 'true');
     }
+    document.body.classList.toggle('admin-drawer-open', isEditing);
     if (editOnlySection) {
         editOnlySection.style.display = isEditing ? 'block' : 'none';
     }
     if (createModeHint) {
         createModeHint.style.display = isEditing ? 'none' : 'block';
     }
+}
+
+function closeEditorDrawer() {
+    updateFormModeUI(false);
+}
+
+function navigateCalendarMonth(offset, event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    currentCalendarDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + offset, 1);
+    renderTournamentCalendar(loadedTournaments);
+}
+
+function jumpCalendarToToday(event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    currentCalendarDate = new Date();
+    renderTournamentCalendar(loadedTournaments);
 }
 
 function beginCreateFromDate(dateKey) {
@@ -164,32 +221,13 @@ async function createTournamentFromCalendar() {
     }
 }
 
-function selectTournament(id) {
+function selectTournament(id, openEditor = false) {
     selectedTournamentId = id;
     renderTournamentCalendar(loadedTournaments);
-    const selected = loadedTournaments.find(t => t._id === id);
-    if (!selectedTournamentPanel || !selected) return;
 
-    const start = new Date(selected.startDate || selected.date);
-    const end = new Date(selected.endDate || selected.startDate || selected.date);
-    const dateRange = start.toDateString() === end.toDateString()
-        ? start.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-        : `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
-
-    selectedTournamentPanel.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
-            <div>
-                <h3 style="margin:0 0 6px">${escapeHtml(selected.name)}</h3>
-                <p style="margin:0 0 4px;color:#5c5548">${escapeHtml(dateRange)} • ${escapeHtml(selected.location || 'No location')}</p>
-                <p style="margin:0;color:#5c5548">Status: <span class="status-badge status-${escapeHtml(selected.status || 'upcoming')}">${escapeHtml(selected.status || 'upcoming')}</span></p>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button type="button" class="button" onclick="editTournament('${selected._id}')">Edit Tournament</button>
-                <button type="button" class="btn-delete" onclick="deleteTournament('${selected._id}')">Delete</button>
-            </div>
-        </div>
-    `;
-    selectedTournamentPanel.style.display = 'block';
+    if (openEditor) {
+        editTournament(id);
+    }
 }
 
 function renderTournamentCalendar(tournaments) {
@@ -214,7 +252,8 @@ function renderTournamentCalendar(tournaments) {
 
     let dayCells = '';
 
-    for (let i = 0; i < 42; i++) {
+    const totalVisibleCells = Math.ceil((monthStartDay + daysInMonth) / 7) * 7;
+    for (let i = 0; i < totalVisibleCells; i++) {
         let dayNumber;
         let cellDate;
         let isOtherMonth = false;
@@ -254,7 +293,7 @@ function renderTournamentCalendar(tournaments) {
 
             return `
                 <div class="calendar-tournament-chip" style="${isSelected ? 'border-color:#b3361f;background:#f6e2d7' : ''}">
-                    <button type="button" onclick="event.stopPropagation(); selectTournament('${t._id}')">${escapeHtml(t.name)}</button>
+                    <button type="button" onclick="event.stopPropagation(); selectTournament('${t._id}', true)">${escapeHtml(t.name)}</button>
                     ${squadTimes}
                 </div>
             `;
@@ -301,9 +340,12 @@ form.addEventListener('submit', async (e) => {
         return;
     }
 
-    const totalGames = currentStages.length > 0
-        ? currentStages.reduce((sum, stage) => sum + stage.games, 0)
+    const normalizedStages = currentStages.map((stage, index) => normalizeStage(stage, index));
+    const totalGames = normalizedStages.length > 0
+        ? normalizedStages.reduce((sum, stage) => sum + stage.games, 0)
         : 6;
+    const defaultMatchPlayStage = normalizedStages.find((stage) => MATCH_STAGE_TYPES.has(stage.type));
+    const defaultMatchPlay = getMatchPlayDefaults(defaultMatchPlayStage || {});
 
     const formData = {
         name: form.name.value,
@@ -325,7 +367,10 @@ form.addEventListener('submit', async (e) => {
                 date: s.date,
                 time: s.time,
                 capacity: s.capacity,
-                isQualifying: s.isQualifying
+                isQualifying: s.isQualifying,
+                stageKey: s.stageKey || null,
+                stageName: s.stageName || '',
+                stageType: s.stageType || (s.isQualifying ? 'qualifying' : '')
             };
             if (s._id && s._id.length === 24 && /^[0-9a-fA-F]{24}$/.test(s._id)) {
                 squad._id = s._id;
@@ -334,8 +379,8 @@ form.addEventListener('submit', async (e) => {
         }),
         format: {
             gamesPerBowler: totalGames,
-            hasStages: currentStages.length > 0,
-            stages: currentStages,
+            hasStages: normalizedStages.length > 0,
+            stages: normalizedStages,
             useHandicap: document.getElementById('useHandicap').checked,
             handicapBase: Number(document.getElementById('handicapBase').value) || 200,
             handicapPercentage: Number(document.getElementById('handicapPercentage').value) || 90,
@@ -348,10 +393,10 @@ form.addEventListener('submit', async (e) => {
             },
             scoringMethod: 'total-pinfall',
             matchPlay: {
-                pointsForWin: Number(document.getElementById('pointsForWin').value) || 30,
-                pointsForTie: Number(document.getElementById('pointsForTie').value) || 15,
-                pointsForLoss: Number(document.getElementById('pointsForLoss').value) || 0,
-                includePinfall: true
+                pointsForWin: defaultMatchPlay.pointsForWin,
+                pointsForTie: defaultMatchPlay.pointsForTie,
+                pointsForLoss: defaultMatchPlay.pointsForLoss,
+                includePinfall: defaultMatchPlay.includePinfall
             }
         }
     };
@@ -386,6 +431,7 @@ let editingSquadIndex = null;
 
 function addSquad() {
     const name = document.getElementById('squadName').value;
+    const selectedStageKey = document.getElementById('squadStageKey').value;
     const date = document.getElementById('squadDate').value;
     const time = document.getElementById('squadTime').value;
     const capacity = document.getElementById('squadCapacity').value;
@@ -395,12 +441,16 @@ function addSquad() {
         return;
     }
 
+    const linkedStage = currentStages.find((stage, index) => normalizeStage(stage, index).key === selectedStageKey);
     const squadData = {
         name,
         date,
         time,
         capacity: Number(capacity),
-        isQualifying: true
+        isQualifying: !selectedStageKey,
+        stageKey: selectedStageKey || null,
+        stageName: linkedStage ? linkedStage.name : '',
+        stageType: linkedStage ? linkedStage.type : 'qualifying'
     };
 
     if (editingSquadIndex !== null) {
@@ -419,6 +469,7 @@ function addSquad() {
 
     // Clear inputs
     document.getElementById('squadName').value = '';
+    document.getElementById('squadStageKey').value = '';
     document.getElementById('squadDate').value = '';
     document.getElementById('squadTime').value = '';
     document.getElementById('squadCapacity').value = '';
@@ -1017,8 +1068,6 @@ function renderStagesList() {
     updateFormatSummary();
 }
 
-let editingStageIndex = null;
-
 function editStage(index) {
     const stage = currentStages[index];
     document.getElementById('stageName').value = stage.name;
@@ -1072,13 +1121,326 @@ function updateStage() {
     updateFormatSummary();
 }
 
+function initializeCustomStageBuilder() {
+    syncStageTypeFields();
+    resetStageBuilder();
+    renderCustomStagesList();
+    populateSquadStageOptions();
+}
+
+function getDefaultStageName(type) {
+    return STAGE_TYPE_LABELS[type] || 'Stage';
+}
+
+function getMatchPlayDefaults(stage = {}) {
+    return {
+        pointsForWin: Number(stage.matchPlaySettings?.pointsForWin ?? 30),
+        pointsForTie: Number(stage.matchPlaySettings?.pointsForTie ?? 15),
+        pointsForLoss: Number(stage.matchPlaySettings?.pointsForLoss ?? 0),
+        includePinfall: stage.matchPlaySettings?.includePinfall !== false,
+        matchFormat: stage.matchPlaySettings?.matchFormat || 'single-game'
+    };
+}
+
+function inferStageType(name = '', index = 0) {
+    const label = String(name).toLowerCase();
+    if (label.includes('round robin')) return 'round_robin';
+    if (label.includes('tri')) return 'tri_matchplay';
+    if (label.includes('step')) return 'stepladder';
+    if (label.includes('elimination') || label.includes('quarter') || label.includes('semi') || label.includes('championship') || label.includes('round of')) return 'elimination';
+    if (label.includes('qual')) return 'qualifying';
+    return index === 0 ? 'qualifying' : 'elimination';
+}
+
+function normalizeStage(stage, index = 0) {
+    const inferredType = stage.type || inferStageType(stage.name, index);
+    return {
+        key: stage.key || generateStageKey(),
+        type: inferredType,
+        name: stage.name || getDefaultStageName(inferredType),
+        description: stage.description || '',
+        games: Number(stage.games) || 1,
+        advancingBowlers: stage.advancingBowlers ? Number(stage.advancingBowlers) : null,
+        carryoverPinfall: Boolean(stage.carryoverPinfall),
+        carryoverPercentage: stage.carryoverPercentage === 0 ? 0 : (Number(stage.carryoverPercentage) || 100),
+        matchPlaySettings: getMatchPlayDefaults(stage),
+        stageConfig: {
+            ...(stage.stageConfig || {})
+        }
+    };
+}
+
+function syncStageTypeFields() {
+    const type = stageTypeSelect?.value || 'qualifying';
+    document.querySelectorAll('[data-stage-type-fields]').forEach((section) => {
+        section.hidden = section.dataset.stageTypeFields !== type;
+    });
+}
+
+function populateSquadStageOptions(selectedKey = '') {
+    const select = document.getElementById('squadStageKey');
+    if (!select) return;
+
+    const options = ['<option value="">Qualifying</option>'];
+    currentStages.forEach((rawStage, index) => {
+        const stage = normalizeStage(rawStage, index);
+        currentStages[index] = stage;
+        options.push(`<option value="${escapeHtml(stage.key)}">${escapeHtml(stage.name)} (${escapeHtml(STAGE_TYPE_LABELS[stage.type] || 'Stage')})</option>`);
+    });
+
+    select.innerHTML = options.join('');
+    select.value = selectedKey || '';
+}
+
+function resetStageBuilder() {
+    editingStageIndex = null;
+    document.getElementById('stageBuilderTitle').textContent = 'Add Stage';
+    document.getElementById('stageBuilderCopy').textContent = 'Create each phase manually so the tournament flow matches your event.';
+    if (addStageBtn) addStageBtn.textContent = 'Add Stage';
+
+    document.getElementById('stageName').value = '';
+    document.getElementById('stageType').value = 'qualifying';
+    document.getElementById('stageGames').value = '6';
+    document.getElementById('stageAdvancing').value = '';
+    document.getElementById('stageDescription').value = '';
+    document.getElementById('stageCarryover').checked = false;
+    document.getElementById('stageCarryoverPct').value = '100';
+    document.getElementById('stageQualifyingSpots').value = '';
+    document.getElementById('stageScoresToCount').value = '1';
+    document.getElementById('stageQualifyingLabel').value = '';
+    document.getElementById('stageMatchesPerBowler').value = '7';
+    document.getElementById('stageMatchFormat').value = 'single-game';
+    document.getElementById('stagePositionRoundInterval').value = '0';
+    document.getElementById('stagePointsWin').value = '30';
+    document.getElementById('stagePointsTie').value = '15';
+    document.getElementById('stagePointsLoss').value = '0';
+    document.getElementById('stageIncludePinfall').checked = true;
+    document.getElementById('stageTriRounds').value = '8';
+    document.getElementById('stageTriPointsWin').value = '30';
+    document.getElementById('stageTriPointsMiddle').value = '15';
+    document.getElementById('stageTriPointsLoss').value = '0';
+    document.getElementById('stageTriIncludePinfall').checked = true;
+    document.getElementById('stageEliminationStyle').value = 'single';
+    document.getElementById('stageBracketSize').value = '8';
+    document.getElementById('stageEliminationRounds').value = '3';
+    document.getElementById('stageEliminationFormat').value = 'single-game';
+    document.getElementById('stageStepladderFinalists').value = '5';
+    document.getElementById('stageStepladderFormat').value = 'single-game';
+    document.getElementById('stageStepladderSeedNote').value = '';
+    syncStageTypeFields();
+    populateSquadStageOptions(document.getElementById('squadStageKey')?.value || '');
+}
+
+function buildStageFromInputs() {
+    const type = document.getElementById('stageType').value;
+    const name = document.getElementById('stageName').value.trim() || getDefaultStageName(type);
+    const games = Number(document.getElementById('stageGames').value);
+    if (!games || games < 1) {
+        throw new Error('Please enter a valid number of games for the stage.');
+    }
+
+    const stage = {
+        type,
+        name,
+        description: document.getElementById('stageDescription').value.trim(),
+        games,
+        advancingBowlers: document.getElementById('stageAdvancing').value ? Number(document.getElementById('stageAdvancing').value) : null,
+        carryoverPinfall: document.getElementById('stageCarryover').checked,
+        carryoverPercentage: Number(document.getElementById('stageCarryoverPct').value) || 100,
+        matchPlaySettings: getMatchPlayDefaults(),
+        stageConfig: {}
+    };
+
+    if (type === 'qualifying') {
+        stage.stageConfig = {
+            qualifyingSpots: document.getElementById('stageQualifyingSpots').value ? Number(document.getElementById('stageQualifyingSpots').value) : null,
+            scoresToCount: Number(document.getElementById('stageScoresToCount').value) || 1,
+            cutLineLabel: document.getElementById('stageQualifyingLabel').value.trim()
+        };
+    } else if (type === 'round_robin') {
+        stage.matchPlaySettings = {
+            pointsForWin: Number(document.getElementById('stagePointsWin').value) || 30,
+            pointsForTie: Number(document.getElementById('stagePointsTie').value) || 15,
+            pointsForLoss: Number(document.getElementById('stagePointsLoss').value) || 0,
+            includePinfall: document.getElementById('stageIncludePinfall').checked,
+            matchFormat: document.getElementById('stageMatchFormat').value
+        };
+        stage.stageConfig = {
+            matchesPerBowler: Number(document.getElementById('stageMatchesPerBowler').value) || 1,
+            positionRoundInterval: Number(document.getElementById('stagePositionRoundInterval').value) || 0
+        };
+    } else if (type === 'tri_matchplay') {
+        stage.matchPlaySettings = {
+            pointsForWin: Number(document.getElementById('stageTriPointsWin').value) || 30,
+            pointsForTie: Number(document.getElementById('stageTriPointsMiddle').value) || 15,
+            pointsForLoss: Number(document.getElementById('stageTriPointsLoss').value) || 0,
+            includePinfall: document.getElementById('stageTriIncludePinfall').checked,
+            matchFormat: 'single-game'
+        };
+        stage.stageConfig = {
+            triRounds: Number(document.getElementById('stageTriRounds').value) || games,
+            groupSize: 3
+        };
+    } else if (type === 'elimination') {
+        stage.matchPlaySettings = {
+            ...getMatchPlayDefaults(),
+            matchFormat: document.getElementById('stageEliminationFormat').value
+        };
+        stage.stageConfig = {
+            eliminationStyle: document.getElementById('stageEliminationStyle').value,
+            bracketSize: Number(document.getElementById('stageBracketSize').value) || 2,
+            rounds: Number(document.getElementById('stageEliminationRounds').value) || 1
+        };
+    } else if (type === 'stepladder') {
+        stage.matchPlaySettings = {
+            ...getMatchPlayDefaults(),
+            matchFormat: document.getElementById('stageStepladderFormat').value
+        };
+        stage.stageConfig = {
+            finalists: Number(document.getElementById('stageStepladderFinalists').value) || 2,
+            seedingNote: document.getElementById('stageStepladderSeedNote').value.trim()
+        };
+    }
+
+    return stage;
+}
+
+function handleStageSave() {
+    try {
+        const stage = buildStageFromInputs();
+        if (editingStageIndex === null) {
+            currentStages.push(stage);
+        } else {
+            currentStages[editingStageIndex] = stage;
+        }
+        resetStageBuilder();
+        renderCustomStagesList();
+        populateSquadStageOptions();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+function editCustomStage(index) {
+    const stage = normalizeStage(currentStages[index], index);
+    editingStageIndex = index;
+    document.getElementById('stageBuilderTitle').textContent = 'Edit Stage';
+    document.getElementById('stageBuilderCopy').textContent = 'Adjust the stage settings, then save them back into the tournament flow.';
+    if (addStageBtn) addStageBtn.textContent = 'Update Stage';
+
+    document.getElementById('stageName').value = stage.name;
+    document.getElementById('stageType').value = stage.type;
+    document.getElementById('stageGames').value = stage.games;
+    document.getElementById('stageAdvancing').value = stage.advancingBowlers || '';
+    document.getElementById('stageDescription').value = stage.description || '';
+    document.getElementById('stageCarryover').checked = stage.carryoverPinfall;
+    document.getElementById('stageCarryoverPct').value = stage.carryoverPercentage || 100;
+    document.getElementById('stageQualifyingSpots').value = stage.stageConfig?.qualifyingSpots || '';
+    document.getElementById('stageScoresToCount').value = stage.stageConfig?.scoresToCount || 1;
+    document.getElementById('stageQualifyingLabel').value = stage.stageConfig?.cutLineLabel || '';
+    document.getElementById('stageMatchesPerBowler').value = stage.stageConfig?.matchesPerBowler || 7;
+    document.getElementById('stageMatchFormat').value = stage.matchPlaySettings?.matchFormat || 'single-game';
+    document.getElementById('stagePositionRoundInterval').value = stage.stageConfig?.positionRoundInterval || 0;
+    document.getElementById('stagePointsWin').value = stage.matchPlaySettings?.pointsForWin ?? 30;
+    document.getElementById('stagePointsTie').value = stage.matchPlaySettings?.pointsForTie ?? 15;
+    document.getElementById('stagePointsLoss').value = stage.matchPlaySettings?.pointsForLoss ?? 0;
+    document.getElementById('stageIncludePinfall').checked = stage.matchPlaySettings?.includePinfall !== false;
+    document.getElementById('stageTriRounds').value = stage.stageConfig?.triRounds || 8;
+    document.getElementById('stageTriPointsWin').value = stage.matchPlaySettings?.pointsForWin ?? 30;
+    document.getElementById('stageTriPointsMiddle').value = stage.matchPlaySettings?.pointsForTie ?? 15;
+    document.getElementById('stageTriPointsLoss').value = stage.matchPlaySettings?.pointsForLoss ?? 0;
+    document.getElementById('stageTriIncludePinfall').checked = stage.matchPlaySettings?.includePinfall !== false;
+    document.getElementById('stageEliminationStyle').value = stage.stageConfig?.eliminationStyle || 'single';
+    document.getElementById('stageBracketSize').value = stage.stageConfig?.bracketSize || 8;
+    document.getElementById('stageEliminationRounds').value = stage.stageConfig?.rounds || 3;
+    document.getElementById('stageEliminationFormat').value = stage.matchPlaySettings?.matchFormat || 'single-game';
+    document.getElementById('stageStepladderFinalists').value = stage.stageConfig?.finalists || 5;
+    document.getElementById('stageStepladderFormat').value = stage.matchPlaySettings?.matchFormat || 'single-game';
+    document.getElementById('stageStepladderSeedNote').value = stage.stageConfig?.seedingNote || '';
+    syncStageTypeFields();
+    document.getElementById('stageName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function removeCustomStage(index) {
+    currentStages.splice(index, 1);
+    if (editingStageIndex === index) {
+        resetStageBuilder();
+    }
+    renderCustomStagesList();
+    populateSquadStageOptions();
+}
+
+function moveCustomStage(index, direction) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= currentStages.length) return;
+    const [stage] = currentStages.splice(index, 1);
+    currentStages.splice(targetIndex, 0, stage);
+    renderCustomStagesList();
+    populateSquadStageOptions();
+}
+
+function getStageSummary(stage) {
+    const details = [`${stage.games} game${stage.games === 1 ? '' : 's'}`];
+    if (stage.advancingBowlers) details.push(`Top ${stage.advancingBowlers} advance`);
+    if (stage.carryoverPinfall) details.push(`${stage.carryoverPercentage}% carryover`);
+
+    if (stage.type === 'round_robin') {
+        details.push(`${stage.stageConfig?.matchesPerBowler || 1} matches each`);
+        details.push(MATCH_FORMAT_LABELS[stage.matchPlaySettings?.matchFormat] || 'Single Game');
+    } else if (stage.type === 'tri_matchplay') {
+        details.push(`${stage.stageConfig?.triRounds || stage.games} tri rounds`);
+    } else if (stage.type === 'elimination') {
+        details.push(`${stage.stageConfig?.eliminationStyle || 'single'} elimination`);
+        details.push(`Bracket ${stage.stageConfig?.bracketSize || 2}`);
+    } else if (stage.type === 'stepladder') {
+        details.push(`${stage.stageConfig?.finalists || 2} finalists`);
+        details.push(MATCH_FORMAT_LABELS[stage.matchPlaySettings?.matchFormat] || 'Single Game');
+    }
+
+    return details.join(' • ');
+}
+
+function renderCustomStagesList() {
+    const container = document.getElementById('stagesList');
+    if (!container) return;
+
+    if (currentStages.length === 0) {
+        container.innerHTML = '<div class="stage-empty">No stages added yet. Start with qualifying, then stack any matchplay or finals phases underneath it.</div>';
+        return;
+    }
+
+    container.innerHTML = currentStages.map((rawStage, index) => {
+        const stage = normalizeStage(rawStage, index);
+        const note = stage.description ? `<p class="stage-card-note">${escapeHtml(stage.description)}</p>` : '';
+        return `
+            <article class="stage-card">
+                <div class="stage-card-top">
+                    <div>
+                        <div class="stage-card-order">Stage ${index + 1}</div>
+                        <h5>${escapeHtml(stage.name)}</h5>
+                        <p class="stage-card-type">${escapeHtml(STAGE_TYPE_LABELS[stage.type] || 'Stage')}</p>
+                    </div>
+                    <div class="stage-card-actions">
+                        <button type="button" class="button button-subtle" onclick="moveCustomStage(${index}, -1)" ${index === 0 ? 'disabled' : ''}>Up</button>
+                        <button type="button" class="button button-subtle" onclick="moveCustomStage(${index}, 1)" ${index === currentStages.length - 1 ? 'disabled' : ''}>Down</button>
+                        <button type="button" class="button" onclick="editCustomStage(${index})">Edit</button>
+                        <button type="button" class="btn-delete" onclick="removeCustomStage(${index})">Remove</button>
+                    </div>
+                </div>
+                <p class="stage-card-summary">${escapeHtml(getStageSummary(stage))}</p>
+                ${note}
+            </article>
+        `;
+    }).join('');
+}
+
 function editSquad(index) {
     const squad = currentSquads[index];
     document.getElementById('squadName').value = squad.name;
+    populateSquadStageOptions(squad.stageKey || '');
     document.getElementById('squadDate').value = squad.date;
     document.getElementById('squadTime').value = squad.time;
     document.getElementById('squadCapacity').value = squad.capacity;
-    document.getElementById('squadIsQualifying').checked = squad.isQualifying;
     
     editingSquadIndex = index;
     document.querySelector('#squadsList ~ div button[onclick="addSquad()"]').textContent = 'Update Squad';
@@ -1093,10 +1455,10 @@ function removeSquad(index) {
         document.querySelector('#squadsList ~ div button[onclick="addSquad()"]').textContent = 'Add Squad';
         // Clear inputs
         document.getElementById('squadName').value = '';
+        document.getElementById('squadStageKey').value = '';
         document.getElementById('squadDate').value = '';
         document.getElementById('squadTime').value = '';
         document.getElementById('squadCapacity').value = '';
-        document.getElementById('squadIsQualifying').checked = false;
     }
     currentSquads.splice(index, 1);
     renderSquadsList();
@@ -1111,10 +1473,13 @@ function renderSquadsList() {
 
     container.innerHTML = currentSquads.map((squad, index) => {
         const squadDate = new Date(squad.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const stageBadge = squad.isQualifying
+            ? '<span style="display:inline-flex;align-items:center;margin-left:8px;padding:2px 8px;border-radius:999px;background:#f4c95d;color:#2f2516;font-size:.72rem;font-weight:700">QUALIFYING</span>'
+            : `<span style="display:inline-flex;align-items:center;margin-left:8px;padding:2px 8px;border-radius:999px;background:#dceee9;color:#145449;font-size:.72rem;font-weight:700">${escapeHtml(squad.stageName || 'FORMATTED STAGE')}</span>`;
         return `
             <div style="background:#141a22;padding:10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(255,255,255,.05)">
                 <div>
-                    <strong style="font-size:.9rem">${escapeHtml(squad.name)}</strong>
+                    <strong style="font-size:.9rem">${escapeHtml(squad.name)}</strong>${stageBadge}
                     <span style="color:#b9c6d8;font-size:.85rem;margin-left:8px">
                         ${squadDate} @ ${escapeHtml(squad.time)} • Capacity: ${parseInt(squad.capacity)}
                     </span>
@@ -1168,7 +1533,13 @@ function editTournament(id) {
             if (allowReentry) allowReentry.checked = tournament.allowReentry !== false;
 
             // Load squads
-            currentSquads = tournament.squads || [];
+            currentSquads = (tournament.squads || []).map((squad) => ({
+                ...squad,
+                isQualifying: squad.isQualifying !== false && !squad.stageKey,
+                stageKey: squad.stageKey || null,
+                stageName: squad.stageName || '',
+                stageType: squad.stageType || (squad.isQualifying !== false ? 'qualifying' : '')
+            }));
             renderSquadsList();
             
             // Load format settings
@@ -1186,9 +1557,6 @@ function editTournament(id) {
                 }
             };
             
-            setValueIfExists('gamesPerBowler', format.gamesPerBowler || 6);
-            setValueIfExists('scoringMethod', format.scoringMethod || 'total-pinfall');
-            setValueIfExists('hasStages', hasStages);
             setValueIfExists('useHandicap', format.useHandicap || false);
             setValueIfExists('handicapBase', format.handicapBase || 200);
             setValueIfExists('handicapPercentage', format.handicapPercentage || 90);
@@ -1197,10 +1565,6 @@ function editTournament(id) {
             setValueIfExists('bonusPointsEnabled', format.bonusPoints?.enabled || false);
             setValueIfExists('bonusPerGame', format.bonusPoints?.perGame || 0);
             setValueIfExists('bonusPerSeries', format.bonusPoints?.perSeries || 0);
-            setValueIfExists('pointsForWin', format.matchPlay?.pointsForWin || 30);
-            setValueIfExists('pointsForTie', format.matchPlay?.pointsForTie || 15);
-            setValueIfExists('pointsForLoss', format.matchPlay?.pointsForLoss || 0);
-            setValueIfExists('includePinfall', format.matchPlay?.includePinfall !== false);
             
             // Show/hide sections based on settings
             const handicapOptions = document.getElementById('handicapOptions');
@@ -1209,12 +1573,15 @@ function editTournament(id) {
             if (bonusPointsOptions) bonusPointsOptions.style.display = format.bonusPoints?.enabled ? 'grid' : 'none';
             
             // Load stages
-            currentStages = format.stages || [];
-            renderStagesList();
-            updateFormatSummary();
+            currentStages = (format.stages || []).map((stage, index) => normalizeStage(stage, index));
+            resetStageBuilder();
+            renderCustomStagesList();
+            populateSquadStageOptions();
 
-            // Scroll to form
-            if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const drawerBody = advancedEditorWrap?.querySelector('.editor-drawer-body');
+            if (drawerBody) {
+                drawerBody.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         })
         .catch(error => {
             alert('Failed to load tournament: ' + error.message);
@@ -1222,7 +1589,7 @@ function editTournament(id) {
 }
 
 function cancelEdit() {
-    updateFormModeUI(false);
+    closeEditorDrawer();
     document.getElementById('editingTournamentId').value = '';
     document.getElementById('formTitle').textContent = 'Edit Tournament';
     document.getElementById('submitBtn').textContent = 'Update Tournament';
@@ -1231,18 +1598,15 @@ function cancelEdit() {
     currentSquads = [];
     currentStages = [];
     renderSquadsList();
-    renderStagesList();
+    resetStageBuilder();
+    renderCustomStagesList();
+    populateSquadStageOptions();
     
     // Reset format options
     document.getElementById('useHandicap').checked = false;
     document.getElementById('bonusPointsEnabled').checked = false;
     document.getElementById('handicapOptions').style.display = 'none';
     document.getElementById('bonusPointsOptions').style.display = 'none';
-    document.getElementById('matchPlaySettings').style.display = 'none';
-    
-    // Reset tournament type to custom builder
-    document.getElementById('tournamentType').value = 'custom';
-    applyTournamentPreset();
 }
 
 // Load and display tournaments
@@ -1269,10 +1633,6 @@ async function loadTournaments() {
                 selectTournament(selectedTournamentId);
             } else {
                 selectedTournamentId = null;
-                if (selectedTournamentPanel) {
-                    selectedTournamentPanel.style.display = 'none';
-                    selectedTournamentPanel.innerHTML = '';
-                }
             }
         }
 
