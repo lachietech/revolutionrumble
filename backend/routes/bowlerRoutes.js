@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import Bowler from '../models/Bowler.js';
 import Registration from '../models/Registration.js';
 import TournamentResult from '../models/TournamentResult.js';
@@ -22,10 +23,10 @@ import {
     requireAdmin
 } from '../middleware/auth.js';
 
-async function bowlerRoutes(fastify, options) {
+const router = Router();
 
 // POST request OTP code via email
-fastify.post('/bowlers/request-otp', { config: { rateLimit: otpRequestLimiter } }, async (req, res) => {
+router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
     try {
         const { email } = req.body;
         // Validate and sanitize email
@@ -93,7 +94,7 @@ fastify.post('/bowlers/request-otp', { config: { rateLimit: otpRequestLimiter } 
 });
 
 // POST verify OTP and log in
-fastify.post('/bowlers/verify-otp', { config: { rateLimit: otpVerifyLimiter } }, async (req, res) => {
+router.post('/bowlers/verify-otp', otpVerifyLimiter, async (req, res) => {
     try {
         const { email, otp } = req.body;
         
@@ -157,7 +158,7 @@ fastify.post('/bowlers/verify-otp', { config: { rateLimit: otpVerifyLimiter } },
 });
 
 // GET current bowler session
-fastify.get('/bowlers/session', { config: { rateLimit: generalWriteLimiter } }, (req, res) => {
+router.get('/bowlers/session', generalWriteLimiter, (req, res) => {
     if (req.session.bowlerId) {
         return res.send({
             authenticated: true,
@@ -170,14 +171,14 @@ fastify.get('/bowlers/session', { config: { rateLimit: generalWriteLimiter } }, 
 });
 
 // POST logout
-fastify.post('/bowlers/logout', { config: { rateLimit: generalWriteLimiter } }, (req, res) => {
+router.post('/bowlers/logout', generalWriteLimiter, (req, res) => {
     req.session.bowlerId = undefined;
     req.session.bowlerEmail = undefined;
     return res.send({ success: true });
 });
 
 // GET bowler by email (public - for profile lookup)
-fastify.get('/bowlers/lookup', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
+router.get('/bowlers/lookup', generalWriteLimiter, async (req, res) => {
     try {
         const { email } = req.query;
         // Validate and sanitize email
@@ -200,7 +201,7 @@ fastify.get('/bowlers/lookup', { config: { rateLimit: generalWriteLimiter } }, a
 });
 
 // GET bowler by ID (public)
-fastify.get('/bowlers/:id', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
+router.get('/bowlers/:id', generalWriteLimiter, async (req, res) => {
     try {
         const bowlerId = validateObjectId(req.params.id);
         if (!bowlerId) {
@@ -221,7 +222,7 @@ fastify.get('/bowlers/:id', { config: { rateLimit: generalWriteLimiter } }, asyn
 });
 
 // GET all bowlers (public - for leaderboards, etc.)
-fastify.get('/bowlers', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
+router.get('/bowlers', generalWriteLimiter, async (req, res) => {
     try {
         const bowlers = await Bowler.find()
             .select('playerName nickname email tournamentAverage currentAverage highGame highSeries tournamentsEntered')
@@ -234,7 +235,7 @@ fastify.get('/bowlers', { config: { rateLimit: generalWriteLimiter } }, async (r
 });
 
 // PUT update bowler profile (requires authentication)
-fastify.put('/bowlers/:id', { config: { rateLimit: generalWriteLimiter }, preHandler: [requireBowlerAuth] }, async (req, res) => {
+router.put('/bowlers/:id', generalWriteLimiter, requireBowlerAuth, async (req, res) => {
     try {
         const { playerName, nickname, hand, bio, homeCenter, yearsExperience, currentAverage, highGame, highSeries, gender } = req.body;
 
@@ -287,7 +288,7 @@ fastify.put('/bowlers/:id', { config: { rateLimit: generalWriteLimiter }, preHan
 });
 
 // GET current authenticated bowler's registrations
-fastify.get('/bowlers/my/registrations', { config: { rateLimit: generalWriteLimiter }, preHandler: [requireBowlerAuth] }, async (req, res) => {
+router.get('/bowlers/my/registrations', generalWriteLimiter, requireBowlerAuth, async (req, res) => {
     try {
         // Get bowler to find their email
         const bowler = await Bowler.findById(req.session.bowlerId);
@@ -318,7 +319,7 @@ fastify.get('/bowlers/my/registrations', { config: { rateLimit: generalWriteLimi
 });
 
 // GET bowler tournament history with results
-fastify.get('/bowlers/:id/history', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
+router.get('/bowlers/:id/history', generalWriteLimiter, async (req, res) => {
     try {
         // Validate bowler ID
         const bowlerId = validateObjectId(req.params.id);
@@ -375,7 +376,7 @@ fastify.get('/bowlers/:id/history', { config: { rateLimit: generalWriteLimiter }
 });
 
 // POST create/update tournament result (admin only)
-fastify.post('/results', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
+router.post('/results', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const { bowlerId, tournamentId, registrationId, squadResults, finalPosition, totalParticipants } = req.body;
 
@@ -503,7 +504,7 @@ async function updateBowlerStats(bowlerId) {
 }
 
 // POST admin utility to sync all bowler stats from results
-fastify.post('/bowlers/sync-stats', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
+router.post('/bowlers/sync-stats', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const bowlers = await Bowler.find();
         let syncedCount = 0;
@@ -523,7 +524,7 @@ fastify.post('/bowlers/sync-stats', { config: { rateLimit: strictWriteLimiter },
 });
 
 // POST admin utility to sync bowler names to all registrations
-fastify.post('/bowlers/sync-names', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
+router.post('/bowlers/sync-names', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const bowlers = await Bowler.find();
         let updatedCount = 0;
@@ -546,7 +547,7 @@ fastify.post('/bowlers/sync-names', { config: { rateLimit: strictWriteLimiter },
 });
 
 // GET diagnostic route to check bowler sync status
-fastify.get('/bowlers/check-sync/:email', { config: { rateLimit: generalWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
+router.get('/bowlers/check-sync/:email', generalWriteLimiter, requireAdmin, async (req, res) => {
     try {
         // Sanitize email parameter
         const sanitizedEmail = sanitizeEmail(req.params.email);
@@ -635,7 +636,7 @@ fastify.get('/bowlers/check-sync/:email', { config: { rateLimit: generalWriteLim
 });
 
 // POST fix/link results to bowler by email match
-fastify.post('/bowlers/link-results/:bowlerId', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
+router.post('/bowlers/link-results/:bowlerId', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const bowlerId = validateObjectId(req.params.bowlerId);
         if (!bowlerId) {
@@ -691,7 +692,7 @@ fastify.post('/bowlers/link-results/:bowlerId', { config: { rateLimit: strictWri
 });
 
 // POST find and fix bowler by name (for cases where results have wrong name)
-fastify.post('/bowlers/fix-by-name', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
+router.post('/bowlers/fix-by-name', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const { searchName, correctEmail } = req.body;
         
@@ -752,7 +753,7 @@ fastify.post('/bowlers/fix-by-name', { config: { rateLimit: strictWriteLimiter }
 });
 
 // POST force sync specific email (temporary debug route - remove in production)
-fastify.post('/bowlers/force-sync', { config: { rateLimit: strictWriteLimiter } }, async (req, res) => {
+router.post('/bowlers/force-sync', strictWriteLimiter, async (req, res) => {
     try {
         const { email } = req.body;
         
@@ -846,6 +847,4 @@ fastify.post('/bowlers/force-sync', { config: { rateLimit: strictWriteLimiter } 
     }
 });
 
-}
-
-export default bowlerRoutes;
+export default router;

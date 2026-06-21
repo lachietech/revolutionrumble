@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Email Templates — Admin</title>
     <link rel="stylesheet" href="../static/css/packages/presets.css" />
+    <link rel="stylesheet" href="../static/css/packages/admin-shell.css" />
     <link rel="stylesheet" href="../static/css/packages/navbar.css" />
     <link rel="stylesheet" href="../static/css/mainfiles/admin-tournaments.css" />
     <link rel="stylesheet" href="../static/css/mainfiles/admin-email-templates.css" />
@@ -17,13 +18,13 @@
         </div>
     </header>
 
-    <nav style="background:#141a22;border-bottom:1px solid rgba(255,255,255,.08);padding:12px 0">
-        <div class="container" style="display:flex;gap:16px;align-items:center">
-            <a href="/admin/tournaments" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">🏆 Tournaments</a>
-            <a href="/admin/registrations" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">📋 Registrations</a>
-            <a href="/admin/results" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">🎯 Scores</a>
-            <a href="/admin/email-templates" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:white;background:#3b82f6">📧 Emails</a>
-            <div style="margin-left:auto"><a href="/" style="text-decoration:none;color:#b9c6d8">← Back to Site</a></div>
+    <nav class="admin-nav">
+        <div class="container">
+            <a href="/admin/tournaments" class="admin-nav-link">🏆 Tournaments</a>
+            <a href="/admin/registrations" class="admin-nav-link">📋 Registrations</a>
+            <a href="/admin/results" class="admin-nav-link">🎯 Scores</a>
+            <a href="/admin/email-templates" class="admin-nav-link is-active">📧 Emails</a>
+            <div class="admin-nav-spacer"><a href="/" class="admin-nav-link">← Back to Site</a></div>
         </div>
     </nav>
 

@@ -1,58 +1,57 @@
-// Fastify route-level rate-limit configurations
-export const otpRequestLimiter = {
-    max: 5,
-    timeWindow: 15 * 60 * 1000,
-    errorResponseBuilder: () => ({
-        error: 'Too many OTP requests, please try again later'
-    })
-};
+import rateLimit from 'express-rate-limit';
 
-export const otpVerifyLimiter = {
-    max: 10,
-    timeWindow: 15 * 60 * 1000,
-    errorResponseBuilder: () => ({
-        error: 'Too many verification attempts, please try again later'
-    })
-};
+function createLimiter(max, windowMs, errorMessage) {
+    return rateLimit({
+        windowMs,
+        max,
+        standardHeaders: true,
+        legacyHeaders: false,
+        handler: (req, res) => {
+            return res.status(429).send({ error: errorMessage });
+        }
+    });
+}
 
-export const generalWriteLimiter = {
-    max: 30,
-    timeWindow: 1 * 60 * 1000,
-    errorResponseBuilder: () => ({
-        error: 'Too many requests, please try again later'
-    })
-};
+export const otpRequestLimiter = createLimiter(
+    5,
+    15 * 60 * 1000,
+    'Too many OTP requests, please try again later'
+);
 
-export const strictWriteLimiter = {
-    max: 20,
-    timeWindow: 1 * 60 * 1000,
-    errorResponseBuilder: () => ({
-        error: 'Too many requests, please try again later'
-    })
-};
+export const otpVerifyLimiter = createLimiter(
+    10,
+    15 * 60 * 1000,
+    'Too many verification attempts, please try again later'
+);
 
-export const pageViewLimiter = {
-    max: 120,
-    timeWindow: 1 * 60 * 1000,
-    errorResponseBuilder: () => ({
-        error: 'Too many requests, please try again later'
-    })
-};
+export const generalWriteLimiter = createLimiter(
+    30,
+    1 * 60 * 1000,
+    'Too many requests, please try again later'
+);
 
-export const reservationLimiter = {
-    max: 10,
-    timeWindow: 1 * 60 * 1000,
-    errorResponseBuilder: () => ({
-        error: 'Too many reservation requests, please try again later'
-    })
-};
+export const strictWriteLimiter = createLimiter(
+    20,
+    1 * 60 * 1000,
+    'Too many requests, please try again later'
+);
 
-export const registrationLimiter = {
-    max: 10,
-    timeWindow: 5 * 60 * 1000,
-    errorResponseBuilder: () => ({
-        error: 'Too many registration attempts, please try again later'
-    })
-};
+export const pageViewLimiter = createLimiter(
+    120,
+    1 * 60 * 1000,
+    'Too many requests, please try again later'
+);
+
+export const reservationLimiter = createLimiter(
+    10,
+    1 * 60 * 1000,
+    'Too many reservation requests, please try again later'
+);
+
+export const registrationLimiter = createLimiter(
+    10,
+    5 * 60 * 1000,
+    'Too many registration attempts, please try again later'
+);
 
 

@@ -23,7 +23,7 @@ const backBtn = document.getElementById('back-btn');
 
 function stateMessage(type, msg) {
     message.textContent = msg;
-    message.className = type;
+    message.className = `message-box ${type}`;
     message.style.display = 'block';
 }
 

@@ -19,6 +19,22 @@ const resultsTournamentFilter = document.getElementById('resultsTournamentFilter
 let currentSquads = [];
 let currentStages = [];
 let currentTournamentForResults = null;
+let loadedTournaments = [];
+let currentCalendarDate = new Date();
+
+const calendarGrid = document.getElementById('calendarGrid');
+const calendarMonthLabel = document.getElementById('calendarMonthLabel');
+const calendarPrevBtn = document.getElementById('calendarPrevBtn');
+const calendarNextBtn = document.getElementById('calendarNextBtn');
+const calendarTodayBtn = document.getElementById('calendarTodayBtn');
+const editOnlySection = document.getElementById('editOnlySection');
+const createModeHint = document.getElementById('createModeHint');
+const selectedTournamentPanel = document.getElementById('selectedTournamentPanel');
+const advancedEditorWrap = document.getElementById('advancedEditorWrap');
+const quickAddModal = document.getElementById('quickAddModal');
+const quickAddForm = document.getElementById('quickAddForm');
+const hideEditorBtn = document.getElementById('hideEditorBtn');
+let selectedTournamentId = null;
 
 // Load tournaments on page load
 loadTournaments();
@@ -26,7 +42,238 @@ if (regListContainer) {
     loadRegistrations();
 }
 renderSquadsList(); // Initialize empty squad list
-applyTournamentPreset(); // Initialize with default preset
+applyTournamentPreset(); // Initialize custom builder mode
+updateFormModeUI(false);
+
+if (hideEditorBtn) {
+    hideEditorBtn.addEventListener('click', () => {
+        if (advancedEditorWrap) advancedEditorWrap.style.display = 'none';
+    });
+}
+
+if (quickAddForm) {
+    quickAddForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await createTournamentFromCalendar();
+    });
+}
+
+if (calendarPrevBtn) {
+    calendarPrevBtn.addEventListener('click', () => {
+        currentCalendarDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1, 1);
+        renderTournamentCalendar(loadedTournaments);
+    });
+}
+
+if (calendarNextBtn) {
+    calendarNextBtn.addEventListener('click', () => {
+        currentCalendarDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 1);
+        renderTournamentCalendar(loadedTournaments);
+    });
+}
+
+if (calendarTodayBtn) {
+    calendarTodayBtn.addEventListener('click', () => {
+        currentCalendarDate = new Date();
+        renderTournamentCalendar(loadedTournaments);
+    });
+}
+
+function toDateOnlyKey(value) {
+    if (typeof value === 'string') {
+        const isoMatch = value.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (isoMatch) return isoMatch[1];
+    }
+    const d = new Date(value);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatSquadTime(timeValue) {
+    if (!timeValue) return '';
+    const [hours, minutes] = String(timeValue).split(':').map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeValue;
+    const isPm = hours >= 12;
+    const h = hours % 12 || 12;
+    return `${h}:${String(minutes).padStart(2, '0')} ${isPm ? 'PM' : 'AM'}`;
+}
+
+function updateFormModeUI(isEditing) {
+    if (advancedEditorWrap) {
+        advancedEditorWrap.style.display = isEditing ? 'block' : 'none';
+    }
+    if (editOnlySection) {
+        editOnlySection.style.display = isEditing ? 'block' : 'none';
+    }
+    if (createModeHint) {
+        createModeHint.style.display = isEditing ? 'none' : 'block';
+    }
+}
+
+function beginCreateFromDate(dateKey) {
+    openQuickAddModal(dateKey);
+}
+
+function openQuickAddModal(dateKey) {
+    if (!quickAddModal) return;
+    const startEl = document.getElementById('quickAddStartDate');
+    const endEl = document.getElementById('quickAddEndDate');
+    if (startEl) startEl.value = dateKey;
+    if (endEl) endEl.value = dateKey;
+    quickAddModal.style.display = 'block';
+    const nameEl = document.getElementById('quickAddName');
+    if (nameEl) nameEl.focus();
+}
+
+function closeQuickAddModal() {
+    if (!quickAddModal) return;
+    quickAddModal.style.display = 'none';
+    if (quickAddForm) quickAddForm.reset();
+}
+
+async function createTournamentFromCalendar() {
+    try {
+        const payload = {
+            name: document.getElementById('quickAddName').value,
+            location: document.getElementById('quickAddLocation').value,
+            startDate: document.getElementById('quickAddStartDate').value,
+            endDate: document.getElementById('quickAddEndDate').value,
+            status: document.getElementById('quickAddStatus').value,
+            maxParticipants: document.getElementById('quickAddMaxParticipants').value ? Number(document.getElementById('quickAddMaxParticipants').value) : null,
+            description: document.getElementById('quickAddDescription').value || ''
+        };
+
+        const response = await fetch('/api/tournaments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to create tournament');
+        }
+
+        closeQuickAddModal();
+        await loadTournaments();
+    } catch (error) {
+        alert('Failed to create tournament: ' + error.message);
+    }
+}
+
+function selectTournament(id) {
+    selectedTournamentId = id;
+    renderTournamentCalendar(loadedTournaments);
+    const selected = loadedTournaments.find(t => t._id === id);
+    if (!selectedTournamentPanel || !selected) return;
+
+    const start = new Date(selected.startDate || selected.date);
+    const end = new Date(selected.endDate || selected.startDate || selected.date);
+    const dateRange = start.toDateString() === end.toDateString()
+        ? start.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
+
+    selectedTournamentPanel.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+            <div>
+                <h3 style="margin:0 0 6px">${escapeHtml(selected.name)}</h3>
+                <p style="margin:0 0 4px;color:#5c5548">${escapeHtml(dateRange)} • ${escapeHtml(selected.location || 'No location')}</p>
+                <p style="margin:0;color:#5c5548">Status: <span class="status-badge status-${escapeHtml(selected.status || 'upcoming')}">${escapeHtml(selected.status || 'upcoming')}</span></p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button type="button" class="button" onclick="editTournament('${selected._id}')">Edit Tournament</button>
+                <button type="button" class="btn-delete" onclick="deleteTournament('${selected._id}')">Delete</button>
+            </div>
+        </div>
+    `;
+    selectedTournamentPanel.style.display = 'block';
+}
+
+function renderTournamentCalendar(tournaments) {
+    if (!calendarGrid || !calendarMonthLabel) return;
+
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    const firstOfMonth = new Date(year, month, 1);
+    const monthStartDay = firstOfMonth.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    const todayKey = toDateOnlyKey(new Date());
+
+    calendarMonthLabel.textContent = firstOfMonth.toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
+    });
+
+    const headers = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        .map(day => `<div class="calendar-head">${day}</div>`)
+        .join('');
+
+    let dayCells = '';
+
+    for (let i = 0; i < 42; i++) {
+        let dayNumber;
+        let cellDate;
+        let isOtherMonth = false;
+
+        if (i < monthStartDay) {
+            dayNumber = prevMonthDays - monthStartDay + i + 1;
+            cellDate = new Date(year, month - 1, dayNumber);
+            isOtherMonth = true;
+        } else if (i >= monthStartDay + daysInMonth) {
+            dayNumber = i - (monthStartDay + daysInMonth) + 1;
+            cellDate = new Date(year, month + 1, dayNumber);
+            isOtherMonth = true;
+        } else {
+            dayNumber = i - monthStartDay + 1;
+            cellDate = new Date(year, month, dayNumber);
+        }
+
+        const dateKey = toDateOnlyKey(cellDate);
+        const isToday = dateKey === todayKey;
+
+        const tournamentsForDay = tournaments.filter(t => {
+            if (!t.startDate && !t.date) return false;
+            const start = toDateOnlyKey(t.startDate || t.date);
+            const end = toDateOnlyKey(t.endDate || t.startDate || t.date);
+            const inDateRange = dateKey >= start && dateKey <= end;
+            const hasSquadOnDay = (t.squads || []).some(s => s.date && toDateOnlyKey(s.date) === dateKey);
+            return inDateRange || hasSquadOnDay;
+        });
+
+        const chips = tournamentsForDay.slice(0, 2).map(t => {
+            const isSelected = t._id === selectedTournamentId;
+            const squadTimes = (t.squads || [])
+                .filter(s => s.date && toDateOnlyKey(s.date) === dateKey)
+                .slice(0, 2)
+                .map(s => `<div class="calendar-squad-time">${escapeHtml(s.name || 'Squad')} • ${escapeHtml(formatSquadTime(s.time || ''))}</div>`)
+                .join('');
+
+            return `
+                <div class="calendar-tournament-chip" style="${isSelected ? 'border-color:#b3361f;background:#f6e2d7' : ''}">
+                    <button type="button" onclick="event.stopPropagation(); selectTournament('${t._id}')">${escapeHtml(t.name)}</button>
+                    ${squadTimes}
+                </div>
+            `;
+        }).join('');
+
+        const extraCount = tournamentsForDay.length - 2;
+        const moreLabel = extraCount > 0 ? `<div class="calendar-more">+${extraCount} more</div>` : '';
+
+        dayCells += `
+            <div class="calendar-day ${isOtherMonth ? 'is-other-month' : ''} ${isToday ? 'is-today' : ''}" onclick="beginCreateFromDate('${dateKey}')">
+                <div class="calendar-day-number">${dayNumber}</div>
+                ${chips}
+                ${moreLabel}
+            </div>
+        `;
+    }
+
+    calendarGrid.innerHTML = headers + dayCells;
+}
 
 // Auto-fill squad date from tournament start date
 document.getElementById('startDate').addEventListener('change', (e) => {
@@ -48,15 +295,16 @@ document.getElementById('bonusPointsEnabled').addEventListener('change', (e) => 
 // Handle form submission
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
     const editingId = document.getElementById('editingTournamentId').value;
-    const isEditing = !!editingId;
-    
-    // Calculate total games from stages
-    const totalGames = currentStages.length > 0 
+    if (!editingId) {
+        alert('Please select a tournament from the calendar before editing.');
+        return;
+    }
+
+    const totalGames = currentStages.length > 0
         ? currentStages.reduce((sum, stage) => sum + stage.games, 0)
         : 6;
-    
+
     const formData = {
         name: form.name.value,
         startDate: form.startDate.value,
@@ -79,7 +327,6 @@ form.addEventListener('submit', async (e) => {
                 capacity: s.capacity,
                 isQualifying: s.isQualifying
             };
-            // Only include _id if it's a valid MongoDB ObjectId (24 hex characters)
             if (s._id && s._id.length === 24 && /^[0-9a-fA-F]{24}$/.test(s._id)) {
                 squad._id = s._id;
             }
@@ -99,7 +346,7 @@ form.addEventListener('submit', async (e) => {
                 perGame: Number(document.getElementById('bonusPerGame').value) || 0,
                 perSeries: Number(document.getElementById('bonusPerSeries').value) || 0
             },
-            scoringMethod: 'total-pinfall', // Default scoring method
+            scoringMethod: 'total-pinfall',
             matchPlay: {
                 pointsForWin: Number(document.getElementById('pointsForWin').value) || 30,
                 pointsForTie: Number(document.getElementById('pointsForTie').value) || 15,
@@ -110,11 +357,8 @@ form.addEventListener('submit', async (e) => {
     };
 
     try {
-        const url = isEditing ? `/api/tournaments/${editingId}` : '/api/tournaments';
-        const method = isEditing ? 'PUT' : 'POST';
-        
-        const response = await fetch(url, {
-            method: method,
+        const response = await fetch(`/api/tournaments/${editingId}`, {
+            method: 'PUT',
             headers: { 
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': csrfToken
@@ -124,18 +368,9 @@ form.addEventListener('submit', async (e) => {
         });
 
         if (response.ok) {
-            form.reset();
-            currentSquads = [];
-            currentStages = [];
-            renderSquadsList();
-            renderStagesList();
-            cancelEdit();
-            loadTournaments();
-            loadRegistrations();
-            // Reset tournament type dropdown
-            document.getElementById('tournamentType').value = 'single-block';
-            applyTournamentPreset();
-            alert(isEditing ? 'Tournament updated successfully!' : 'Tournament added successfully!');
+            await loadTournaments();
+            selectTournament(editingId);
+            alert('Tournament updated successfully!');
         } else {
             const error = await response.json();
             alert('Error: ' + error.error + '\n\nYour form data has been preserved.');
@@ -195,76 +430,25 @@ function addSquad() {
 function applyTournamentPreset() {
     const type = document.getElementById('tournamentType').value;
     const descriptions = {
-        'single-block': 'Simple tournament with one block of games for all bowlers',
-        'multi-block': 'Multiple qualifying blocks (e.g., Block 1, Block 2, Block 3) with combined standings',
-        'qualifying-finals': 'Qualifying round with top bowlers advancing to a final block',
-        'triple-crown': 'Three-stage tournament: Qualifying → Semifinals → Finals (common in majors)',
-        'match-play': 'Head-to-head matches with points awarded for wins/ties/losses',
-        'round-robin': 'Round robin format where each bowler plays every other bowler',
-        'bracket-single': 'Single elimination bracket - lose once and you\'re eliminated',
-        'bracket-double': 'Double elimination - you get a second chance in losers bracket',
-        'stepladder': 'TV-style elimination: 5th vs 4th, winner vs 3rd, etc.',
-        'stepladder-extended': 'Extended stepladder with top 8 bowlers (7v8, 6vW, 5vW, etc.)',
-        'full-tournament': 'Complete format: Qualifying → Finals → Match Play → Stepladder',
-        'team-baker': 'Team Baker format with alternating bowlers per frame',
         'custom': 'Build your own tournament with custom stages'
     };
 
     document.getElementById('typeDescription').textContent = descriptions[type] || '';
-
-    // Reset everything
-    currentStages = [];
-    renderStagesList();
     
-    // Hide/show sections based on type
-    document.getElementById('customStagesSection').style.display = type === 'custom' ? 'block' : 'none';
-    document.getElementById('quickSettings').style.display = type !== 'custom' ? 'block' : 'none';
-    document.getElementById('multiBlockSettings').style.display = type === 'multi-block' ? 'block' : 'none';
-    document.getElementById('matchPlaySettings').style.display = 
-        ['match-play', 'round-robin', 'bracket-single', 'bracket-double', 'full-tournament'].includes(type) ? 'block' : 'none';
-    document.getElementById('formatSummary').style.display = type !== 'custom' ? 'block' : 'none';
-
-    // Apply preset stages based on type
-    switch(type) {
-        case 'single-block':
-            applySingleBlockPreset();
-            break;
-        case 'multi-block':
-            applyMultiBlockPreset();
-            break;
-        case 'qualifying-finals':
-            applyQualifyingFinalsPreset();
-            break;
-        case 'triple-crown':
-            applyTripleCrownPreset();
-            break;
-        case 'match-play':
-            applyMatchPlayPreset();
-            break;
-        case 'round-robin':
-            applyRoundRobinPreset();
-            break;
-        case 'bracket-single':
-            applySingleEliminationPreset();
-            break;
-        case 'bracket-double':
-            applyDoubleEliminationPreset();
-            break;
-        case 'stepladder':
-            applyStepladderPreset();
-            break;
-        case 'stepladder-extended':
-            applyExtendedStepladderPreset();
-            break;
-        case 'full-tournament':
-            applyFullTournamentPreset();
-            break;
-        case 'team-baker':
-            applyTeamBakerPreset();
-            break;
+    // Force custom builder mode and keep existing stages untouched.
+    if (type !== 'custom') {
+        document.getElementById('tournamentType').value = 'custom';
     }
+    document.getElementById('customStagesSection').style.display = 'block';
+    const quickSettings = document.getElementById('quickSettings');
+    if (quickSettings) quickSettings.style.display = 'none';
+    const multiBlockSettings = document.getElementById('multiBlockSettings');
+    if (multiBlockSettings) multiBlockSettings.style.display = 'none';
+    document.getElementById('matchPlaySettings').style.display = 'none';
+    document.getElementById('formatSummary').style.display = 'block';
 
     renderStagesList();
+    updateFormatSummary();
 }
 
 function applySingleBlockPreset() {
@@ -799,17 +983,20 @@ function addStage() {
     document.getElementById('stageCarryoverPct').value = '100';
 
     renderStagesList();
+    updateFormatSummary();
 }
 
 function removeStage(index) {
     currentStages.splice(index, 1);
     renderStagesList();
+    updateFormatSummary();
 }
 
 function renderStagesList() {
     const container = document.getElementById('stagesList');
     if (currentStages.length === 0) {
         container.innerHTML = '<p style="color:#888;text-align:center;padding:8px;font-size:.85rem">No stages added yet</p>';
+        updateFormatSummary();
         return;
     }
     
@@ -826,6 +1013,8 @@ function renderStagesList() {
             </div>
         </div>
     `).join('');
+
+    updateFormatSummary();
 }
 
 let editingStageIndex = null;
@@ -953,6 +1142,7 @@ function editTournament(id) {
     fetch(`/api/tournaments/${id}`)
         .then(res => res.json())
         .then(tournament => {
+            updateFormModeUI(true);
             editingIdField.value = id;
             formTitle.textContent = 'Edit Tournament';
             const submitBtn = document.getElementById('submitBtn');
@@ -1021,6 +1211,7 @@ function editTournament(id) {
             // Load stages
             currentStages = format.stages || [];
             renderStagesList();
+            updateFormatSummary();
 
             // Scroll to form
             if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1031,9 +1222,10 @@ function editTournament(id) {
 }
 
 function cancelEdit() {
+    updateFormModeUI(false);
     document.getElementById('editingTournamentId').value = '';
-    document.getElementById('formTitle').textContent = 'Add New Tournament';
-    document.getElementById('submitBtn').textContent = 'Add Tournament';
+    document.getElementById('formTitle').textContent = 'Edit Tournament';
+    document.getElementById('submitBtn').textContent = 'Update Tournament';
     document.getElementById('cancelBtn').style.display = 'none';
     form.reset();
     currentSquads = [];
@@ -1048,8 +1240,8 @@ function cancelEdit() {
     document.getElementById('bonusPointsOptions').style.display = 'none';
     document.getElementById('matchPlaySettings').style.display = 'none';
     
-    // Reset tournament type to default
-    document.getElementById('tournamentType').value = 'single-block';
+    // Reset tournament type to custom builder
+    document.getElementById('tournamentType').value = 'custom';
     applyTournamentPreset();
 }
 
@@ -1068,6 +1260,21 @@ async function loadTournaments() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const tournaments = await response.json();
+        loadedTournaments = tournaments;
+        renderTournamentCalendar(tournaments);
+
+        if (selectedTournamentId) {
+            const exists = tournaments.some(t => t._id === selectedTournamentId);
+            if (exists) {
+                selectTournament(selectedTournamentId);
+            } else {
+                selectedTournamentId = null;
+                if (selectedTournamentPanel) {
+                    selectedTournamentPanel.style.display = 'none';
+                    selectedTournamentPanel.innerHTML = '';
+                }
+            }
+        }
 
         // Update registration filter dropdown (if it exists)
         if (regFilterSelect) {
@@ -1089,6 +1296,10 @@ async function loadTournaments() {
                     const dateRange = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
                     return `<option value="${t._id}">${t.name} (${dateRange})</option>`;
                 }).join('');
+        }
+
+        if (!listContainer) {
+            return;
         }
 
         if (tournaments.length === 0) {
@@ -1167,6 +1378,7 @@ async function loadTournaments() {
         }).join('');
     } catch (error) {
         console.error('Error loading tournaments:', error);
+        if (!listContainer) return;
         const errorP = document.createElement('p');
         errorP.style.cssText = 'color:#c92a2a;text-align:center';
         errorP.textContent = `Failed to load tournaments: ${error.message}`;

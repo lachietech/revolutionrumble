@@ -1,4 +1,4 @@
-import path from 'path';
+import { Router } from 'express';
 import AdminSession from '../models/AdminSession.js';
 import {
     pageViewLimiter,
@@ -12,68 +12,68 @@ import {
     requireAdmin
 } from '../middleware/auth.js';
 
-async function mainroutes(fastify, options) {
+const router = Router();
 
 // Home page
-fastify.get('/', { config: { rateLimit: pageViewLimiter } }, (req, res) => {
+router.get('/', pageViewLimiter, (req, res) => {
     return res.sendFile('index.html');
 });
 
-fastify.get('/register', { config: { rateLimit: pageViewLimiter } }, (req, res) => {
+router.get('/register', pageViewLimiter, (req, res) => {
     return res.sendFile('register.html');
 });
 
-fastify.get('/playerstats', { config: { rateLimit: pageViewLimiter } }, (req, res) => {
+router.get('/playerstats', pageViewLimiter, (req, res) => {
     return res.redirect('/results?tab=stats');
 });
 
-fastify.get('/bowlerstats', { config: { rateLimit: pageViewLimiter } }, (req, res) => {
+router.get('/bowlerstats', pageViewLimiter, (req, res) => {
     return res.redirect('/results?tab=stats');
 });
 
-fastify.get('/bowler-hub', { config: { rateLimit: pageViewLimiter } }, (req, res) => {
+router.get('/bowler-hub', pageViewLimiter, (req, res) => {
     return res.sendFile('bowler-hub.html');
 });
 
-fastify.get('/results', { config: { rateLimit: pageViewLimiter } }, (req, res) => {
+router.get('/results', pageViewLimiter, (req, res) => {
     return res.sendFile('results.html');
 });
 
-fastify.get('/events', { config: { rateLimit: pageViewLimiter } }, (req, res) => {
+router.get('/events', pageViewLimiter, (req, res) => {
     return res.sendFile('events.html');
 });
 
-fastify.get('/squads', { config: { rateLimit: pageViewLimiter } }, (req, res) => {
+router.get('/squads', pageViewLimiter, (req, res) => {
     return res.sendFile('squads.html');
 });
 
 // Admin login page
-fastify.get('/admin', { config: { rateLimit: pageViewLimiter } }, (req, res) => {
+router.get('/admin', pageViewLimiter, (req, res) => {
     return res.redirect('/admin/login');
 });
-fastify.get('/admin/login', { config: { rateLimit: pageViewLimiter } }, (req, res) => {
+router.get('/admin/login', pageViewLimiter, (req, res) => {
     return res.sendFile('admin-login.html');
 });
 
 // Get CSRF token (public endpoint)
-fastify.get('/api/csrf-token', { config: { rateLimit: pageViewLimiter } }, async (req, res) => {
-    const token = await res.generateCsrf();
+router.get('/api/csrf-token', pageViewLimiter, async (req, res) => {
+    const token = typeof req.csrfToken === 'function' ? req.csrfToken() : '';
     console.log('CSRF token request - token available:', !!token);
     return res.send({ csrfToken: token || '' });
 });
 
 // Get available admin email options (no email shown for security)
-fastify.get('/admin/email-options', { config: { rateLimit: otpVerifyLimiter } }, async (req, res) => {
+router.get('/admin/email-options', otpVerifyLimiter, async (req, res) => {
     const allowedEmails = getAllowedAdminEmails();
     const options = allowedEmails.map((email, index) => {
         return { id: index, label: `Admin ${index + 1}` };
     });
-    const csrfToken = await res.generateCsrf();
+    const csrfToken = typeof req.csrfToken === 'function' ? req.csrfToken() : '';
     return res.send({ options, csrfToken: csrfToken || '' });
 });
 
 // Request admin OTP
-fastify.post('/admin/request-otp', { config: { rateLimit: otpVerifyLimiter } }, async (req, res) => {
+router.post('/admin/request-otp', otpVerifyLimiter, async (req, res) => {
     try {
         const { emailIndex } = req.body;
         if (emailIndex === undefined) {
@@ -130,7 +130,7 @@ fastify.post('/admin/request-otp', { config: { rateLimit: otpVerifyLimiter } }, 
 });
 
 // Verify admin OTP
-fastify.post('/admin/verify-otp', { config: { rateLimit: otpVerifyLimiter } }, async (req, res) => {
+router.post('/admin/verify-otp', otpVerifyLimiter, async (req, res) => {
     try {
         const { emailIndex, otp } = req.body;
         if (emailIndex === undefined || !otp) {
@@ -211,28 +211,26 @@ fastify.post('/admin/verify-otp', { config: { rateLimit: otpVerifyLimiter } }, a
 });
 
 // Admin logout
-fastify.get('/admin/logout', { config: { rateLimit: otpVerifyLimiter } }, async (req, res) => {
+router.get('/admin/logout', otpVerifyLimiter, async (req, res) => {
     await req.session.destroy();
     return res.redirect('/');
 });
 
 // Admin sub-pages (protected)
-fastify.get('/admin/tournaments', { config: { rateLimit: pageViewLimiter }, preHandler: [requireAdmin] }, (req, res) => {
+router.get('/admin/tournaments', pageViewLimiter, requireAdmin, (req, res) => {
     return res.sendFile('admin-tournaments.html');
 });
 
-fastify.get('/admin/registrations', { config: { rateLimit: pageViewLimiter }, preHandler: [requireAdmin] }, (req, res) => {
+router.get('/admin/registrations', pageViewLimiter, requireAdmin, (req, res) => {
     return res.sendFile('admin-registrations.html');
 });
 
-fastify.get('/admin/results', { config: { rateLimit: pageViewLimiter }, preHandler: [requireAdmin] }, (req, res) => {
+router.get('/admin/results', pageViewLimiter, requireAdmin, (req, res) => {
     return res.sendFile('admin-results.html');
 });
 
-fastify.get('/admin/email-templates', { config: { rateLimit: pageViewLimiter }, preHandler: [requireAdmin] }, (req, res) => {
+router.get('/admin/email-templates', pageViewLimiter, requireAdmin, (req, res) => {
     return res.sendFile('admin/admin-email-templates.html');
 });
 
-}
-
-export default mainroutes;
+export default router;

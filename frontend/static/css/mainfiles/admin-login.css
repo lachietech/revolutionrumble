@@ -1,42 +1,107 @@
-body{
-    font-family:system-ui,Segoe UI,Roboto,Arial;
-    background:#0b0b0c;
-    color:#e9eef7;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    height:100vh;
-    margin:0;
+.login-shell {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 22px;
 }
-.card{
-    background:#111;
-    padding:28px;
-    border-radius:12px;
-    box-shadow:0 10px 30px rgba(0,0,0,.6);
-    width:320px;
-    max-width: 90%;
+
+.login-card {
+    width: min(460px, 94vw);
+    padding: 28px;
 }
-input{
-    width:100%;
-    padding-top:10px;
-    padding-bottom: 10px;
-    border-radius:8px;
-    border:1px solid rgba(255,255,255,.06);
-    background:transparent;
-    color:inherit;
+
+.login-title {
+    text-align: center;
+    margin: 0 0 14px;
 }
-button{
-    margin-top:12px;
-    width:100%;
-    padding-top:10px;
-    padding-bottom: 10px;
-    border-radius:8px;
-    border:0;
-    background:var(--blue-600);
-    color:white;
-    font-weight:700;
+
+.login-subtitle {
+    text-align: center;
+    color: #6a6255;
+    margin: 0 0 18px;
 }
-button:hover{
-    background:var(--blue-700);
-    cursor:pointer;
+
+#email-buttons {
+    display: grid;
+    gap: 10px;
+}
+
+.email-option-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #d1c4ab;
+    background: #fffbf3;
+    color: #3a3329;
+    font: 600 0.92rem/1 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+}
+
+.email-option-btn:hover {
+    background: #f8f0e2;
+    border-color: #b3361f;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    font-size: 1rem;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+}
+
+.button-secondary {
+    background: #6d675a;
+}
+
+.button-secondary:hover {
+    background: #5f584d;
+}
+
+.loading-block {
+    text-align: center;
+    padding: 16px;
+}
+
+.spinner {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e0d8c8;
+    border-top-color: #b3361f;
+    border-radius: 999px;
+    animation: spin 1s linear infinite;
+}
+
+.message-box {
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.is-hidden {
+    display: none;
+}
+
+.success {
+    background: #d4eee8;
+    color: #145347;
+    border-left: 4px solid #1d7a6b;
+}
+
+.error {
+    background: #f5d9d2;
+    color: #6d1f11;
+    border-left: 4px solid #bb3a23;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }

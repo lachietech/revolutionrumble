@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Tournament Management — Admin — Revolution Rumble</title>
         <link rel="stylesheet" href="/static/css/packages/presets.css" />
+        <link rel="stylesheet" href="/static/css/packages/admin-shell.css" />
         <link rel="stylesheet" href="/static/css/mainfiles/admin-tournaments.css" />
     </head>
     <body>
@@ -15,26 +16,47 @@
             </div>
         </header>
 
-        <nav style="background:#141a22;border-bottom:1px solid rgba(255,255,255,.08);padding:12px 0">
-            <div class="container" style="display:flex;gap:16px;align-items:center">
-                <a href="/admin/tournaments" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:white;background:#3b82f6">🏆 Tournaments</a>
-                <a href="/admin/registrations" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">📋 Registrations</a>
-                <a href="/admin/results" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">🎯 Scores</a>
-                <a href="/admin/email-templates" style="padding:8px 16px;border-radius:6px;text-decoration:none;color:#b9c6d8;transition:all .2s" onmouseover="this.style.background='rgba(59,130,246,.1)'" onmouseout="this.style.background=''">📧 Emails</a>
-                <div style="margin-left:auto"><a href="/" style="text-decoration:none;color:#b9c6d8">← Back to Site</a></div>
+        <nav class="admin-nav">
+            <div class="container">
+                <a href="/admin/tournaments" class="admin-nav-link is-active">🏆 Tournaments</a>
+                <a href="/admin/registrations" class="admin-nav-link">📋 Registrations</a>
+                <a href="/admin/results" class="admin-nav-link">🎯 Scores</a>
+                <a href="/admin/email-templates" class="admin-nav-link">📧 Emails</a>
+                <div class="admin-nav-spacer"><a href="/" class="admin-nav-link">← Back to Site</a></div>
             </div>
         </nav>
 
-        <main class="container" style="margin-top:20px">
+        <main class="container admin-main">
 
             <!-- Tournament Management -->
             <div class="card">
                 <h2 style="margin-top:0">🏆 Tournament Management</h2>
+
+                <section class="calendar-wrap">
+                    <div class="calendar-toolbar">
+                        <div>
+                            <h3 style="margin:0">Tournament Calendar</h3>
+                            <p style="margin:4px 0 0;font-size:.85rem;color:#6b6458">Click a day to add a tournament. Select a tournament chip, then use Edit Tournament for advanced setup.</p>
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <button type="button" class="button" id="calendarPrevBtn" style="padding:6px 10px">←</button>
+                            <strong id="calendarMonthLabel" style="min-width:150px;text-align:center">Month Year</strong>
+                            <button type="button" class="button" id="calendarNextBtn" style="padding:6px 10px">→</button>
+                            <button type="button" class="button" id="calendarTodayBtn" style="padding:6px 10px">Today</button>
+                        </div>
+                    </div>
+                    <div id="calendarGrid" class="calendar-grid">
+                        <p style="margin:0;color:#6b6458">Loading calendar...</p>
+                    </div>
+                </section>
+
+                <section id="selectedTournamentPanel" class="selected-tournament-panel" style="display:none"></section>
                 
-                <!-- Add/Edit Tournament Form -->
+                <!-- Advanced Edit Form (hidden until a tournament is selected) -->
+                <div id="advancedEditorWrap" style="display:none;margin-top:16px">
                 <form id="tournamentForm">
                     <input type="hidden" id="editingTournamentId" value="">
-                    <h3 id="formTitle" style="margin-bottom:16px">Add New Tournament</h3>
+                    <h3 id="formTitle" style="margin-bottom:16px">Edit Tournament</h3>
                     
                     <div class="form-grid">
                         <div class="form-group">
@@ -74,6 +96,10 @@
                             <label for="registrationDeadline">Registration Deadline</label>
                             <input type="date" id="registrationDeadline" name="registrationDeadline">
                         </div>
+                    </div>
+
+                    <div id="editOnlySection">
+                    <div class="form-grid">
                         <div class="form-group">
                             <label for="entryFee">Entry Fee ($)</label>
                             <input type="number" id="entryFee" name="entryFee" min="0" step="0.01" placeholder="0.00">
@@ -104,28 +130,16 @@
                     <!-- Tournament Format Configuration -->
                     <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)">
                         <h4 style="margin:0 0 8px 0;color:var(--blue-500)">⚙️ Tournament Format</h4>
-                        <p style="margin:0 0 16px;font-size:.85rem;color:#b9c6d8">Choose a tournament style and customize as needed</p>
+                        <p style="margin:0 0 16px;font-size:.85rem;color:#b9c6d8">Build your tournament format manually by adding custom stages</p>
                         
                         <!-- Tournament Type Selector -->
                         <div class="form-group" style="margin-bottom:20px">
-                            <label for="tournamentType" style="font-weight:600;font-size:.95rem">Tournament Type</label>
+                            <label for="tournamentType" style="font-weight:600;font-size:.95rem">Format Mode</label>
                             <select id="tournamentType" onchange="applyTournamentPreset()" style="font-size:.95rem;padding:10px">
-                                <option value="single-block">Single Block (Simple qualifying, one block of games)</option>
-                                <option value="multi-block">Multi-Block Qualifying (Multiple qualifying blocks)</option>
-                                <option value="qualifying-finals">Qualifying + Finals (Cut to top bowlers for finals)</option>
-                                <option value="triple-crown">Triple Crown (Qualifying → Semifinals → Finals)</option>
-                                <option value="match-play">Match Play Tournament (Head-to-head matches)</option>
-                                <option value="round-robin">Round Robin (Everyone plays everyone)</option>
-                                <option value="bracket-single">Single Elimination Bracket (Win or go home)</option>
-                                <option value="bracket-double">Double Elimination Bracket (2 lives)</option>
-                                <option value="stepladder">Stepladder Finals (TV-style top 5)</option>
-                                <option value="stepladder-extended">Extended Stepladder (Top 8)</option>
-                                <option value="full-tournament">Full Tournament (Qualifying → Finals → Match Play → Stepladder)</option>
-                                <option value="team-baker">Team Baker Format (Team game format)</option>
-                                <option value="custom">Custom (Build your own)</option>
+                                <option value="custom">Custom Builder</option>
                             </select>
                             <small style="display:block;margin-top:6px;color:#b9c6d8" id="typeDescription">
-                                Simple tournament with one block of games for all bowlers
+                                Build your own tournament with custom stages
                             </small>
                         </div>
 
@@ -197,46 +211,7 @@
                             </div>
                         </div>
 
-                        <!-- Quick Settings (for preset formats) -->
-                        <div id="quickSettings" style="margin-bottom:16px">
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
-                                <div class="form-group" style="margin:0">
-                                    <label for="qualifyingGames">Qualifying Games</label>
-                                    <input type="number" id="qualifyingGames" min="1" value="6">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label for="advancingBowlers">Bowlers Advancing</label>
-                                    <input type="number" id="advancingBowlers" min="1" value="16">
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label for="finalsGames">Finals Games</label>
-                                    <input type="number" id="finalsGames" min="1" value="6">
-                                </div>
-                            </div>
-                            <button type="button" class="button" onclick="applyTournamentPreset()" style="width:100%;padding:8px;font-size:.9rem;background:var(--blue-600)">
-                                🔄 Update Format with New Values
-                            </button>
-                            <small style="display:block;margin-top:6px;color:#b9c6d8;text-align:center">Adjust the values above and click to update the tournament stages</small>
-                        </div>
-
-                        <!-- Multi-Block Settings (for multi-block format) -->
-                        <div id="multiBlockSettings" style="display:none;margin-bottom:16px">
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-                                <div class="form-group" style="margin:0">
-                                    <label for="numberOfBlocks">Number of Qualifying Blocks</label>
-                                    <input type="number" id="numberOfBlocks" min="2" max="10" value="3">
-                                    <small style="display:block;margin-top:4px;color:#b9c6d8">Each block will have the same number of games</small>
-                                </div>
-                                <div class="form-group" style="margin:0">
-                                    <label for="qualifyingGamesMulti">Games Per Block</label>
-                                    <input type="number" id="qualifyingGamesMulti" min="1" value="6">
-                                </div>
-                            </div>
-                            <button type="button" class="button" onclick="applyTournamentPreset()" style="width:100%;padding:8px;font-size:.9rem;background:var(--blue-600)">
-                                🔄 Update Format with New Values
-                            </button>
-                            <small style="display:block;margin-top:6px;color:#b9c6d8;text-align:center">Adjust the values above and click to update the tournament blocks</small>
-                        </div>
+                        <!-- Preset quick settings removed: all formats are now built manually via custom stages -->
 
                         <!-- Advanced Options -->
                         <div style="background:rgba(255,255,255,.02);padding:12px;border-radius:8px;margin-bottom:12px">
@@ -326,19 +301,62 @@
                             </div>
                         </div>
                     </div>
+                    </div>
 
                     <div style="display:flex;gap:8px;margin-top:16px">
-                        <button type="submit" class="button" id="submitBtn">Add Tournament</button>
+                        <button type="submit" class="button" id="submitBtn">Update Tournament</button>
                         <button type="button" class="button" onclick="cancelEdit()" id="cancelBtn" style="display:none;background:#6c757d">Cancel Edit</button>
+                        <button type="button" class="button" id="hideEditorBtn" style="background:#6c757d">Hide Editor</button>
                     </div>
                 </form>
+                </div>
+            </div>
 
-                <!-- Tournament List -->
-                <div style="margin-top:24px">
-                    <h3 style="margin-bottom:12px">Scheduled Tournaments</h3>
-                    <div id="tournamentList" class="tournament-list">
-                        <p style="color:#b9c6d8;text-align:center">Loading tournaments...</p>
-                    </div>
+            <div id="quickAddModal" class="quick-add-modal" style="display:none">
+                <div class="quick-add-backdrop" onclick="closeQuickAddModal()"></div>
+                <div class="quick-add-dialog">
+                    <h3 style="margin-top:0">Add Tournament</h3>
+                    <p style="margin-top:-6px;color:#6b6458;font-size:.85rem">Basic info only. Advanced setup is available from Edit Tournament.</p>
+                    <form id="quickAddForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="quickAddName">Tournament Name *</label>
+                                <input id="quickAddName" type="text" required placeholder="Logan City Cup 2026">
+                            </div>
+                            <div class="form-group">
+                                <label for="quickAddLocation">Location *</label>
+                                <input id="quickAddLocation" type="text" required placeholder="Logan City Tenpin">
+                            </div>
+                            <div class="form-group">
+                                <label for="quickAddStartDate">Start Date *</label>
+                                <input id="quickAddStartDate" type="date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="quickAddEndDate">End Date *</label>
+                                <input id="quickAddEndDate" type="date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="quickAddStatus">Status</label>
+                                <select id="quickAddStatus">
+                                    <option value="upcoming">Upcoming</option>
+                                    <option value="ongoing">Ongoing</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="quickAddMaxParticipants">Max Participants</label>
+                                <input id="quickAddMaxParticipants" type="number" placeholder="Optional">
+                            </div>
+                            <div class="form-group full">
+                                <label for="quickAddDescription">Description</label>
+                                <textarea id="quickAddDescription" rows="3" placeholder="Optional details..."></textarea>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:8px;justify-content:flex-end">
+                            <button type="button" class="button" style="background:#6c757d" onclick="closeQuickAddModal()">Cancel</button>
+                            <button type="submit" class="button">Create Tournament</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </main>

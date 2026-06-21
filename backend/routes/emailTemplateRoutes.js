@@ -1,13 +1,14 @@
+import { Router } from 'express';
 import EmailTemplate from '../models/EmailTemplate.js';
 import { sanitizeString } from '../middleware/validation.js';
 
-async function emailTemplateRoutes(fastify, options) {
+const router = Router();
 
 /**
  * GET /api/email-templates
  * Get all email templates
  */
-fastify.get('/email-templates', async (req, res) => {
+router.get('/email-templates', async (req, res) => {
     try {
         const templates = await EmailTemplate.find();
         res.send(templates);
@@ -21,7 +22,7 @@ fastify.get('/email-templates', async (req, res) => {
  * GET /api/email-templates/:name
  * Get a specific email template by name
  */
-fastify.get('/email-templates/:name', async (req, res) => {
+router.get('/email-templates/:name', async (req, res) => {
     try {
         const template = await EmailTemplate.findOne({ name: req.params.name });
         if (!template) {
@@ -38,7 +39,7 @@ fastify.get('/email-templates/:name', async (req, res) => {
  * PUT /api/email-templates/:name
  * Update an email template
  */
-fastify.put('/email-templates/:name', async (req, res) => {
+router.put('/email-templates/:name', async (req, res) => {
     try {
         const { subject, htmlBody, textBody } = req.body;
         
@@ -81,7 +82,7 @@ fastify.put('/email-templates/:name', async (req, res) => {
  * POST /api/email-templates/preview
  * Preview an email template with sample data
  */
-fastify.post('/email-templates/preview', async (req, res) => {
+router.post('/email-templates/preview', async (req, res) => {
     try {
         const { subject, htmlBody, textBody } = req.body;
         
@@ -119,6 +120,4 @@ fastify.post('/email-templates/preview', async (req, res) => {
     }
 });
 
-}
-
-export default emailTemplateRoutes;
+export default router;

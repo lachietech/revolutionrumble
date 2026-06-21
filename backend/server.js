@@ -1,11 +1,8 @@
-import Fastify from 'fastify';
-import fastifyStatic from '@fastify/static';
-import fastifySession from '@fastify/session';
-import fastifyCookie from '@fastify/cookie';
-import fastifyCsrf from '@fastify/csrf-protection';
-import fastifyCompress from '@fastify/compress';
-import fastifyFormbody from '@fastify/formbody';
-import fastifyRateLimit from '@fastify/rate-limit';
+import express from 'express';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
+import compression from 'compression';
+import csurf from 'csurf';
 import dotenv from 'dotenv';
 import path from 'path';
 import mainroutes from './routes/mainroutes.js';
@@ -23,38 +20,40 @@ const sessionSecret = rawSessionSecret.length >= 32
     : rawSessionSecret.padEnd(32, '_');
 const isProduction = process.env.NODE_ENV === 'production';
 
-const fastify = Fastify({
-    logger: true,
-    trustProxy: true
-});
+const app = express();
+app.set('trust proxy', true);
 
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('✅ MongoDB connected'))
     .catch(err => console.error('MongoDB connection error:', err));
 
-// Register plugins
-await fastify.register(fastifyCompress);
-await fastify.register(fastifyFormbody);
-await fastify.register(fastifyCookie);
-await fastify.register(fastifySession, {
+// Core middleware
+app.use(compression());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(session({
     secret: sessionSecret,
     saveUninitialized: false,
+    resave: false,
     cookie: {
         secure: isProduction,
         httpOnly: true,
         sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
-});
-await fastify.register(fastifyRateLimit, { global: false });
-await fastify.register(fastifyStatic, {
-    root: path.join(import.meta.dirname, '../frontend'),
-    decorateReply: true
-});
-// CSRF - uses session to store secret; reads token from X-CSRF-Token header
-await fastify.register(fastifyCsrf, {
-    sessionPlugin: '@fastify/session',
-    getToken: (req) => req.headers['x-csrf-token'] || req.body?._csrf
+}));
+
+const frontendRoot = path.join(import.meta.dirname, '../frontend');
+app.use(express.static(frontendRoot));
+
+app.use((req, res, next) => {
+    const originalSendFile = res.sendFile.bind(res);
+    res.sendFile = (filePath, ...args) => {
+        const normalized = path.isAbsolute(filePath) ? filePath : path.join(frontendRoot, filePath);
+        return originalSendFile(normalized, ...args);
+    };
+    next();
 });
 
 // Apply CSRF globally to all unsafe methods except OTP endpoints
@@ -64,25 +63,35 @@ const csrfExemptPaths = new Set([
     '/api/bowlers/request-otp',
     '/api/bowlers/verify-otp'
 ]);
-fastify.addHook('preHandler', async (req, reply) => {
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return;
-    if (csrfExemptPaths.has(req.url.split('?')[0])) return;
-    return fastify.csrfProtection(req, reply);
+const csrfProtection = csurf({
+    value: (req) => req.headers['x-csrf-token'] || req.body?._csrf
+});
+app.use((req, res, next) => {
+    if (csrfExemptPaths.has(req.path)) return next();
+    csrfProtection(req, res, next);
 });
 
-// Routes
-await fastify.register(mainroutes);
-await fastify.register(tournamentRoutes, { prefix: '/api' });
-await fastify.register(registrationRoutes, { prefix: '/api' });
-await fastify.register(bowlerRoutes, { prefix: '/api' });
-await fastify.register(emailTemplateRoutes, { prefix: '/api' });
+app.use(mainroutes);
+app.use('/api', tournamentRoutes);
+app.use('/api', registrationRoutes);
+app.use('/api', bowlerRoutes);
+app.use('/api', emailTemplateRoutes);
+
+app.use((err, req, res, next) => {
+    if (err && err.code === 'EBADCSRFTOKEN') {
+        return res.status(403).send({ error: 'Invalid CSRF token' });
+    }
+    console.error(err);
+    return res.status(500).send({ error: err.message || 'Internal server error' });
+});
 
 async function start() {
     try {
-        await fastify.listen({ port: 5000, host: '0.0.0.0' });
-        console.log('Server started on port 5000');
+        app.listen(5000, '0.0.0.0', () => {
+            console.log('Server started on port 5000');
+        });
     } catch (err) {
-        fastify.log.error(err);
+        console.error(err);
         process.exit(1);
     }
 }

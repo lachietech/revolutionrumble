@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import Tournament from '../models/Tournament.js';
 import Registration from '../models/Registration.js';
 import SpotReservation from '../models/SpotReservation.js';
@@ -12,10 +13,10 @@ import {
     requireAdmin 
 } from '../middleware/auth.js';
 
-async function tournamentRoutes(fastify, options) {
+const router = Router();
 
 // GET all tournaments
-fastify.get('/tournaments', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
+router.get('/tournaments', generalWriteLimiter, async (req, res) => {
     try {
         const tournaments = await Tournament.find().sort({ startDate: 1 });
         return res.send(tournaments);
@@ -25,7 +26,7 @@ fastify.get('/tournaments', { config: { rateLimit: generalWriteLimiter } }, asyn
 });
 
 // GET single tournament by ID
-fastify.get('/tournaments/:id', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
+router.get('/tournaments/:id', generalWriteLimiter, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
@@ -42,7 +43,7 @@ fastify.get('/tournaments/:id', { config: { rateLimit: generalWriteLimiter } }, 
 });
 
 // POST create new tournament (admin only)
-fastify.post('/tournaments', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
+router.post('/tournaments', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const tournament = new Tournament(req.body);
         await tournament.save();
@@ -53,7 +54,7 @@ fastify.post('/tournaments', { config: { rateLimit: strictWriteLimiter }, preHan
 });
 
 // PUT update tournament (admin only)
-fastify.put('/tournaments/:id', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
+router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
@@ -115,7 +116,7 @@ fastify.put('/tournaments/:id', { config: { rateLimit: strictWriteLimiter }, pre
         
         // Status - allowlist validation
         if (req.body.status !== undefined) {
-            const validStatuses = ['upcoming', 'active', 'completed', 'cancelled'];
+            const validStatuses = ['upcoming', 'ongoing', 'completed'];
             if (validStatuses.includes(req.body.status)) {
                 updateData.status = req.body.status;
             }
@@ -144,7 +145,7 @@ fastify.put('/tournaments/:id', { config: { rateLimit: strictWriteLimiter }, pre
 });
 
 // POST manually open registration for a tournament (admin only)
-fastify.post('/tournaments/:id/open-registration', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
+router.post('/tournaments/:id/open-registration', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
@@ -169,7 +170,7 @@ fastify.post('/tournaments/:id/open-registration', { config: { rateLimit: strict
 });
 
 // POST manually close registration for a tournament (admin only)
-fastify.post('/tournaments/:id/close-registration', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
+router.post('/tournaments/:id/close-registration', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
@@ -194,7 +195,7 @@ fastify.post('/tournaments/:id/close-registration', { config: { rateLimit: stric
 });
 
 // DELETE tournament (admin only)
-fastify.delete('/tournaments/:id', { config: { rateLimit: strictWriteLimiter }, preHandler: [requireAdmin] }, async (req, res) => {
+router.delete('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
@@ -211,7 +212,7 @@ fastify.delete('/tournaments/:id', { config: { rateLimit: strictWriteLimiter }, 
 });
 
 // GET squad availability for a tournament (public)
-fastify.get('/tournaments/:id/squads/availability', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
+router.get('/tournaments/:id/squads/availability', generalWriteLimiter, async (req, res) => {
     try {
         const tournamentId = validateObjectId(req.params.id);
         if (!tournamentId) {
@@ -287,7 +288,7 @@ fastify.get('/tournaments/:id/squads/availability', { config: { rateLimit: gener
 });
 
 // GET squad lists with bowler names (public)
-fastify.get('/tournaments/:id/squads/list', { config: { rateLimit: generalWriteLimiter } }, async (req, res) => {
+router.get('/tournaments/:id/squads/list', generalWriteLimiter, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
@@ -353,6 +354,4 @@ fastify.get('/tournaments/:id/squads/list', { config: { rateLimit: generalWriteL
     }
 });
 
-}
-
-export default tournamentRoutes;
+export default router;

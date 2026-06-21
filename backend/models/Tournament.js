@@ -203,26 +203,25 @@ const tournamentSchema = new mongoose.Schema({
 });
 
 // Pre-save hook to auto-populate date field from startDate for backwards compatibility
-tournamentSchema.pre('save', function(next) {
-    // Ensure we have at least one date field
+tournamentSchema.pre('save', function() {
+    // Ensure we have at least one date field.
     if (!this.startDate && !this.date) {
-        return next(new Error('Tournament must have a start date'));
+        throw new Error('Tournament must have a start date');
     }
-    
-    // If startDate exists but date doesn't, copy startDate to date
+
+    // If startDate exists but date doesn't, copy startDate to date.
     if (this.startDate && !this.date) {
         this.date = this.startDate;
     }
-    // If date exists but startDate doesn't (old records), copy date to startDate/endDate
+    // If date exists but startDate doesn't (old records), copy date to startDate/endDate.
     if (this.date && !this.startDate) {
         this.startDate = this.date;
         this.endDate = this.date;
     }
-    // If endDate doesn't exist, default to startDate
+    // If endDate doesn't exist, default to startDate.
     if (this.startDate && !this.endDate) {
         this.endDate = this.startDate;
     }
-    next();
 });
 
 export default mongoose.model('Tournament', tournamentSchema);
