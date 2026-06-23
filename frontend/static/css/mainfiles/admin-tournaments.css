@@ -491,18 +491,21 @@
 }
 
 .editor-section [style*="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto"],
-.editor-section [style*="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto"] {
+.editor-section [style*="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto"],
+.editor-section [style*="display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto"] {
     gap: 10px !important;
 }
 
 .editor-section [style*="grid-template-columns:1fr 1fr 1fr"],
 .editor-section [style*="grid-template-columns:2fr 1fr 1fr 1fr 1fr auto"],
-.editor-section [style*="grid-template-columns:2fr 1fr 1fr 1fr auto"] {
+.editor-section [style*="grid-template-columns:2fr 1fr 1fr 1fr auto"],
+.editor-section [style*="grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto"] {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
 }
 
 .editor-section [style*="grid-template-columns:2fr 1fr 1fr 1fr 1fr auto"] > :last-child,
-.editor-section [style*="grid-template-columns:2fr 1fr 1fr 1fr auto"] > :last-child {
+.editor-section [style*="grid-template-columns:2fr 1fr 1fr 1fr auto"] > :last-child,
+.editor-section [style*="grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto"] > :last-child {
     min-width: 0;
 }
 
@@ -673,7 +676,8 @@ body.admin-drawer-open {
 
     .editor-section [style*="grid-template-columns:1fr 1fr 1fr"],
     .editor-section [style*="grid-template-columns:2fr 1fr 1fr 1fr 1fr auto"],
-    .editor-section [style*="grid-template-columns:2fr 1fr 1fr 1fr auto"] {
+    .editor-section [style*="grid-template-columns:2fr 1fr 1fr 1fr auto"],
+    .editor-section [style*="grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto"] {
         grid-template-columns: 1fr !important;
     }
 

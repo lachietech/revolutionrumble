@@ -27,5 +27,7 @@ const spotReservationSchema = new mongoose.Schema({
 
 // Auto-delete expired reservations
 spotReservationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+spotReservationSchema.index({ tournament: 1, expiresAt: 1 });
+spotReservationSchema.index({ tournament: 1, expiresAt: 1, squads: 1 });
 
 export default mongoose.model('SpotReservation', spotReservationSchema);

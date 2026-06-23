@@ -214,6 +214,13 @@ body {
     .squad-card {
         padding: 16px;
     }
+
+    .capacity-info,
+    .bowler-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -229,5 +236,9 @@ body {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
+    }
+
+    .container {
+        margin: 28px auto 40px;
     }
 }

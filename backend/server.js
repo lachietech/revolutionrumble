@@ -1,5 +1,6 @@
 import express from 'express';
 import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import csurf from 'csurf';
@@ -14,28 +15,47 @@ import mongoose from 'mongoose';
 
 dotenv.config();
 
-const rawSessionSecret = process.env.SECRET_KEY || 'development-session-secret';
+const isProduction = process.env.NODE_ENV === 'production';
+const rawSessionSecret = process.env.SECRET_KEY || '';
+
+if (isProduction && rawSessionSecret.length < 32) {
+    throw new Error('SECRET_KEY must be at least 32 characters in production');
+}
+
+if (!process.env.MONGO_URI) {
+    throw new Error('MONGO_URI is required');
+}
+
 const sessionSecret = rawSessionSecret.length >= 32
     ? rawSessionSecret
-    : rawSessionSecret.padEnd(32, '_');
-const isProduction = process.env.NODE_ENV === 'production';
+    : 'development-session-secret'.padEnd(32, '_');
+const trustProxy = Number(process.env.TRUST_PROXY_HOPS || 0);
 
 const app = express();
-app.set('trust proxy', true);
+app.set('trust proxy', trustProxy);
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, {
+    maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE) || 10,
+    serverSelectionTimeoutMS: 10000
+})
     .then(() => console.log('✅ MongoDB connected'))
     .catch(err => console.error('MongoDB connection error:', err));
 
 // Core middleware
 app.use(compression());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 app.use(session({
     secret: sessionSecret,
     saveUninitialized: false,
     resave: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        collectionName: 'sessions',
+        ttl: 24 * 60 * 60,
+        autoRemove: 'native'
+    }),
     cookie: {
         secure: isProduction,
         httpOnly: true,
@@ -45,7 +65,10 @@ app.use(session({
 }));
 
 const frontendRoot = path.join(import.meta.dirname, '../frontend');
-app.use(express.static(frontendRoot));
+app.use(express.static(frontendRoot, {
+    etag: true,
+    maxAge: isProduction ? '1d' : 0
+}));
 
 app.use((req, res, next) => {
     const originalSendFile = res.sendFile.bind(res);
@@ -82,7 +105,7 @@ app.use((err, req, res, next) => {
         return res.status(403).send({ error: 'Invalid CSRF token' });
     }
     console.error(err);
-    return res.status(500).send({ error: err.message || 'Internal server error' });
+    return res.status(500).send({ error: 'Internal server error' });
 });
 
 async function start() {

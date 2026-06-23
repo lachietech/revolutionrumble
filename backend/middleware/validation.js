@@ -139,7 +139,6 @@ export function validateGender(gender) {
     }
     
     return sanitized;
-    return sanitized;
 }
 
 /**

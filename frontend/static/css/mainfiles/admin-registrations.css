@@ -167,4 +167,13 @@
     .registration-card-list {
         display: grid;
     }
+
+    .registration-card-header,
+    .registration-card-row {
+        flex-direction: column;
+    }
+
+    .registration-card-value {
+        text-align: left;
+    }
 }

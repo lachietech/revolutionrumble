@@ -92,7 +92,9 @@ tournamentResultSchema.post('save', async function(doc) {
         const TournamentResult = mongoose.model('TournamentResult');
         
         // Get all results for this bowler
-        const results = await TournamentResult.find({ bowler: doc.bowler });
+        const results = await TournamentResult.find({ bowler: doc.bowler })
+            .select('totalPins totalGames highGame highSeries')
+            .lean();
         
         let totalPins = 0;
         let totalGames = 0;
@@ -124,5 +126,9 @@ tournamentResultSchema.post('save', async function(doc) {
         console.error('Error updating bowler stats after result save:', error);
     }
 });
+
+tournamentResultSchema.index({ bowler: 1, tournament: 1 });
+tournamentResultSchema.index({ tournament: 1 });
+tournamentResultSchema.index({ registration: 1 });
 
 export default mongoose.model('TournamentResult', tournamentResultSchema);

@@ -20,8 +20,9 @@ import {
     strictWriteLimiter,
     registrationLimiter
 } from '../middleware/ratelimiters.js';
-import { 
-    requireAdmin 
+import {
+    requireAdmin,
+    requireAdminApi
 } from '../middleware/auth.js';
 
 
@@ -31,6 +32,12 @@ const router = Router();
 router.post('/reservations', reservationLimiter, async (req, res) => {
     try {
         const { tournamentId, squads } = req.body;
+        const validTournamentId = validateObjectId(tournamentId);
+        const validSquads = validateObjectIdArray(squads);
+
+        if (!validTournamentId) {
+            return res.status(400).send({ error: 'Invalid tournament ID' });
+        }
         
         // Generate or use session ID
         let sessionId = req.session.reservationId;
@@ -41,6 +48,7 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
         
         // Check if session already has an active reservation
         const existingReservation = await SpotReservation.findOne({
+            tournament: validTournamentId,
             sessionId,
             expiresAt: { $gt: new Date() }
         });
@@ -55,8 +63,8 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
         // Create new reservation (expires in 10 minutes)
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
         const reservation = new SpotReservation({
-            tournament: tournamentId,
-            squads: squads || [],
+            tournament: validTournamentId,
+            squads: validSquads,
             sessionId,
             expiresAt
         });
@@ -69,7 +77,7 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
             message: 'Spot reserved for 10 minutes'
         });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -93,7 +101,7 @@ router.get('/reservations/:sessionId', generalWriteLimiter, async (req, res) => 
             expiresAt: reservation.expiresAt
         });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -103,7 +111,7 @@ router.delete('/reservations/:sessionId', reservationLimiter, async (req, res) =
         await SpotReservation.deleteOne({ sessionId: req.params.sessionId });
         return res.send({ success: true, message: 'Reservation released' });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -111,30 +119,41 @@ router.delete('/reservations/:sessionId', reservationLimiter, async (req, res) =
 // GET all registrations for a specific tournament (public - for displaying count)
 router.get('/tournaments/:tournamentId/registrations/count', generalWriteLimiter, async (req, res) => {
     try {
+        const tournamentId = validateObjectId(req.params.tournamentId);
+        if (!tournamentId) {
+            return res.status(400).send({ error: 'Invalid tournament ID' });
+        }
+
         const count = await Registration.countDocuments({
-            tournament: req.params.tournamentId,
+            tournament: tournamentId,
             status: { $in: ['pending', 'confirmed'] }
         });
         return res.send({ count });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
-// GET registrations for a tournament (public - for results page)
-router.get('/tournaments/:tournamentId/registrations', generalWriteLimiter, async (req, res) => {
+// GET registrations for a tournament (admin only - includes emails)
+router.get('/tournaments/:tournamentId/registrations', generalWriteLimiter, requireAdminApi, async (req, res) => {
     try {
+        const tournamentId = validateObjectId(req.params.tournamentId);
+        if (!tournamentId) {
+            return res.status(400).send({ error: 'Invalid tournament ID' });
+        }
+
         const registrations = await Registration.find({
-            tournament: req.params.tournamentId,
+            tournament: tournamentId,
             status: { $in: ['pending', 'confirmed'] }
         })
             .populate('bowler', '_id')
             .select('playerName email bowler assignedSquads')
-            .sort({ playerName: 1 });
+            .sort({ playerName: 1 })
+            .lean();
         
         return res.send(registrations);
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -153,11 +172,12 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
         }
 
         const registrations = await Registration.find({
-            tournament: req.params.tournamentId,
+            tournament: tournamentId,
             status: { $in: ['pending', 'confirmed'] }
         })
             .select('playerName email gender averageScore assignedSquads stageScores currentStage')
-            .sort({ playerName: 1 });
+            .sort({ playerName: 1 })
+            .lean();
 
         // Format results by stage
         const stages = tournament.format?.stages || [];
@@ -309,7 +329,7 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
             });
         }
     } catch (error) {
-        res.status(500).send({ error: error.message });
+        res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -336,7 +356,7 @@ router.get('/registrations', generalWriteLimiter, requireAdmin, async (req, res)
         
             return res.send(registrations);
     } catch (error) {
-        res.status(500).send({ error: error.message });
+        res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -358,7 +378,7 @@ router.get('/registrations/:id', generalWriteLimiter, requireAdmin, async (req, 
         
             return res.send(registration);
     } catch (error) {
-        res.status(500).send({ error: error.message });
+        res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -593,7 +613,7 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
         if (error.code === 11000) {
             return res.status(400).send({ error: 'You have already registered for this tournament' });
         }
-        res.status(500).send({ error: error.message });
+        res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -608,21 +628,10 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
             return res.status(400).send({ error: 'Invalid registration ID' });
         }
         
-        console.log('PUT /registrations/:id - Received:', { 
-            id: registrationId, 
-            stageScores, 
-            currentStage 
-        });
-        
         const registration = await Registration.findById(registrationId);
         if (!registration) {
             return res.status(404).send({ error: 'Registration not found' });
         }
-
-        console.log('Registration before update:', {
-            id: registration._id,
-            currentStageScores: registration.stageScores
-        });
 
         // Update basic fields with validation
         if (status !== undefined) {
@@ -672,8 +681,6 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
             // Validate handicap
             const validHandicap = validateInteger(handicap, 0, 200) || 0;
             
-            console.log('Processing stageScores:', { stageIndex: validStageIndex, scores: validScores, bonusPins: validBonusPins, handicap: validHandicap });
-            
             // Find or create stage score entry
             let stageScoreEntry = registration.stageScores.find(s => s.stageIndex === validStageIndex);
             
@@ -682,7 +689,6 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
                 stageScoreEntry.bonusPins = validBonusPins;
                 stageScoreEntry.handicap = validHandicap;
                 stageScoreEntry.total = validScores.reduce((sum, s) => sum + s, 0);
-                console.log('Updated existing stage entry:', stageScoreEntry);
             } else {
                 const newEntry = {
                     stageIndex: validStageIndex,
@@ -693,7 +699,6 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
                     carryover: 0
                 };
                 registration.stageScores.push(newEntry);
-                console.log('Created new stage entry:', newEntry);
             }
         }
 
@@ -729,15 +734,10 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
         await registration.save();
         await registration.populate('tournament');
 
-        console.log('Registration after save:', {
-            id: registration._id,
-            stageScores: registration.stageScores
-        });
-
         return res.send(registration);
     } catch (error) {
         console.error('Error updating registration:', error);
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -769,7 +769,7 @@ router.put('/registrations/:id/payment-status', strictWriteLimiter, requireAdmin
         if (!registration) return res.status(404).send({ error: 'Registration not found' });
         return res.send(registration);
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -848,7 +848,7 @@ router.put('/registrations/:id/squads', generalWriteLimiter, async (req, res) =>
 
         return res.send(registration);
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -887,7 +887,7 @@ router.delete('/registrations/:id/cancel', generalWriteLimiter, async (req, res)
 
         return res.send({ message: 'Registration cancelled successfully' });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -908,8 +908,9 @@ router.delete('/registrations/:id', strictWriteLimiter, requireAdmin, async (req
 
         return res.send({ message: 'Registration deleted successfully' });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
 export default router;
+

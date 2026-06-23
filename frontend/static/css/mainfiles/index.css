@@ -5,9 +5,11 @@ HERO
 .media-swap {
     position: relative;
     max-width: 800px; /* tweak as needed */
+    width: 100%;
     aspect-ratio: 16 / 9; /* keeps layout stable before load */
     overflow: hidden;
     background: var(--grey-900);
+    border-radius: 20px;
 }
 
 .media-swap video,
@@ -218,5 +220,38 @@ RESPONSIVE
     .rings {
         width: 60%;
         height: 60%;
+    }
+}
+
+@media (max-width: 640px) {
+    .hero {
+        padding: 40px 0 48px;
+    }
+
+    .hero-grid {
+        gap: 24px;
+    }
+
+    .hero .cta {
+        flex-direction: column;
+    }
+
+    .hero .cta .btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .countdown {
+        gap: 10px;
+    }
+
+    .timebox {
+        flex: 1 1 calc(50% - 10px);
+        min-width: 0;
+    }
+
+    .partner {
+        width: min(100%, 180px);
+        height: 96px;
     }
 }

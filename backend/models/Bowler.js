@@ -70,4 +70,6 @@ bowlerSchema.pre('save', function(next) {
     next();
 });
 
+bowlerSchema.index({ tournamentAverage: -1 });
+
 export default mongoose.model('Bowler', bowlerSchema);

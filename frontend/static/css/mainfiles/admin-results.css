@@ -206,4 +206,9 @@
     .results-group {
         padding: 14px;
     }
+
+    .results-advance .button,
+    .results-advance .btn {
+        width: 100%;
+    }
 }

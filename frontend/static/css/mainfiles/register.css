@@ -119,6 +119,7 @@ body {
     border-radius: 8px;
     padding: 16px;
     margin-bottom: 8px;
+    overflow: hidden;
 }
 
 /* Registration Choice */
@@ -190,6 +191,10 @@ body {
     
     .page-header h1 {
         font-size: 2rem;
+    }
+
+    .registration-choice {
+        padding: 28px 0;
     }
 }
 
@@ -512,6 +517,15 @@ textarea {
 }
 
 @media (max-width: 768px) {
+    .page-header {
+        padding: 44px 0 30px;
+    }
+
+    .tournament-section {
+        margin: 28px auto 40px;
+        padding: 0 16px;
+    }
+
     .reg-form {
         grid-template-columns: 1fr;
     }
@@ -522,5 +536,35 @@ textarea {
 
     .spots-info {
         width: 100%;
+    }
+
+    .submit-btn,
+    .btn-primary,
+    .btn-secondary {
+        width: 100%;
+    }
+
+    .signin-toggle,
+    .squad-name {
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 520px) {
+    .tournament-card {
+        padding: 18px;
+        border-radius: 14px;
+    }
+
+    .squad-option {
+        padding: 12px;
+    }
+
+    .squad-option label {
+        gap: 10px;
+    }
+
+    .squad-details {
+        line-height: 1.5;
     }
 }

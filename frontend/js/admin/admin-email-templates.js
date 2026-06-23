@@ -67,7 +67,6 @@ async function loadTemplate() {
             document.getElementById('textBody').value = template.textBody || '';
         } else if (response.status === 404) {
             // Template doesn't exist yet, leave fields empty
-            console.log('No template found, using defaults');
         } else {
             showNotification('Failed to load template', 'error');
         }

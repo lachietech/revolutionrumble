@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import Tournament from '../models/Tournament.js';
 import Registration from '../models/Registration.js';
 import SpotReservation from '../models/SpotReservation.js';
@@ -18,10 +19,10 @@ const router = Router();
 // GET all tournaments
 router.get('/tournaments', generalWriteLimiter, async (req, res) => {
     try {
-        const tournaments = await Tournament.find().sort({ startDate: 1 });
+        const tournaments = await Tournament.find().sort({ startDate: 1 }).lean();
         return res.send(tournaments);
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -34,11 +35,11 @@ router.get('/tournaments/:id', generalWriteLimiter, async (req, res) => {
             return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
-        const tournament = await Tournament.findById(tournamentId);
+        const tournament = await Tournament.findById(tournamentId).lean();
         if (!tournament) return res.status(404).send({ error: 'Tournament not found' });
         return res.send(tournament);
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -165,7 +166,7 @@ router.post('/tournaments/:id/open-registration', strictWriteLimiter, requireAdm
 
         return res.send({ message: 'Registration opened successfully', tournament });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -190,7 +191,7 @@ router.post('/tournaments/:id/close-registration', strictWriteLimiter, requireAd
 
         return res.send({ message: 'Registration closed successfully', tournament });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -207,7 +208,7 @@ router.delete('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, 
         if (!tournament) return res.status(404).send({ error: 'Tournament not found' });
         return res.send({ message: 'Tournament deleted successfully' });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -219,42 +220,25 @@ router.get('/tournaments/:id/squads/availability', generalWriteLimiter, async (r
             return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
-        const tournament = await Tournament.findById(tournamentId);
+        const tournament = await Tournament.findById(tournamentId).lean();
         if (!tournament) return res.status(404).send({ error: 'Tournament not found' });
 
-        // Get all confirmed registrations for this tournament
-        const registrations = await Registration.find({
-            tournament: tournamentId,
-            status: { $in: ['pending', 'confirmed'] }
-        });
-        
-        // Get active reservations
-        const activeReservations = await SpotReservation.find({
-            tournament: req.params.id,
-            expiresAt: { $gt: new Date() }
-        });
+        const objectTournamentId = new mongoose.Types.ObjectId(tournamentId);
+        const [registeredCounts, reservedCounts] = await Promise.all([
+            Registration.aggregate([
+                { $match: { tournament: objectTournamentId, status: { $in: ['pending', 'confirmed'] } } },
+                { $unwind: '$assignedSquads' },
+                { $group: { _id: '$assignedSquads', count: { $sum: 1 } } }
+            ]),
+            SpotReservation.aggregate([
+                { $match: { tournament: objectTournamentId, expiresAt: { $gt: new Date() } } },
+                { $unwind: '$squads' },
+                { $group: { _id: '$squads', count: { $sum: 1 } } }
+            ])
+        ]);
 
-        // Count registrations per squad
-        const squadCounts = {};
-        registrations.forEach(reg => {
-            if (reg.assignedSquads && reg.assignedSquads.length > 0) {
-                reg.assignedSquads.forEach(squadId => {
-                    const id = squadId.toString();
-                    squadCounts[id] = (squadCounts[id] || 0) + 1;
-                });
-            }
-        });
-
-        // Count reservations per squad
-        const reservationCounts = {};
-        activeReservations.forEach(res => {
-            if (res.squads && res.squads.length > 0) {
-                res.squads.forEach(squadId => {
-                    const id = squadId.toString();
-                    reservationCounts[id] = (reservationCounts[id] || 0) + 1;
-                });
-            }
-        });
+        const squadCounts = Object.fromEntries(registeredCounts.map((entry) => [entry._id.toString(), entry.count]));
+        const reservationCounts = Object.fromEntries(reservedCounts.map((entry) => [entry._id.toString(), entry.count]));
 
         // Build availability data
         const qualifyingSquads = tournament.squads.filter((squad) => squad.isQualifying !== false);
@@ -287,7 +271,7 @@ router.get('/tournaments/:id/squads/availability', generalWriteLimiter, async (r
             squads: squadsWithAvailability
         });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -300,14 +284,14 @@ router.get('/tournaments/:id/squads/list', generalWriteLimiter, async (req, res)
             return res.status(400).send({ error: 'Invalid tournament ID' });
         }
         
-        const tournament = await Tournament.findById(tournamentId);
+        const tournament = await Tournament.findById(tournamentId).lean();
         if (!tournament) return res.status(404).send({ error: 'Tournament not found' });
 
         // Get all confirmed registrations for this tournament
         const registrations = await Registration.find({
             tournament: tournamentId,
             status: { $in: ['pending', 'confirmed'] }
-        }).select('playerName averageScore assignedSquads bowler').populate('bowler', '_id');
+        }).select('playerName averageScore assignedSquads bowler').populate('bowler', '_id').lean();
 
         // Organize bowlers by squad
         const squadData = tournament.squads.map(squad => {
@@ -357,8 +341,9 @@ router.get('/tournaments/:id/squads/list', generalWriteLimiter, async (req, res)
             squads: squadData
         });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
 export default router;
+

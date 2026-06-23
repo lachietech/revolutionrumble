@@ -257,6 +257,9 @@ const tournamentSchema = new mongoose.Schema({
     timestamps: true
 });
 
+tournamentSchema.index({ startDate: 1 });
+tournamentSchema.index({ status: 1, startDate: 1 });
+
 // Pre-save hook to auto-populate date field from startDate for backwards compatibility
 tournamentSchema.pre('save', function() {
     // Ensure we have at least one date field.

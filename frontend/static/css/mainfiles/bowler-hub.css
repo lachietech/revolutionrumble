@@ -228,6 +228,18 @@
     main.container {
         padding: 30px 16px;
     }
+
+    .card-header,
+    .registration-header,
+    .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .card-header .btn,
+    .form-actions .btn {
+        width: 100%;
+    }
 }
 
 .page-header p {
@@ -479,6 +491,26 @@ main.container {
 }
 
 @media (max-width: 480px) {
+    .login-container {
+        padding: 24px 14px;
+    }
+
+    .login-card,
+    .card,
+    .registration-card {
+        padding: 18px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .registration-meta,
+    .registration-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+
     .registration-actions .btn {
         flex: 1 1 100%;
     }

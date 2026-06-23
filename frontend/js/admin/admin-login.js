@@ -51,8 +51,6 @@ async function loadEmailOptions() {
         csrfToken = data.csrfToken;
         emailOptions = data.options;
         
-        console.log('CSRF token fetched:', csrfToken ? 'YES' : 'NO', csrfToken?.substring(0, 10));
-        
         renderEmailButtons();
         
         loading.style.display = 'none';

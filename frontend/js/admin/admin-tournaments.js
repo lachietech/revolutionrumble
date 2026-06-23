@@ -2144,8 +2144,6 @@ function renderResultRow(registration, squadId) {
     const rowId = squadId ? `result-${registration.bowler}-${squadId}` : `result-${registration.bowler}`;
     const gamesCount = currentTournamentForResults?.format?.gamesPerBowler || 3;
     
-    console.log('Rendering row:', { rowId, gamesCount, registration });
-    
     // Generate game input columns
     const gameInputs = Array.from({length: gamesCount}, (_, i) => `
         <td style="padding:8px;text-align:center">
@@ -2175,14 +2173,10 @@ function renderResultRow(registration, squadId) {
 async function loadExistingResults() {
     if (!currentTournamentForResults) return;
 
-    console.log('Loading existing results for tournament:', currentTournamentForResults._id);
-
     try {
         // Load all registrations to get bowler IDs
         const regRes = await fetch(`/api/tournaments/${currentTournamentForResults._id}/registrations`);
         const registrations = await regRes.json();
-        
-        console.log('Loaded registrations:', registrations.length);
         
         // For each bowler, load their results
         for (const reg of registrations) {
@@ -2206,8 +2200,6 @@ async function loadExistingResults() {
                 });
                 
                 if (result && result.squadResults && result.squadResults.length > 0) {
-                    console.log('Found existing result for bowler:', bowlerId, result);
-                    
                     result.squadResults.forEach(squadResult => {
                         const squadId = squadResult.squadId || '';
                         const rowId = squadId ? `result-${bowlerId}-${squadId}` : `result-${bowlerId}`;
@@ -2218,7 +2210,6 @@ async function loadExistingResults() {
                                 const input = document.getElementById(`${rowId}-g${i+1}`);
                                 if (input) {
                                     input.value = score;
-                                    console.log(`Set ${rowId}-g${i+1} to ${score}`);
                                 }
                             });
                             
@@ -2252,13 +2243,10 @@ async function saveResult(bowlerId, squadId, rowId) {
     const gamesCount = currentTournamentForResults?.format?.gamesPerBowler || 3;
     const games = [];
     
-    console.log('Saving result:', { bowlerId, squadId, rowId, gamesCount });
-    
     // Collect all game scores (include empty fields as they may be filled later)
     for (let i = 1; i <= gamesCount; i++) {
         const input = document.getElementById(`${rowId}-g${i}`);
         const value = input?.value;
-        console.log(`Game ${i} input:`, input, 'value:', value);
         
         if (value !== '' && value !== null && value !== undefined) {
             const score = parseInt(value);
@@ -2267,8 +2255,6 @@ async function saveResult(bowlerId, squadId, rowId) {
             }
         }
     }
-
-    console.log('Collected games:', games);
 
     if (games.length === 0) {
         alert('Please enter at least one score');
@@ -2297,8 +2283,6 @@ async function saveResult(bowlerId, squadId, rowId) {
         squadResults: squadResults
     };
 
-    console.log('Sending payload:', payload);
-
     try {
         const response = await fetch('/api/results', {
             method: 'POST',
@@ -2310,16 +2294,13 @@ async function saveResult(bowlerId, squadId, rowId) {
             body: JSON.stringify(payload)
         });
 
-        console.log('Response status:', response.status);
-        
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Server error:', errorText);
             throw new Error(`Failed to save result: ${response.status} - ${errorText}`);
         }
 
-        const savedResult = await response.json();
-        console.log('Saved successfully:', savedResult);
+        await response.json();
 
         // Visual feedback
         const row = document.getElementById(rowId);

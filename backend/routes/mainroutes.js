@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 import AdminSession from '../models/AdminSession.js';
 import {
     pageViewLimiter,
@@ -58,7 +59,6 @@ router.get('/admin/login', pageViewLimiter, (req, res) => {
 // Get CSRF token (public endpoint)
 router.get('/api/csrf-token', pageViewLimiter, async (req, res) => {
     const token = typeof req.csrfToken === 'function' ? req.csrfToken() : '';
-    console.log('CSRF token request - token available:', !!token);
     return res.send({ csrfToken: token || '' });
 });
 
@@ -88,7 +88,7 @@ router.post('/admin/request-otp', otpVerifyLimiter, async (req, res) => {
         }
 
         // Generate 6-digit OTP
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpCode = crypto.randomInt(100000, 1000000).toString();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
         // Create or update admin session
@@ -162,15 +162,6 @@ router.post('/admin/verify-otp', otpVerifyLimiter, async (req, res) => {
             return res.status(429).send({ error: 'Too many failed attempts. Please request a new code.' });
         }
 
-        // Verify OTP
-        console.log('OTP Verification:', {
-            received: otp.trim(),
-            stored: session.otpCode,
-            match: session.otpCode === otp.trim(),
-            receivedType: typeof otp,
-            storedType: typeof session.otpCode
-        });
-
         if (session.otpCode !== otp.trim()) {
             session.otpAttempts += 1;
             await session.save();
@@ -183,22 +174,11 @@ router.post('/admin/verify-otp', otpVerifyLimiter, async (req, res) => {
         // Success - delete session and create admin session
         await AdminSession.deleteOne({ _id: session._id });
 
-        console.log('Setting admin session:', {
-            email,
-            sessionId: req.session.sessionId,
-            sessionBefore: { ...req.session }
-        });
-
         req.session.isAdmin = true;
         req.session.adminEmail = email;
 
         try {
             await req.session.save();
-            console.log('Admin session saved successfully:', {
-                sessionId: req.session.sessionId,
-                isAdmin: req.session.isAdmin,
-                adminEmail: req.session.adminEmail
-            });
             return res.send({ success: true, redirect: '/admin/tournaments' });
         } catch (err) {
             console.error('Session save error:', err);

@@ -14,15 +14,16 @@ export function getAllowedAdminEmails() {
 
 // Express middleware: check admin session
 export function requireAdmin(req, res, next) {
-    console.log('requireAdmin check:', {
-        hasSession: !!req.session,
-        isAdmin: req.session?.isAdmin,
-        adminEmail: req.session?.adminEmail,
-        sessionId: req.session?.sessionId
-    });
     if (req.session && req.session.isAdmin) {
         return next();
     }
-    console.log('Admin check failed - redirecting to login');
     return res.redirect('/admin/login');
+}
+
+// Express middleware: check admin session for JSON API routes
+export function requireAdminApi(req, res, next) {
+    if (req.session && req.session.isAdmin) {
+        return next();
+    }
+    return res.status(403).send({ error: 'Admin authentication required' });
 }

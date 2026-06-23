@@ -2,6 +2,7 @@ import { Router } from 'express';
 import Bowler from '../models/Bowler.js';
 import Registration from '../models/Registration.js';
 import TournamentResult from '../models/TournamentResult.js';
+import crypto from 'crypto';
 import { 
     validateObjectId, 
     sanitizeEmail, 
@@ -25,6 +26,36 @@ import {
 
 const router = Router();
 
+function toPublicBowler(bowler) {
+    return {
+        _id: bowler._id,
+        playerName: bowler.playerName,
+        nickname: bowler.nickname,
+        hand: bowler.hand,
+        bio: bowler.bio,
+        homeCenter: bowler.homeCenter,
+        yearsExperience: bowler.yearsExperience,
+        currentAverage: bowler.currentAverage,
+        tournamentAverage: bowler.tournamentAverage,
+        highGame: bowler.highGame,
+        highSeries: bowler.highSeries,
+        tournamentsEntered: bowler.tournamentsEntered
+    };
+}
+
+function toPrivateBowler(bowler) {
+    return {
+        ...toPublicBowler(bowler),
+        email: bowler.email,
+        phone: bowler.phone,
+        gender: bowler.gender,
+        claimedAt: bowler.claimedAt,
+        lastLogin: bowler.lastLogin,
+        createdAt: bowler.createdAt,
+        updatedAt: bowler.updatedAt
+    };
+}
+
 // POST request OTP code via email
 router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
     try {
@@ -39,7 +70,7 @@ router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
         let bowler = await Bowler.findOne({ email: sanitizedEmail });
         
         // Generate 6-digit OTP
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpCode = crypto.randomInt(100000, 1000000).toString();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
         if (!bowler) {
@@ -63,9 +94,9 @@ router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
         // Send OTP via Resend
         try {
             const resendClient = getResendClient();
-            const result = await resendClient.emails.send({
+            await resendClient.emails.send({
                 from: 'Revolution Rumble Verification <rrotpverification@nielseninnovations.com>',
-                to: email,
+                to: sanitizedEmail,
                 subject: 'Your Revolution Rumble Login Code',
                 html: `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -80,16 +111,14 @@ router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
                 `
             });
 
-            console.log('✅ OTP email sent successfully:', result);
             return res.send({ success: true, message: 'OTP sent to your email' });
         } catch (emailError) {
             console.error('❌ Failed to send OTP email:', emailError);
-            console.error('Error details:', JSON.stringify(emailError, null, 2));
-            return res.status(500).send({ error: 'Failed to send OTP email', details: emailError.message });
+            return res.status(500).send({ error: 'Failed to send OTP email' });
         }
     } catch (error) {
         console.error('OTP request error:', error);
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -153,7 +182,7 @@ router.post('/bowlers/verify-otp', otpVerifyLimiter, async (req, res) => {
         });
     } catch (error) {
         console.error('OTP verification error:', error);
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -188,15 +217,17 @@ router.get('/bowlers/lookup', generalWriteLimiter, async (req, res) => {
         }
 
         const bowler = await Bowler.findOne({ email: sanitizedEmail })
-            .populate('tournamentsEntered.tournament', 'name date location status');
+            .populate('tournamentsEntered.tournament', 'name date location status')
+            .lean();
         
         if (!bowler) {
             return res.status(404).send({ error: 'Bowler not found' });
         }
 
-        return res.send(bowler);
+        const canSeePrivateFields = req.session?.isAdmin || req.session?.bowlerId === bowler._id.toString();
+        return res.send(canSeePrivateFields ? toPrivateBowler(bowler) : toPublicBowler(bowler));
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -209,15 +240,17 @@ router.get('/bowlers/:id', generalWriteLimiter, async (req, res) => {
         }
         
         const bowler = await Bowler.findById(bowlerId)
-            .populate('tournamentsEntered.tournament', 'name date location status');
+            .populate('tournamentsEntered.tournament', 'name date location status')
+            .lean();
         
         if (!bowler) {
             return res.status(404).send({ error: 'Bowler not found' });
         }
 
-        return res.send(bowler);
+        const canSeePrivateFields = req.session?.isAdmin || req.session?.bowlerId === bowler._id.toString();
+        return res.send(canSeePrivateFields ? toPrivateBowler(bowler) : toPublicBowler(bowler));
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -225,12 +258,13 @@ router.get('/bowlers/:id', generalWriteLimiter, async (req, res) => {
 router.get('/bowlers', generalWriteLimiter, async (req, res) => {
     try {
         const bowlers = await Bowler.find()
-            .select('playerName nickname email tournamentAverage currentAverage highGame highSeries tournamentsEntered')
-            .sort({ tournamentAverage: -1 });
+            .select('playerName nickname tournamentAverage currentAverage highGame highSeries tournamentsEntered')
+            .sort({ tournamentAverage: -1 })
+            .lean();
         
         return res.send(bowlers);
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -281,9 +315,9 @@ router.put('/bowlers/:id', generalWriteLimiter, requireBowlerAuth, async (req, r
             );
         }
 
-        return res.send(bowler);
+        return res.send(toPrivateBowler(bowler));
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -299,22 +333,22 @@ router.get('/bowlers/my/registrations', generalWriteLimiter, requireBowlerAuth, 
         // Find registrations by email (since they may not have bowler ID linked)
         const registrations = await Registration.find({ email: bowler.email })
             .populate('tournament')
-            .sort({ registeredAt: -1 });
+            .sort({ registeredAt: -1 })
+            .lean();
 
         // Manually populate assignedSquads from tournament.squads
         const populatedRegistrations = registrations.map(reg => {
-            const regObj = reg.toObject();
-            if (reg.tournament && reg.tournament.squads && regObj.assignedSquads) {
-                regObj.assignedSquads = regObj.assignedSquads.map(squadId => {
+            if (reg.tournament && reg.tournament.squads && reg.assignedSquads) {
+                reg.assignedSquads = reg.assignedSquads.map(squadId => {
                     return reg.tournament.squads.find(s => s._id.toString() === squadId.toString());
                 }).filter(Boolean);
             }
-            return regObj;
+            return reg;
         });
 
         return res.send(populatedRegistrations);
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -332,15 +366,21 @@ router.get('/bowlers/:id/history', generalWriteLimiter, async (req, res) => {
             return res.status(404).send({ error: 'Bowler not found' });
         }
 
+        if (!req.session?.isAdmin && req.session?.bowlerId !== bowlerId) {
+            return res.status(403).send({ error: 'Authentication required' });
+        }
+
         // Get all registrations
         const registrations = await Registration.find({ bowler: bowlerId })
             .populate('tournament', 'name date location status')
-            .sort({ registeredAt: -1 });
+            .sort({ registeredAt: -1 })
+            .lean();
 
         // Get all tournament results
         const results = await TournamentResult.find({ bowler: bowlerId })
             .populate('tournament', 'name date location')
-            .sort({ 'tournament.date': -1 });
+            .sort({ 'tournament.date': -1 })
+            .lean();
 
         // Calculate overall tournament average from results
         let totalPins = 0;
@@ -371,7 +411,7 @@ router.get('/bowlers/:id/history', generalWriteLimiter, async (req, res) => {
             }
         });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -434,7 +474,7 @@ router.post('/results', strictWriteLimiter, requireAdmin, async (req, res) => {
 
         return res.status(201).send(result);
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -445,7 +485,9 @@ async function updateBowlerStats(bowlerId) {
     if (!bowler) return;
     
     // Find all registrations by this bowler's email
-    const registrations = await Registration.find({ email: bowler.email });
+    const registrations = await Registration.find({ email: bowler.email })
+        .select('stageScores')
+        .lean();
     
     let totalPins = 0;
     let totalGames = 0;
@@ -480,7 +522,9 @@ async function updateBowlerStats(bowlerId) {
     });
     
     // Also check TournamentResult collection if it exists
-    const results = await TournamentResult.find({ bowler: bowlerId });
+    const results = await TournamentResult.find({ bowler: bowlerId })
+        .select('totalPins totalGames highGame highSeries')
+        .lean();
     results.forEach(result => {
         if (result.totalPins && result.totalGames) {
             totalPins += result.totalPins;
@@ -519,7 +563,7 @@ router.post('/bowlers/sync-stats', strictWriteLimiter, requireAdmin, async (req,
             syncedCount
         });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -542,7 +586,7 @@ router.post('/bowlers/sync-names', strictWriteLimiter, requireAdmin, async (req,
             updatedCount
         });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -631,7 +675,7 @@ router.get('/bowlers/check-sync/:email', generalWriteLimiter, requireAdmin, asyn
             )
         });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -687,7 +731,7 @@ router.post('/bowlers/link-results/:bowlerId', strictWriteLimiter, requireAdmin,
             }
         });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
@@ -748,12 +792,12 @@ router.post('/bowlers/fix-by-name', strictWriteLimiter, requireAdmin, async (req
             }
         });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
 // POST force sync specific email (temporary debug route - remove in production)
-router.post('/bowlers/force-sync', strictWriteLimiter, async (req, res) => {
+router.post('/bowlers/force-sync', strictWriteLimiter, requireAdmin, async (req, res) => {
     try {
         const { email } = req.body;
         
@@ -843,8 +887,9 @@ router.post('/bowlers/force-sync', strictWriteLimiter, async (req, res) => {
             }
         });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ error: 'Internal server error' });
     }
 });
 
 export default router;
+

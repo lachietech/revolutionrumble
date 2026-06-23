@@ -3,8 +3,8 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Player Stats — Revolution Rumble</title>
-        <meta name="description" content="View and manage your bowler profile and tournament statistics."/>
+        <title>Player Stats - Revolution Rumble</title>
+        <meta name="description" content="Browse bowler profiles and tournament statistics."/>
         <link rel="stylesheet" href="static/css/packages/navbar.css" />
         <link rel="stylesheet" href="static/css/packages/presets.css" />
         <link rel="stylesheet" href="static/css/mainfiles/bowlerstats.css" />
@@ -18,13 +18,12 @@
         </div>
 
         <main class="container wide">
-            <!-- Search and Filter Controls -->
             <div class="controls-bar">
-                <input 
-                    type="text" 
-                    id="search-input" 
+                <input
+                    type="text"
+                    id="search-input"
                     class="search-input"
-                    placeholder="🔍 Search by name or nickname..."
+                    placeholder="Search by name or nickname..."
                 />
                 <select id="sort-select" class="sort-select">
                     <option value="tournamentAvg-desc">Highest Tournament Avg</option>
@@ -35,12 +34,10 @@
                 </select>
             </div>
 
-            <!-- Bowlers Grid -->
             <div id="bowlers-grid" class="bowlers-grid"></div>
 
-            <!-- Empty State -->
             <div id="empty-state" class="empty-state" style="display:none">
-                <div class="empty-state-icon">🎳</div>
+                <div class="empty-state-icon">Stats</div>
                 <h3>No Bowlers Found</h3>
                 <p>Try adjusting your search or filters</p>
             </div>

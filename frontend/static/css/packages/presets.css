@@ -51,6 +51,7 @@ body {
     background: var(--grey-900);
     color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    overflow-x: hidden;
 }
 
 a {
@@ -58,15 +59,38 @@ a {
     text-decoration: none;
 }
 
-img {
+img,
+svg,
+video,
+canvas,
+iframe {
     max-width: 100%;
     display: block;
+}
+
+input,
+select,
+textarea,
+button {
+    max-width: 100%;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 14px;
+    }
 }
 
 .btn {

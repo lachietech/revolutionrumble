@@ -74,6 +74,8 @@ const registrationSchema = new mongoose.Schema({
 // Index for faster queries
 registrationSchema.index({ tournament: 1, email: 1 }, { unique: true });
 registrationSchema.index({ tournament: 1, status: 1 });
+registrationSchema.index({ tournament: 1, status: 1, assignedSquads: 1 });
+registrationSchema.index({ email: 1 });
 registrationSchema.index({ bowler: 1 });
 
 // After saving registration with scores, update bowler stats
@@ -89,7 +91,9 @@ registrationSchema.post('save', async function(doc) {
                 // Import the update function (this is a workaround since we can't import from routes)
                 // Instead, we'll recalculate directly here
                 const Registration = mongoose.model('Registration');
-                const registrations = await Registration.find({ email: doc.email });
+                const registrations = await Registration.find({ email: doc.email })
+                    .select('stageScores')
+                    .lean();
                 
                 let totalPins = 0;
                 let totalGames = 0;

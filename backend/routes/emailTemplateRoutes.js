@@ -1,14 +1,20 @@
 import { Router } from 'express';
 import EmailTemplate from '../models/EmailTemplate.js';
 import { sanitizeString } from '../middleware/validation.js';
+import { requireAdminApi } from '../middleware/auth.js';
 
 const router = Router();
+const validTemplateNames = new Set(['registration-confirmation']);
+
+function validateTemplateName(name) {
+    return validTemplateNames.has(name) ? name : null;
+}
 
 /**
  * GET /api/email-templates
  * Get all email templates
  */
-router.get('/email-templates', async (req, res) => {
+router.get('/email-templates', requireAdminApi, async (req, res) => {
     try {
         const templates = await EmailTemplate.find();
         res.send(templates);
@@ -22,9 +28,14 @@ router.get('/email-templates', async (req, res) => {
  * GET /api/email-templates/:name
  * Get a specific email template by name
  */
-router.get('/email-templates/:name', async (req, res) => {
+router.get('/email-templates/:name', requireAdminApi, async (req, res) => {
     try {
-        const template = await EmailTemplate.findOne({ name: req.params.name });
+        const templateName = validateTemplateName(req.params.name);
+        if (!templateName) {
+            return res.status(400).send({ error: 'Invalid template name' });
+        }
+
+        const template = await EmailTemplate.findOne({ name: templateName });
         if (!template) {
             return res.status(404).send({ error: 'Template not found' });
         }
@@ -39,9 +50,14 @@ router.get('/email-templates/:name', async (req, res) => {
  * PUT /api/email-templates/:name
  * Update an email template
  */
-router.put('/email-templates/:name', async (req, res) => {
+router.put('/email-templates/:name', requireAdminApi, async (req, res) => {
     try {
         const { subject, htmlBody, textBody } = req.body;
+        const templateName = validateTemplateName(req.params.name);
+
+        if (!templateName) {
+            return res.status(400).send({ error: 'Invalid template name' });
+        }
         
         // Validate inputs
         if (!subject || !htmlBody || !textBody) {
@@ -54,12 +70,12 @@ router.put('/email-templates/:name', async (req, res) => {
         const sanitizedTextBody = sanitizeString(textBody, 50000);
         
         // Find and update template
-        let template = await EmailTemplate.findOne({ name: req.params.name });
+        let template = await EmailTemplate.findOne({ name: templateName });
         
         if (!template) {
             // Create new template if it doesn't exist
             template = await EmailTemplate.create({
-                name: req.params.name,
+                name: templateName,
                 subject: sanitizedSubject,
                 htmlBody: sanitizedHtmlBody,
                 textBody: sanitizedTextBody
@@ -82,7 +98,7 @@ router.put('/email-templates/:name', async (req, res) => {
  * POST /api/email-templates/preview
  * Preview an email template with sample data
  */
-router.post('/email-templates/preview', async (req, res) => {
+router.post('/email-templates/preview', requireAdminApi, async (req, res) => {
     try {
         const { subject, htmlBody, textBody } = req.body;
         
