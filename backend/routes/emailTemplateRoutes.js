@@ -2,6 +2,10 @@ import { Router } from 'express';
 import EmailTemplate from '../models/EmailTemplate.js';
 import { sanitizeString } from '../middleware/validation.js';
 import { requireAdminApi } from '../middleware/auth.js';
+import {
+    generalWriteLimiter,
+    strictWriteLimiter
+} from '../middleware/ratelimiters.js';
 
 const router = Router();
 const validTemplateNames = new Set(['registration-confirmation']);
@@ -14,7 +18,7 @@ function validateTemplateName(name) {
  * GET /api/email-templates
  * Get all email templates
  */
-router.get('/email-templates', requireAdminApi, async (req, res) => {
+router.get('/email-templates', generalWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const templates = await EmailTemplate.find();
         res.send(templates);
@@ -28,7 +32,7 @@ router.get('/email-templates', requireAdminApi, async (req, res) => {
  * GET /api/email-templates/:name
  * Get a specific email template by name
  */
-router.get('/email-templates/:name', requireAdminApi, async (req, res) => {
+router.get('/email-templates/:name', generalWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const templateName = validateTemplateName(req.params.name);
         if (!templateName) {
@@ -50,7 +54,7 @@ router.get('/email-templates/:name', requireAdminApi, async (req, res) => {
  * PUT /api/email-templates/:name
  * Update an email template
  */
-router.put('/email-templates/:name', requireAdminApi, async (req, res) => {
+router.put('/email-templates/:name', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const { subject, htmlBody, textBody } = req.body;
         const templateName = validateTemplateName(req.params.name);
@@ -98,7 +102,7 @@ router.put('/email-templates/:name', requireAdminApi, async (req, res) => {
  * POST /api/email-templates/preview
  * Preview an email template with sample data
  */
-router.post('/email-templates/preview', requireAdminApi, async (req, res) => {
+router.post('/email-templates/preview', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const { subject, htmlBody, textBody } = req.body;
         
