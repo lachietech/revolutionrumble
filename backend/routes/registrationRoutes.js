@@ -28,6 +28,144 @@ import {
 
 const router = Router();
 
+function getStageScoreTotal(registration, stageIndex) {
+    const stageScore = registration.stageScores?.find((score) => score.stageIndex === stageIndex);
+    if (!stageScore?.scores?.length) return null;
+    const scratchTotal = stageScore.scores.reduce((sum, score) => sum + score, 0);
+    const bonusTotal = stageScore.bonusPins?.reduce((sum, bonus) => sum + bonus, 0) || 0;
+    const handicapTotal = (stageScore.handicap || 0) * stageScore.scores.length;
+    return scratchTotal + bonusTotal + handicapTotal + (stageScore.carryover || 0);
+}
+
+function seedStagePlayers(players, stageIndex, allRegistrations = players) {
+    if (stageIndex <= 0) {
+        return [...players]
+            .sort((a, b) => a.playerName.localeCompare(b.playerName))
+            .map((player, index) => ({ ...player, seed: index + 1 }));
+    }
+
+    return [...players]
+        .map((player) => ({
+            ...player,
+            previousStageTotal: getStageScoreTotal(
+                allRegistrations.find((registration) => registration._id.toString() === player._id.toString()) || player,
+                stageIndex - 1
+            )
+        }))
+        .sort((a, b) => (b.previousStageTotal ?? -1) - (a.previousStageTotal ?? -1) || a.playerName.localeCompare(b.playerName))
+        .map((player, index) => ({ ...player, seed: index + 1 }));
+}
+
+function buildRoundRobinDraw(players) {
+    const seededPlayers = [...players];
+    const rotation = seededPlayers.length % 2 === 1 ? [...seededPlayers, null] : [...seededPlayers];
+    const rounds = Math.max(0, rotation.length - 1);
+    const matchupsByPlayer = new Map(seededPlayers.map((player) => [player._id.toString(), []]));
+
+    for (let round = 0; round < rounds; round++) {
+        for (let index = 0; index < rotation.length / 2; index++) {
+            const home = rotation[index];
+            const away = rotation[rotation.length - 1 - index];
+            if (!home || !away) continue;
+
+            const label = `Round ${round + 1}: #${home.seed} ${home.playerName} vs #${away.seed} ${away.playerName}`;
+            matchupsByPlayer.get(home._id.toString())?.push({
+                label,
+                opponentName: away.playerName,
+                opponentSeed: away.seed
+            });
+            matchupsByPlayer.get(away._id.toString())?.push({
+                label,
+                opponentName: home.playerName,
+                opponentSeed: home.seed
+            });
+        }
+
+        rotation.splice(1, 0, rotation.pop());
+    }
+
+    return {
+        games: Math.max(0, seededPlayers.length - 1),
+        seededPlayers,
+        matchupsByPlayer
+    };
+}
+
+function buildStepladderDraw(stage, players) {
+    const finalists = Math.min(Number(stage.stageConfig?.finalists) || players.length, players.length);
+    const seededPlayers = [...players].slice(0, finalists);
+    const games = Math.max(0, finalists - 1);
+    const matchupsByPlayer = new Map(seededPlayers.map((player) => [player._id.toString(), []]));
+
+    for (let gameIndex = 0; gameIndex < games; gameIndex++) {
+        const lowerSeedNumber = finalists - gameIndex;
+        const challengerSeedNumber = lowerSeedNumber - 1;
+        const lowerPlayer = seededPlayers.find((player) => player.seed === lowerSeedNumber);
+        const challenger = seededPlayers.find((player) => player.seed === challengerSeedNumber);
+        const lowerName = lowerPlayer?.playerName || `Seed ${lowerSeedNumber}`;
+        const challengerName = challenger?.playerName || `Seed ${challengerSeedNumber}`;
+        const opponentLabel = gameIndex === 0 ? `#${lowerSeedNumber} ${lowerName}` : `Winner of Match ${gameIndex}`;
+        const label = gameIndex === 0
+            ? `Match 1: #${lowerSeedNumber} ${lowerName} vs #${challengerSeedNumber} ${challengerName}`
+            : `Match ${gameIndex + 1}: Winner of Match ${gameIndex} vs #${challengerSeedNumber} ${challengerName}`;
+
+        if (lowerPlayer) {
+            matchupsByPlayer.get(lowerPlayer._id.toString())?.push({
+                label,
+                opponentName: challengerName,
+                opponentSeed: challengerSeedNumber
+            });
+        }
+
+        if (challenger) {
+            matchupsByPlayer.get(challenger._id.toString())?.push({
+                label,
+                opponentName: opponentLabel,
+                opponentSeed: gameIndex === 0 ? lowerSeedNumber : null
+            });
+        }
+
+        seededPlayers
+            .filter((player) => player.seed > challengerSeedNumber && player._id.toString() !== lowerPlayer?._id.toString())
+            .forEach((player) => {
+                matchupsByPlayer.get(player._id.toString())?.push({
+                    label: `If advances: ${label}`,
+                    opponentName: challengerName,
+                    opponentSeed: challengerSeedNumber
+                });
+            });
+    }
+
+    return {
+        games,
+        seededPlayers,
+        matchupsByPlayer
+    };
+}
+
+function buildStageDraw(stage, players, stageIndex, allRegistrations = players) {
+    const seededPlayers = seedStagePlayers(players, stageIndex, allRegistrations);
+    if (stage.type === 'round_robin') return buildRoundRobinDraw(seededPlayers);
+    if (stage.type === 'stepladder') return buildStepladderDraw(stage, seededPlayers);
+    return {
+        games: Number(stage.games) || 1,
+        seededPlayers,
+        matchupsByPlayer: new Map()
+    };
+}
+
+function getStageGameCount(stage, playerCount, draw) {
+    if (draw?.games !== undefined) return Math.max(1, draw.games);
+    if (stage.type === 'round_robin') return Math.max(1, playerCount - 1);
+    if (stage.type === 'stepladder') return Math.max(1, Math.min(Number(stage.stageConfig?.finalists) || playerCount, playerCount) - 1);
+    if (stage.type === 'tri_matchplay') return Number(stage.stageConfig?.triRounds) || Number(stage.games) || 1;
+    return Number(stage.games) || 1;
+}
+
+function getPlayerMatchups(draw, registrationId) {
+    return draw?.matchupsByPlayer?.get(registrationId.toString()) || [];
+}
+
 // POST create spot reservation (holds spots for 10 minutes)
 router.post('/reservations', reservationLimiter, async (req, res) => {
     try {
@@ -186,10 +324,19 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
         if (hasStages) {
             // Multi-stage tournament
             const stageResults = stages.map((stage, stageIndex) => {
+                const stageEntrants = registrations.filter(reg => {
+                    const hasScoresInStage = reg.stageScores?.some(s => s.stageIndex === stageIndex && s.scores?.length > 0);
+                    const isCurrentlyInStage = (reg.currentStage || 0) === stageIndex;
+                    return hasScoresInStage || isCurrentlyInStage;
+                });
+                const draw = buildStageDraw(stage, stageEntrants, stageIndex, registrations);
+                const drawPlayersById = new Map(draw.seededPlayers.map(player => [player._id.toString(), player]));
+
                 const stagePlayers = registrations
                     .map(reg => {
                         const stageScore = reg.stageScores?.find(s => s.stageIndex === stageIndex);
                         if (!stageScore || !stageScore.scores || stageScore.scores.length === 0) return null;
+                        const drawPlayer = drawPlayersById.get(reg._id.toString());
 
                         // Calculate scratch total
                         const scratchTotal = stageScore.scores.reduce((sum, s) => sum + s, 0);
@@ -222,8 +369,10 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
 
                         return {
                             playerName: reg.playerName,
+                            seed: drawPlayer?.seed || null,
                             squadIds: reg.assignedSquads || [],
                             scores: stageScore.scores,
+                            matchups: getPlayerMatchups(draw, reg._id),
                             bonusPins: stageScore.bonusPins || [],
                             handicapPerGame: totalHandicapPerGame,
                             totalHandicap: totalHandicap,
@@ -244,7 +393,7 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
                     stageName: stage.name,
                     type: stage.type,
                     stageIndex,
-                    games: stage.games,
+                    games: getStageGameCount(stage, stageEntrants.length, draw),
                     advancingBowlers: stage.advancingBowlers,
                     players: stagePlayers
                 };

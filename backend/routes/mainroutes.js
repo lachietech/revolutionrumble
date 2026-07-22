@@ -24,12 +24,16 @@ router.get('/register', pageViewLimiter, (req, res) => {
     return res.sendFile('register.html');
 });
 
+router.get('/player-stats', pageViewLimiter, (req, res) => {
+    return res.sendFile('bowlerstats.html');
+});
+
 router.get('/playerstats', pageViewLimiter, (req, res) => {
-    return res.redirect('/results?tab=stats');
+    return res.redirect(301, '/player-stats');
 });
 
 router.get('/bowlerstats', pageViewLimiter, (req, res) => {
-    return res.redirect('/results?tab=stats');
+    return res.redirect(301, '/player-stats');
 });
 
 router.get('/bowler-hub', pageViewLimiter, (req, res) => {
@@ -37,6 +41,9 @@ router.get('/bowler-hub', pageViewLimiter, (req, res) => {
 });
 
 router.get('/results', pageViewLimiter, (req, res) => {
+    if (req.query.tab === 'stats') {
+        return res.redirect(301, '/player-stats');
+    }
     return res.sendFile('results.html');
 });
 

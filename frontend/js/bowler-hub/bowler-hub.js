@@ -377,7 +377,7 @@ async function loadRegistrations() {
         if (registrations.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-state-icon">🎳</div>
+                    <div class="empty-state-icon">${rrIcon('bowling', 'ui-icon-lg')} No entries</div>
                     <h3>No Registrations Yet</h3>
                     <p>You haven't registered for any tournaments yet.</p>
                     <a href="/register" class="btn btn-primary" style="display:inline-block;margin-top:20px;width:auto">
@@ -440,8 +440,8 @@ async function loadRegistrations() {
                         <div>
                             <div class="registration-title">${tournament.name}</div>
                             <div class="registration-meta">
-                                <span>📅 ${formattedDate}</span>
-                                <span>📍 ${tournament.location}</span>
+                                <span>${rrIcon('calendar')} ${formattedDate}</span>
+                                <span>${rrIcon('location')} ${tournament.location}</span>
                             </div>
                         </div>
                         <span class="registration-status ${statusClass}">${statusText}</span>

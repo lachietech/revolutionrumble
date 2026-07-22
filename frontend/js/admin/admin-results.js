@@ -10,6 +10,12 @@ const MATCH_STAGE_TYPES = new Set(['round_robin', 'tri_matchplay', 'elimination'
 loadTournamentsForDropdown();
 resultsTournamentFilter.addEventListener('change', loadTournamentResults);
 
+function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value ?? '';
+    return div.innerHTML;
+}
+
 async function ensureCsrfToken() {
     if (csrfToken) return;
     const csrfResponse = await fetch('/api/csrf-token');
@@ -89,6 +95,9 @@ function renderStagedResults(registrations) {
         const stageId = `stage-${stageIndex}`;
         let stageContent = '';
 
+        const stageDraw = buildStageDraw(stage, stagePlayers, stageIndex, registrations);
+        const gamesCount = getStageGamesCount(stage, stagePlayers, stageDraw);
+
         if (stageIndex === 0 && currentTournamentForResults.squads?.length > 0) {
             currentTournamentForResults.squads.forEach((squad) => {
                 const squadPlayers = stagePlayers.filter((registration) =>
@@ -96,11 +105,11 @@ function renderStagedResults(registrations) {
                 );
 
                 if (squadPlayers.length > 0) {
-                    stageContent += renderStageTable(squadPlayers, stageIndex, stage.games, squad.name);
+                    stageContent += renderStageTable(squadPlayers, stageIndex, gamesCount, squad.name, stageDraw);
                 }
             });
         } else {
-            stageContent += renderStageTable(stagePlayers, stageIndex, stage.games);
+            stageContent += renderStageTable(stageDraw.seededPlayers || stagePlayers, stageIndex, gamesCount, null, stageDraw);
         }
 
         html += `
@@ -196,13 +205,144 @@ function renderSingleStageResults(registrations) {
     loadExistingStageScores(registrations);
 }
 
-function renderStageTable(players, stageIndex, gamesCount, squadName = null) {
-    const gameHeaders = Array.from({ length: gamesCount }, (_, gameIndex) => `<th>G${gameIndex + 1}</th>`).join('');
+function getStageScoreTotal(registration, stageIndex) {
+    const stageScore = registration.stageScores?.find((score) => score.stageIndex === stageIndex);
+    if (!stageScore?.scores?.length) return null;
+    const scoreTotal = stageScore.scores.reduce((sum, score) => sum + score, 0);
+    const bonusTotal = stageScore.bonusPins?.reduce((sum, bonus) => sum + bonus, 0) || 0;
+    const handicapTotal = (stageScore.handicap || 0) * stageScore.scores.length;
+    return scoreTotal + bonusTotal + handicapTotal + (stageScore.carryover || 0);
+}
+
+function getSeededPlayers(players, stageIndex, allRegistrations = players) {
+    if (stageIndex <= 0) {
+        return [...players]
+            .sort((a, b) => a.playerName.localeCompare(b.playerName))
+            .map((player, index) => ({ ...player, seed: index + 1 }));
+    }
+
+    return [...players]
+        .map((player) => ({
+            ...player,
+            previousStageTotal: getStageScoreTotal(
+                allRegistrations.find((registration) => registration._id === player._id) || player,
+                stageIndex - 1
+            )
+        }))
+        .sort((a, b) => (b.previousStageTotal ?? -1) - (a.previousStageTotal ?? -1) || a.playerName.localeCompare(b.playerName))
+        .map((player, index) => ({ ...player, seed: index + 1 }));
+}
+
+function buildRoundRobinDraw(stage, players) {
+    const seededPlayers = [...players];
+    const hasBye = seededPlayers.length % 2 === 1;
+    const rotation = hasBye ? [...seededPlayers, null] : seededPlayers;
+    const rounds = Math.max(0, rotation.length - 1);
+    const matchupsByPlayer = new Map(seededPlayers.map((player) => [player._id, []]));
+
+    for (let round = 0; round < rounds; round++) {
+        for (let index = 0; index < rotation.length / 2; index++) {
+            const home = rotation[index];
+            const away = rotation[rotation.length - 1 - index];
+            if (!home || !away) continue;
+
+            const label = `Round ${round + 1}: #${home.seed} ${home.playerName} vs #${away.seed} ${away.playerName}`;
+            matchupsByPlayer.get(home._id)?.push({ label, opponentName: away.playerName, opponentSeed: away.seed });
+            matchupsByPlayer.get(away._id)?.push({ label, opponentName: home.playerName, opponentSeed: home.seed });
+        }
+
+        rotation.splice(1, 0, rotation.pop());
+    }
+
+    return {
+        type: 'round_robin',
+        games: Math.max(0, seededPlayers.length - 1),
+        seededPlayers,
+        matchupsByPlayer
+    };
+}
+
+function buildStepladderDraw(stage, players) {
+    const finalists = Math.min(Number(stage.stageConfig?.finalists) || players.length, players.length);
+    const seededPlayers = [...players].slice(0, finalists);
+    const games = Math.max(0, finalists - 1);
+    const matchupsByPlayer = new Map(seededPlayers.map((player) => [player._id, []]));
+
+    for (let gameIndex = 0; gameIndex < games; gameIndex++) {
+        const lowerSeedNumber = finalists - gameIndex;
+        const challengerSeedNumber = lowerSeedNumber - 1;
+        const lowerPlayer = seededPlayers.find((player) => player.seed === lowerSeedNumber);
+        const challenger = seededPlayers.find((player) => player.seed === challengerSeedNumber);
+        const opponentLabel = gameIndex === 0
+            ? `#${lowerSeedNumber} ${lowerPlayer?.playerName || 'Seed ' + lowerSeedNumber}`
+            : `Winner of Match ${gameIndex}`;
+        const label = gameIndex === 0
+            ? `Match 1: #${lowerSeedNumber} ${lowerPlayer?.playerName || 'Seed ' + lowerSeedNumber} vs #${challengerSeedNumber} ${challenger?.playerName || 'Seed ' + challengerSeedNumber}`
+            : `Match ${gameIndex + 1}: Winner of Match ${gameIndex} vs #${challengerSeedNumber} ${challenger?.playerName || 'Seed ' + challengerSeedNumber}`;
+
+        if (lowerPlayer) {
+            matchupsByPlayer.get(lowerPlayer._id)?.push({
+                label,
+                opponentName: challenger?.playerName || `Seed ${challengerSeedNumber}`,
+                opponentSeed: challengerSeedNumber
+            });
+        }
+
+        if (challenger) {
+            matchupsByPlayer.get(challenger._id)?.push({
+                label,
+                opponentName: opponentLabel,
+                opponentSeed: gameIndex === 0 ? lowerSeedNumber : null
+            });
+        }
+
+        seededPlayers
+            .filter((player) => player.seed > challengerSeedNumber && player._id !== lowerPlayer?._id)
+            .forEach((player) => {
+                matchupsByPlayer.get(player._id)?.push({
+                    label: `If advances: ${label}`,
+                    opponentName: challenger?.playerName || `Seed ${challengerSeedNumber}`,
+                    opponentSeed: challengerSeedNumber
+                });
+            });
+    }
+
+    return {
+        type: 'stepladder',
+        games,
+        seededPlayers,
+        matchupsByPlayer
+    };
+}
+
+function buildStageDraw(stage, players, stageIndex, allRegistrations = players) {
+    const seededPlayers = getSeededPlayers(players, stageIndex, allRegistrations);
+    if (stage.type === 'round_robin') return buildRoundRobinDraw(stage, seededPlayers);
+    if (stage.type === 'stepladder') return buildStepladderDraw(stage, seededPlayers);
+    return { type: stage.type || 'standard', games: Number(stage.games) || 1, seededPlayers, matchupsByPlayer: new Map() };
+}
+
+function getStageGamesCount(stage, players, draw = null) {
+    if (draw?.games !== undefined) return Math.max(1, draw.games);
+    if (stage.type === 'round_robin') return Math.max(1, players.length - 1);
+    if (stage.type === 'stepladder') return Math.max(1, Math.min(Number(stage.stageConfig?.finalists) || players.length, players.length) - 1);
+    if (stage.type === 'tri_matchplay') return Number(stage.stageConfig?.triRounds) || Number(stage.games) || 1;
+    return Number(stage.games) || 1;
+}
+
+function getMatchLabel(draw, registrationId, gameIndex) {
+    return draw?.matchupsByPlayer?.get(registrationId)?.[gameIndex]?.label || `Game ${gameIndex + 1}`;
+}
+
+function renderStageTable(players, stageIndex, gamesCount, squadName = null, draw = null) {
+    const gameHeaders = Array.from({ length: gamesCount }, (_, gameIndex) => `<th title="${escapeHtml(getMatchLabel(draw, players[0]?._id, gameIndex))}">G${gameIndex + 1}</th>`).join('');
     const hasCarryover = stageIndex > 0 && currentTournamentForResults.format?.stages?.[stageIndex]?.carryoverPinfall;
 
     return `
         <div class="results-group">
             ${squadName ? `<h3>${squadName}</h3>` : ''}
+            ${draw?.type === 'round_robin' ? '<p class="results-draw-note">Round robin draw generated from the current stage field: each bowler plays every other bowler once.</p>' : ''}
+            ${draw?.type === 'stepladder' ? '<p class="results-draw-note">Stepladder draw generated by seed: lowest two seeds play first, then the winner climbs toward seed #1.</p>' : ''}
             <div class="results-table-wrap">
                 <table class="results-table">
                     <thead>
@@ -216,7 +356,7 @@ function renderStageTable(players, stageIndex, gamesCount, squadName = null) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${players.map((registration) => renderPlayerStageRow(registration, stageIndex, gamesCount, hasCarryover)).join('')}
+                        ${players.map((registration) => renderPlayerStageRow(registration, stageIndex, gamesCount, hasCarryover, draw)).join('')}
                     </tbody>
                 </table>
             </div>
@@ -225,8 +365,15 @@ function renderStageTable(players, stageIndex, gamesCount, squadName = null) {
 }
 
 function buildStageMeta(stage) {
-    const meta = [`${stage.games} games`];
+    const meta = [];
     if (stage.type) meta.push(stage.type.replaceAll('_', ' '));
+    if (stage.type === 'round_robin') {
+        meta.push('all bowlers play each other');
+    } else if (stage.type === 'stepladder') {
+        meta.push(`${stage.stageConfig?.finalists || stage.advancingBowlers || 'Seeded'} finalist ladder`);
+    } else {
+        meta.push(`${stage.games} games`);
+    }
     if (stage.advancingBowlers) meta.push(`Top ${stage.advancingBowlers} advance`);
     return meta.join(', ');
 }
@@ -246,13 +393,15 @@ function stageUsesMatchBonus(stageIndex) {
     return MATCH_STAGE_TYPES.has(stage?.type) || Boolean(stage?.matchPlaySettings);
 }
 
-function renderPlayerStageRow(registration, stageIndex, gamesCount, hasCarryover) {
+function renderPlayerStageRow(registration, stageIndex, gamesCount, hasCarryover, draw = null) {
     const allowBonusFlags = stageUsesMatchBonus(stageIndex);
     const gameInputs = Array.from({ length: gamesCount }, (_, gameIndex) => `
         <td>
+            <small class="results-opponent-label">${escapeHtml(getMatchLabel(draw, registration._id, gameIndex))}</small>
             <input type="number"
                 class="results-score-input"
                 id="score-${registration._id}-${stageIndex}-${gameIndex}"
+                title="${escapeHtml(getMatchLabel(draw, registration._id, gameIndex))}"
                 min="0"
                 max="300"
                 placeholder="-"
@@ -450,8 +599,10 @@ async function loadExistingStageScores(registrations) {
                     }
                 });
 
-                const stage = currentTournamentForResults.format?.stages?.[stageIndex];
-                const expectedGames = stage?.games || currentTournamentForResults.format?.gamesPerBowler || 6;
+                const expectedGames = document.querySelectorAll(`[id^="score-${registration._id}-${stageIndex}-"]`).length
+                    || stageData.scores.length
+                    || currentTournamentForResults.format?.gamesPerBowler
+                    || 6;
                 updateStageRowTotal(registration._id, stageIndex, expectedGames);
             }
         });
@@ -479,11 +630,18 @@ async function advancePlayersToNextStage() {
 
             if (!stage.advancingBowlers) continue;
 
+            const stagePlayersInField = registrations.filter((registration) => {
+                const currentStage = registration.currentStage || 0;
+                return currentStage === stageIndex || registration.stageScores?.some((score) => score.stageIndex === stageIndex);
+            });
+            const stageDraw = buildStageDraw(stage, stagePlayersInField, stageIndex, registrations);
+            const requiredGames = getStageGamesCount(stage, stagePlayersInField, stageDraw);
+
             const stagePlayers = registrations.filter((registration) => {
                 const currentStage = registration.currentStage || 0;
                 if (currentStage !== stageIndex) return false;
                 const stageScore = registration.stageScores?.find((score) => score.stageIndex === stageIndex);
-                return stageScore && stageScore.scores?.length === stage.games;
+                return stageScore && stageScore.scores?.length >= requiredGames;
             });
 
             if (stagePlayers.length === 0) continue;

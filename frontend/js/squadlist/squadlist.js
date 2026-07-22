@@ -92,9 +92,9 @@ async function loadSquads(tournamentId) {
             <div class="tournament-info">
                 <h2>${tournament.name}</h2>
                 <div class="tournament-meta">
-                    <div class="meta-item">📅 ${formattedDate}</div>
-                    <div class="meta-item">📍 ${tournament.location}</div>
-                    ${tournament.squadsRequiredToQualify > 0 ? `<div class="meta-item">🎯 ${tournament.squadsRequiredToQualify} qualifying squad${tournament.squadsRequiredToQualify > 1 ? 's' : ''} required</div>` : ''}
+                    <div class="meta-item">${rrIcon('calendar')} ${formattedDate}</div>
+                    <div class="meta-item">${rrIcon('location')} ${tournament.location}</div>
+                    ${tournament.squadsRequiredToQualify > 0 ? `<div class="meta-item">${rrIcon('target')} ${tournament.squadsRequiredToQualify} qualifying squad${tournament.squadsRequiredToQualify > 1 ? 's' : ''} required</div>` : ''}
                 </div>
             </div>
         `;
@@ -124,8 +124,8 @@ async function loadSquads(tournamentId) {
                                     ${squad.isQualifying ? '<span class="qualifying-badge">QUALIFYING</span>' : ''}
                                 </div>
                                 <div class="squad-details">
-                                    <span>📅 ${dateStr}</span>
-                                    <span>⏰ ${squad.time}</span>
+                                    <span>${rrIcon('calendar')} ${dateStr}</span>
+                                    <span>${rrIcon('clock')} ${squad.time}</span>
                                 </div>
                             </div>
                             
@@ -139,7 +139,7 @@ async function loadSquads(tournamentId) {
                                     ${squad.bowlers.map(bowler => `
                                         <li class="bowler-item">
                                             <span class="bowler-name">
-                                                ${bowler.bowlerId ? `<a href="/playerstats?id=${bowler.bowlerId}">${bowler.name}</a>` : bowler.name}
+                                                ${bowler.bowlerId ? `<a href="/player-stats?id=${bowler.bowlerId}">${bowler.name}</a>` : bowler.name}
                                             </span>
                                             ${bowler.averageScore ? `<span class="bowler-avg">Avg: ${bowler.averageScore}</span>` : ''}
                                         </li>

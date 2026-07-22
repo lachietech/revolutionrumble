@@ -3,23 +3,55 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Bowler Hub — Revolution Rumble</title>
+        <title>Bowler Hub &mdash; Revolution Rumble</title>
         <meta name="description" content="Manage your tournament registrations and bowling profile"/>
-        <link rel="stylesheet" href="static/css/packages/navbar.css" />
         <link rel="stylesheet" href="static/css/packages/presets.css" />
         <link rel="stylesheet" href="static/css/mainfiles/bowler-hub.css" />
     </head>
-    <body>
-        <special-header></special-header>
+    <body class="public-page">
+        <header class="site-header" data-site-nav>
+                    <div class="container nav">
+                        <a class="brand" href="/" aria-label="Revolution Rumble home">
+                            <span class="brand-mark" aria-hidden="true"><img src="/static/images/whitebghighres.png" alt="" /></span>
+                            <span class="brand-copy"><span class="brand-kicker">Revolution Bowling Supplies</span><span class="brand-name">Revolution Rumble Tour</span></span>
+                        </a>
+                        <nav class="desktop-nav" aria-label="Primary navigation">
+                            <a href="/" data-nav="home">Home</a>
+                            <a href="/events" data-nav="events">Events</a>
+                            <a href="/results" data-nav="results">Results</a>
+                            <a href="/player-stats" data-nav="stats">Player Stats</a>
+                            <a href="/register" data-nav="registration">Registration</a>
+                        </nav>
+                        <a class="portal-link" href="/bowler-hub" data-nav="portal">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 13.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm-8 7c1.6-3.2 4.27-4.8 8-4.8s6.4 1.6 8 4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                            Bowler Hub
+                        </a>
+                        <button class="hamburger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                            <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="menu-line menu-line-top" d="M4 7h16"/><path class="menu-line menu-line-middle" d="M4 12h16"/><path class="menu-line menu-line-bottom" d="M4 17h16"/></svg>
+                        </button>
+                        <nav id="mobileMenu" class="mobile-menu" aria-label="Mobile navigation" hidden>
+                            <div class="mobile-menu-content">
+                                <span class="mobile-menu-kicker">Navigate the tour</span>
+                                <a href="/" data-nav="home"><span>Home</span></a>
+                                <a href="/events" data-nav="events"><span>Events</span></a>
+                                <a href="/results" data-nav="results"><span>Results</span></a>
+                                <a href="/player-stats" data-nav="stats"><span>Player Stats</span></a>
+                                <a href="/register" data-nav="registration"><span>Registration</span></a>
+                                <a class="mobile-portal" href="/bowler-hub" data-nav="portal"><span>Bowler Hub</span></a>
+                            </div>
+                        </nav>
+                    </div>
+                </header>
 
         <!-- Login Section (shown when not authenticated) -->
         <div id="login-section" class="login-container">
             <div class="login-card">
-                <h1>🎳 Bowler Hub</h1>
-                <p class="subtitle">Access your tournament registrations and profile</p>
+                <div class="portal-badge">Bowler access</div>
+                <h1>Bowler Hub</h1>
+                <p class="subtitle">Your entries, profile, and performance&mdash;all in one place.</p>
                 
                 <div id="email-step" class="auth-step">
-                    <p class="instructions">Enter your email to receive a login code</p>
+                    <p class="instructions">Enter the email used for your registration and we&rsquo;ll send you a secure login code.</p>
                     <form id="email-form">
                         <div class="form-group">
                             <input 
@@ -62,8 +94,9 @@
         <div id="hub-section" style="display:none">
             <div class="page-header">
                 <div class="container">
-                    <h1>Welcome, <span id="bowler-name">Bowler</span>! 👋</h1>
-                    <p id="subtitle">Manage your tournament entries and profile</p>
+                    <div class="portal-badge">Your dashboard</div>
+                    <h1>Welcome back, <span id="bowler-name">Bowler</span></h1>
+                    <p id="subtitle">Manage your entries, keep your profile current, and track your numbers.</p>
                 </div>
             </div>
 
@@ -172,8 +205,8 @@
                                 <div class="stat-label">Tournaments</div>
                             </div>
                         </div>
-                        <button class="btn btn-secondary btn-full" onclick="location.href='/bowlerstats?id=' + currentBowlerId">
-                            View Full Profile →
+                        <button class="btn btn-secondary btn-full" onclick="location.href='/player-stats?id=' + currentBowlerId">
+                            View Full Profile &rarr;
                         </button>
                     </div>
                 </div>

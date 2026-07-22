@@ -122,7 +122,7 @@ function renderBowlers() {
                 </div>
                 <div class="bowler-meta">
                     <span>${handLabel}</span>
-                    <span>View Profile -></span>
+                    <span>View Profile &rarr;</span>
                 </div>
             </a>
         `;

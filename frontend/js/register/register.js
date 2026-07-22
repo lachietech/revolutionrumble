@@ -28,6 +28,22 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+async function ensureCsrfToken() {
+    if (csrfToken) return csrfToken;
+
+    const csrfResponse = await fetch('/api/csrf-token', {
+        credentials: 'same-origin'
+    });
+    const csrfData = await csrfResponse.json();
+
+    if (!csrfResponse.ok || !csrfData.csrfToken) {
+        throw new Error('Unable to prepare a secure registration session. Please refresh and try again.');
+    }
+
+    csrfToken = csrfData.csrfToken;
+    return csrfToken;
+}
+
 // ============================================================================
 // DATA LOADING
 // ============================================================================
@@ -42,14 +58,11 @@ function escapeHtml(text) {
  */
 async function loadTournaments() {
     try {
-        // Fetch CSRF token first if not already fetched
-        if (!csrfToken) {
-            const csrfResponse = await fetch('/api/csrf-token');
-            const csrfData = await csrfResponse.json();
-            csrfToken = csrfData.csrfToken;
-        }
+        await ensureCsrfToken();
         
-        const response = await fetch('/api/tournaments');
+        const response = await fetch('/api/tournaments', {
+            credentials: 'same-origin'
+        });
         const tournaments = await response.json();
 
         // Filter for upcoming tournaments that accept registrations
@@ -77,13 +90,17 @@ async function loadTournaments() {
         const tournamentsWithCounts = await Promise.all(
             openTournaments.map(async (tournament) => {
                 try {
-                    const countRes = await fetch(`/api/tournaments/${tournament._id}/registrations/count`);
+                    const countRes = await fetch(`/api/tournaments/${tournament._id}/registrations/count`, {
+                        credentials: 'same-origin'
+                    });
                     const { count } = await countRes.json();
                     
                     // Fetch squad availability
                     let squadsData = null;
                     if (tournament.squads && tournament.squads.length > 0) {
-                        const squadsRes = await fetch(`/api/tournaments/${tournament._id}/squads/availability`);
+                        const squadsRes = await fetch(`/api/tournaments/${tournament._id}/squads/availability`, {
+                            credentials: 'same-origin'
+                        });
                         squadsData = await squadsRes.json();
                     }
                     
@@ -249,7 +266,7 @@ function renderTournamentCard(tournament) {
         const deadline = new Date(tournament.registrationDeadline);
         const daysUntil = Math.ceil((deadline - new Date()) / (1000 * 60 * 60 * 24));
         if (daysUntil <= 7 && daysUntil > 0) {
-            deadlineWarning = `<div class="deadline-warning">⏰ Registration closes in ${daysUntil} day${daysUntil !== 1 ? 's' : ''} - ${deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>`;
+            deadlineWarning = `<div class="deadline-warning">${rrIcon('clock')} Registration closes in ${daysUntil} day${daysUntil !== 1 ? 's' : ''} - ${deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>`;
         }
     }
 
@@ -261,8 +278,8 @@ function renderTournamentCard(tournament) {
                         <div class="tournament-info">
                             <h2>${tournament.name}</h2>
                             <div class="tournament-meta">
-                                <div class="meta-item">📅 ${formattedDate}</div>
-                                <div class="meta-item">📍 ${tournament.location}</div>
+                                <div class="meta-item">${rrIcon('calendar')} ${formattedDate}</div>
+                                <div class="meta-item">${rrIcon('location')} ${tournament.location}</div>
                             </div>
                         </div>
                         <div class="spots-info">
@@ -286,9 +303,9 @@ function renderTournamentCard(tournament) {
                     <div class="tournament-info">
                         <h2>${tournament.name}</h2>
                         <div class="tournament-meta">
-                            <div class="meta-item">📅 ${formattedDate}</div>
-                            <div class="meta-item">📍 ${tournament.location}</div>
-                            ${tournament.registrationDeadline ? `<div class="meta-item">⏰ Register by ${new Date(tournament.registrationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
+                            <div class="meta-item">${rrIcon('calendar')} ${formattedDate}</div>
+                            <div class="meta-item">${rrIcon('location')} ${tournament.location}</div>
+                            ${tournament.registrationDeadline ? `<div class="meta-item">${rrIcon('clock')} Register by ${new Date(tournament.registrationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
                         </div>
                     </div>
                     ${tournament.maxParticipants ? `
@@ -305,7 +322,7 @@ function renderTournamentCard(tournament) {
                 ${tournament.squadsData && tournament.squadsData.squads && tournament.squadsData.squads.length > 0 ? `
                     <div style="text-align:center;margin:16px 0">
                         <a href="/squads?id=${tournament._id}" style="color:var(--blue-500);text-decoration:none;font-size:.9rem">
-                            📋 View Squad Lists & Availability →
+                            ${rrIcon('ticket')} View Squad Lists & Availability ${rrIcon('arrow')}
                         </a>
                     </div>
                 ` : ''}
@@ -315,12 +332,12 @@ function renderTournamentCard(tournament) {
                     <h3 style="text-align:center;margin-bottom:24px;color:var(--text-primary)">How would you like to register?</h3>
                     <div class="choice-buttons">
                         <button type="button" class="choice-btn returning-btn" onclick="startReturningBowler('${tournament._id}')">
-                            <div class="choice-icon">🎳</div>
+                            <div class="choice-icon">${rrIcon('bowling', 'ui-icon-lg')}</div>
                             <div class="choice-title">Returning Bowler</div>
                             <div class="choice-desc">Sign in with email</div>
                         </button>
                         <button type="button" class="choice-btn new-btn" onclick="startNewBowler('${tournament._id}')">
-                            <div class="choice-icon">✨</div>
+                            <div class="choice-icon">${rrIcon('user', 'ui-icon-lg')}</div>
                             <div class="choice-title">New Bowler</div>
                             <div class="choice-desc">First time registering</div>
                         </button>
@@ -329,7 +346,7 @@ function renderTournamentCard(tournament) {
 
                 <!-- Reservation Timer -->
                 <div id="timer-${tournament._id}" class="reservation-timer" style="display:none">
-                    <span>⏱️ Your spot is reserved for: <strong id="time-${tournament._id}">10:00</strong></span>
+                    <span>${rrIcon('clock')} Your spot is reserved for: <strong id="time-${tournament._id}">10:00</strong></span>
                 </div>
 
                 <!-- Step 2a: OTP Sign-in (for returning bowlers) -->
@@ -560,11 +577,12 @@ async function handleSubmit(e, tournament) {
     console.log('Submitting registration with gender:', genderFromForm);
 
     try {
+        const token = await ensureCsrfToken();
         const response = await fetch('/api/registrations', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
+                'X-CSRF-Token': token
             },
             credentials: 'same-origin',
             body: JSON.stringify(data)
@@ -585,7 +603,7 @@ async function handleSubmit(e, tournament) {
             // Release the reservation on server
             fetch(`/api/reservations/${reservationData[tournament._id].sessionId}`, {
                 method: 'DELETE',
-                headers: { 'X-CSRF-Token': csrfToken },
+                headers: { 'X-CSRF-Token': token },
                 credentials: 'same-origin'
             }).catch(err => console.error('Failed to release reservation:', err));
             delete reservationData[tournament._id];
@@ -696,11 +714,12 @@ async function startNewBowler(tournamentId) {
  */
 async function createReservation(tournamentId) {
     try {
+        const token = await ensureCsrfToken();
         const response = await fetch('/api/reservations', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
+                'X-CSRF-Token': token
             },
             credentials: 'same-origin',
             body: JSON.stringify({ tournamentId })
@@ -774,7 +793,7 @@ function handleReservationExpired(tournamentId) {
     document.getElementById(`form-${tournamentId}`).style.display = 'none';
     document.getElementById(`choice-${tournamentId}`).innerHTML = `
         <div style="text-align:center;padding:40px 20px">
-            <div style="font-size:3rem;margin-bottom:16px">⏰</div>
+            <div class="empty-state-icon">${rrIcon('clock', 'ui-icon-lg')} Reservation expired</div>
             <h3 style="color:var(--text-primary);margin-bottom:12px">Reservation Expired</h3>
             <p style="color:var(--muted);margin-bottom:24px">Your spot reservation has expired. Please start again to reserve a new spot.</p>
             <button 
@@ -815,11 +834,12 @@ async function requestOTP(tournamentId) {
     msgDiv.innerHTML = '<span style="color:var(--muted)">Sending code...</span>';
     
     try {
+        const token = await ensureCsrfToken();
         const response = await fetch('/api/bowlers/request-otp', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
+                'X-CSRF-Token': token
             },
             credentials: 'same-origin',
             body: JSON.stringify({ email })
@@ -864,11 +884,12 @@ async function verifyOTP(tournamentId) {
     msgDiv.innerHTML = '<span style="color:var(--muted)">Verifying...</span>';
     
     try {
+        const token = await ensureCsrfToken();
         const response = await fetch('/api/bowlers/verify-otp', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
+                'X-CSRF-Token': token
             },
             credentials: 'same-origin',
             body: JSON.stringify({ email, otp })
@@ -880,7 +901,9 @@ async function verifyOTP(tournamentId) {
             msgDiv.innerHTML = '<span style="color:#4ade80">✓ Verified! Loading your info...</span>';
             
             // Fetch full bowler details
-            const bowlerRes = await fetch(`/api/bowlers/${data.bowler._id}`);
+            const bowlerRes = await fetch(`/api/bowlers/${data.bowler._id}`, {
+                credentials: 'same-origin'
+            });
             const bowler = await bowlerRes.json();
             
             // Use bowler's gender, default to 'male' if not set

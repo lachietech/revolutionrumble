@@ -1,112 +1,35 @@
-/**
- * @fileoverview Custom HTML elements for site header and footer.
- * Defines reusable Web Components for consistent navigation and footer across all pages.
- * @module global/headerfooter
- */
+const RUMBLE_ICON_PATHS = {
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    location: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
+    players: '<path d="M16 20v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 18.5V20M10 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM17 7a3 3 0 0 1 0 6M19 14.5c1.2.7 2 2 2 3.5v2"/>',
+    target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    ticket: '<path d="M4 5h16v4a3 3 0 0 0 0 6v4H4v-4a3 3 0 0 0 0-6V5Z"/><path d="M12 7v2M12 11v2M12 15v2"/>',
+    bowling: '<circle cx="12" cy="13" r="8"/><circle cx="10" cy="8.5" r=".7" fill="currentColor" stroke="none"/><circle cx="13" cy="7.5" r=".7" fill="currentColor" stroke="none"/><circle cx="14" cy="10" r=".7" fill="currentColor" stroke="none"/>',
+    arrow: '<path d="M5 12h14M14 7l5 5-5 5"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>',
+    check: '<path d="m5 12 4 4L19 6"/>',
+    alert: '<path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v4M12 17h.01"/>'
+};
 
-// ============================================================================
-// HEADER COMPONENT
-// ============================================================================
+window.rrIcon = (name, className = '') => {
+    const paths = RUMBLE_ICON_PATHS[name] || RUMBLE_ICON_PATHS.target;
+    return `<svg class="ui-icon ${className}" viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
+};
 
-/**
- * Custom HTML element for the site header with responsive navigation.
- * Includes branding, desktop navigation menu, mobile hamburger menu, and mobile dropdown.
- * 
- * @class SpecialHeader
- * @extends {HTMLElement}
- * 
- * @example
- * <special-header></special-header>
- */
-class SpecialHeader extends HTMLElement {
-    /**
-     * Called when the element is inserted into the DOM.
-     * Renders the header HTML structure with navigation menus.
-     */
-    connectedCallback() {
-        this.innerHTML = `
-        <header>
-            <div class="container nav">
-                <!-- Hamburger (always visible) -->
-                <button class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-
-
-                <!-- Keep this for progressive enhancement (hidden via CSS) -->
-                <nav id="desktopMenu" class="nav-links desktop-nav" hidden>
-                    <a href="/">Home</a>
-                    <a href="/events">Events</a>
-                    <a href="/results">Results & Stats</a>
-                    <a href="/register">Registration</a>
-                    <a href="/bowler-hub">My Bowling Portal</a>
-                </nav>
-
-                <div class="brand">
-                    <img src="static/images/whitebghighres.png" alt="Revolution Rumble Logo" style="height: 80px; width: auto; margin-right: 8px;">
-                </div>
-                
-
-
-
-                <!-- Dropdown (moved inside .nav so it anchors to the hamburger) -->
-                <nav id="mobileMenu" class="mobile-menu" hidden>
-                    <a href="/">Home</a>
-                    <a href="/events">Events</a>
-                    <a href="/results">Results & Stats</a>
-                    <a href="/register">Registration</a>
-                    <a href="/bowler-hub">My Bowling Portal</a>
-                </nav>
-            </div>
-        </header>
-        `;
-    }
-}
-
-// ============================================================================
-// FOOTER COMPONENT
-// ============================================================================
-
-/**
- * Custom HTML element for the site footer.
- * Displays copyright information and credits.
- * 
- * @class SpecialFooter
- * @extends {HTMLElement}
- * 
- * @example
- * <special-footer></special-footer>
- */
 class SpecialFooter extends HTMLElement {
-    /**
-     * Called when the element is inserted into the DOM.
-     * Renders the footer HTML structure with copyright notice.
-     */
     connectedCallback() {
         this.innerHTML = `
-        <footer>
-            <div style="bottom: 0; text-align:center; padding:8px 0; color:var(--muted); font-size:.9rem">
-                <span>©2026 Revolution Bowling Supplies & Nielsen Innovations</span>
-            </div>
-        </footer>
-        `;
+            <footer class="site-footer">
+                <div class="container footer-inner">
+                    <div><span class="footer-brand">Revolution Rumble</span><br />Built for bowlers who chase the next frame.</div>
+                    <nav class="footer-links" aria-label="Footer navigation">
+                        <a href="/events">Events</a><a href="/results">Results</a><a href="/register">Register</a><a href="/bowler-hub">Bowler Hub</a>
+                    </nav>
+                    <span>&copy; 2026 Revolution Bowling Supplies</span>
+                </div>
+            </footer>`;
     }
 }
 
-// ============================================================================
-// CUSTOM ELEMENT REGISTRATION
-// ============================================================================
-
-/**
- * Register the SpecialHeader custom element.
- * Makes <special-header> available throughout the application.
- */
-customElements.define('special-header', SpecialHeader);
-
-/**
- * Register the SpecialFooter custom element.
- * Makes <special-footer> available throughout the application.
- */
 customElements.define('special-footer', SpecialFooter);

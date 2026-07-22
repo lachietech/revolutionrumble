@@ -1175,6 +1175,14 @@ function syncStageTypeFields() {
     document.querySelectorAll('[data-stage-type-fields]').forEach((section) => {
         section.hidden = section.dataset.stageTypeFields !== type;
     });
+
+    const stageGamesGroup = document.getElementById('stageGamesGroup');
+    const stageGames = document.getElementById('stageGames');
+    if (stageGamesGroup && stageGames) {
+        const autoDrawType = type === 'round_robin' || type === 'stepladder';
+        stageGamesGroup.hidden = autoDrawType;
+        if (autoDrawType) stageGames.value = '1';
+    }
 }
 
 function populateSquadStageOptions(selectedKey = '') {
@@ -1234,8 +1242,9 @@ function resetStageBuilder() {
 function buildStageFromInputs() {
     const type = document.getElementById('stageType').value;
     const name = document.getElementById('stageName').value.trim() || getDefaultStageName(type);
-    const games = Number(document.getElementById('stageGames').value);
-    if (!games || games < 1) {
+    const usesAutomaticDraw = type === 'round_robin' || type === 'stepladder';
+    const games = usesAutomaticDraw ? 1 : Number(document.getElementById('stageGames').value);
+    if (!usesAutomaticDraw && (!games || games < 1)) {
         throw new Error('Please enter a valid number of games for the stage.');
     }
 
@@ -1266,7 +1275,8 @@ function buildStageFromInputs() {
             matchFormat: document.getElementById('stageMatchFormat').value
         };
         stage.stageConfig = {
-            matchesPerBowler: Number(document.getElementById('stageMatchesPerBowler').value) || 1,
+            drawMode: 'everyone-plays-everyone',
+            matchesPerBowler: 0,
             positionRoundInterval: Number(document.getElementById('stagePositionRoundInterval').value) || 0
         };
     } else if (type === 'tri_matchplay') {
@@ -1338,7 +1348,7 @@ function editCustomStage(index) {
     document.getElementById('stageQualifyingSpots').value = stage.stageConfig?.qualifyingSpots || '';
     document.getElementById('stageScoresToCount').value = stage.stageConfig?.scoresToCount || 1;
     document.getElementById('stageQualifyingLabel').value = stage.stageConfig?.cutLineLabel || '';
-    document.getElementById('stageMatchesPerBowler').value = stage.stageConfig?.matchesPerBowler || 7;
+    document.getElementById('stageMatchesPerBowler').value = stage.type === 'round_robin' ? 0 : (stage.stageConfig?.matchesPerBowler || 7);
     document.getElementById('stageMatchFormat').value = stage.matchPlaySettings?.matchFormat || 'single-game';
     document.getElementById('stagePositionRoundInterval').value = stage.stageConfig?.positionRoundInterval || 0;
     document.getElementById('stagePointsWin').value = stage.matchPlaySettings?.pointsForWin ?? 30;
@@ -1380,21 +1390,26 @@ function moveCustomStage(index, direction) {
 }
 
 function getStageSummary(stage) {
-    const details = [`${stage.games} game${stage.games === 1 ? '' : 's'}`];
+    const details = [];
     if (stage.advancingBowlers) details.push(`Top ${stage.advancingBowlers} advance`);
     if (stage.carryoverPinfall) details.push(`${stage.carryoverPercentage}% carryover`);
 
     if (stage.type === 'round_robin') {
-        details.push(`${stage.stageConfig?.matchesPerBowler || 1} matches each`);
+        details.unshift('Auto draw: everyone plays everyone');
         details.push(MATCH_FORMAT_LABELS[stage.matchPlaySettings?.matchFormat] || 'Single Game');
     } else if (stage.type === 'tri_matchplay') {
+        details.unshift(`${stage.games} game${stage.games === 1 ? '' : 's'}`);
         details.push(`${stage.stageConfig?.triRounds || stage.games} tri rounds`);
     } else if (stage.type === 'elimination') {
+        details.unshift(`${stage.games} game${stage.games === 1 ? '' : 's'}`);
         details.push(`${stage.stageConfig?.eliminationStyle || 'single'} elimination`);
         details.push(`Bracket ${stage.stageConfig?.bracketSize || 2}`);
     } else if (stage.type === 'stepladder') {
+        details.unshift('Auto draw: lowest seeds climb the ladder');
         details.push(`${stage.stageConfig?.finalists || 2} finalists`);
         details.push(MATCH_FORMAT_LABELS[stage.matchPlaySettings?.matchFormat] || 'Single Game');
+    } else {
+        details.unshift(`${stage.games} game${stage.games === 1 ? '' : 's'}`);
     }
 
     return details.join(' • ');
@@ -1692,7 +1707,7 @@ async function loadTournaments() {
                 registrationStatus = '<span style="color:#51cf66">✅ Registration Open (Manually Released)</span>';
                 showCloseButton = true;
             } else if (openDate && now < openDate) {
-                registrationStatus = `<span style="color:#ffa94d">⏰ Opens ${openDate.toLocaleString()}</span>`;
+                registrationStatus = `<span style="color:#e0b45e">Opens ${openDate.toLocaleString()}</span>`;
                 showReleaseButton = true;
             } else if (!openDate || now >= openDate) {
                 registrationStatus = '<span style="color:#51cf66">✅ Registration Open</span>';
@@ -1724,7 +1739,7 @@ async function loadTournaments() {
                         <p>${dateStr} • ${t.location} • <span class="status-badge ${statusClass}">${t.status}</span></p>
                         ${t.description ? `<p style="margin-top:4px">${t.description}</p>` : ''}
                         <p style="margin-top:4px;font-size:.9rem">${registrationStatus}</p>
-                        ${squadCount > 0 ? `<p style="margin-top:4px;font-size:.85rem;color:#b9c6d8">📅 ${squadCount} squad${squadCount !== 1 ? 's' : ''} configured</p>` : ''}
+                        ${squadCount > 0 ? `<p style="margin-top:4px;font-size:.85rem;color:#9bacbd">${squadCount} squad${squadCount !== 1 ? 's' : ''} configured</p>` : ''}
                         ${formatInfo}
                     </div>
                     <div class="tournament-actions">

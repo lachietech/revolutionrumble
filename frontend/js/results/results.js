@@ -15,6 +15,12 @@ function renderResultsState(message, variant = 'default') {
     return `<div class="results-empty-state${toneClass}"><p>${message}</p></div>`;
 }
 
+function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value ?? '';
+    return div.innerHTML;
+}
+
 async function init() {
     await loadTournaments();
 
@@ -112,38 +118,19 @@ function renderStageLeaderboard(stage, players, stageIndex) {
     const isFinal = stageIndex === currentTournamentData.stages.length - 1;
     const icon = isFinal ? 'Final' : isQualifying ? 'Qualifying' : 'Stage';
     const maxGames = Math.max(...players.map((player) => player.scores?.length || 0), stage.games);
-    const gameHeaders = Array.from(
-        { length: maxGames },
-        (_, index) => `<th class="is-center">G${index + 1}</th>`
-    ).join('');
 
     return `
         <section class="results-stage-card">
             <div class="results-stage-header">
                 <h2 class="results-stage-title">
                     <span class="results-stage-icon">${icon}</span>
-                    <span>${stage.stageName}</span>
+                    <span>${escapeHtml(stage.stageName)}</span>
                 </h2>
                 <div class="results-stage-meta">${stage.games} games</div>
             </div>
             ${stage.advancingBowlers ? `<p class="results-stage-note">Top ${stage.advancingBowlers} advance to the next stage</p>` : ''}
-            <div class="results-table-wrap">
-                <table class="results-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Player</th>
-                            ${stage.players[0]?.carryover > 0 ? '<th class="is-center">Carry</th>' : ''}
-                            ${gameHeaders}
-                            <th class="is-center">Avg</th>
-                            <th class="is-center">Scratch</th>
-                            <th class="is-center">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${players.map((player, index) => renderPlayerRow(player, index, stage, maxGames)).join('')}
-                    </tbody>
-                </table>
+            <div class="results-table-wrap results-score-list">
+                ${players.map((player, index) => renderPlayerRow(player, index, stage, maxGames)).join('')}
             </div>
         </section>
     `;
@@ -151,10 +138,6 @@ function renderStageLeaderboard(stage, players, stageIndex) {
 
 function renderSingleStageLeaderboard(players) {
     const maxGames = Math.max(...players.map((player) => player.scores?.length || 0), 3);
-    const gameHeaders = Array.from(
-        { length: maxGames },
-        (_, index) => `<th class="is-center">G${index + 1}</th>`
-    ).join('');
 
     return `
         <section class="results-stage-card">
@@ -164,25 +147,25 @@ function renderSingleStageLeaderboard(players) {
                     <span>Final Standings</span>
                 </h2>
             </div>
-            <div class="results-table-wrap">
-                <table class="results-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Player</th>
-                            ${gameHeaders}
-                            <th class="is-center">Avg</th>
-                            <th class="is-center">Scratch</th>
-                            <th class="is-center">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${players.map((player, index) => renderPlayerRow(player, index, null, maxGames)).join('')}
-                    </tbody>
-                </table>
+            <div class="results-table-wrap results-score-list">
+                ${players.map((player, index) => renderPlayerRow(player, index, null, maxGames)).join('')}
             </div>
         </section>
     `;
+}
+
+function renderScoreValue(score, bonus = 0, handicap = 0) {
+    let displayScore = String(score);
+    if (handicap > 0) displayScore += `<sup>+${handicap}</sup>`;
+    if (bonus > 0) displayScore += `<sub>+${bonus}</sub>`;
+    return displayScore;
+}
+
+function getScoreMatchTitle(player, gameIndex) {
+    const matchup = player.matchups?.[gameIndex];
+    if (!matchup) return `Game ${gameIndex + 1}`;
+    const opponent = matchup.opponentName ? ` Opponent: ${matchup.opponentName}.` : '';
+    return `${matchup.label}.${opponent}`;
 }
 
 function renderPlayerRow(player, index, stage = null, maxGames = 0) {
@@ -203,27 +186,38 @@ function renderPlayerRow(player, index, stage = null, maxGames = 0) {
             const isHigh = score === player.high;
             const bonus = player.bonusPins?.[gameIndex] || 0;
             const handicap = player.handicapPerGame || 0;
+            const matchTitle = escapeHtml(getScoreMatchTitle(player, gameIndex));
 
-            let displayScore = score;
-            if (handicap > 0) displayScore += `<sup>+${handicap}</sup>`;
-            if (bonus > 0) displayScore += `<sub>+${bonus}</sub>`;
-
-            return `<td class="is-center results-score-cell${isHigh ? ' is-high' : ''}">${displayScore}</td>`;
+            return `
+                <span class="results-score-cell${isHigh ? ' is-high' : ''}" title="${matchTitle}" aria-label="${matchTitle}">
+                    <span class="results-score-label">G${gameIndex + 1}</span>
+                    <span class="results-score-value">${renderScoreValue(score, bonus, handicap)}</span>
+                </span>
+            `;
         }
 
-        return '<td class="is-center results-score-empty">-</td>';
+        return `
+            <span class="results-score-cell results-score-empty">
+                <span class="results-score-label">G${gameIndex + 1}</span>
+                <span class="results-score-value">-</span>
+            </span>
+        `;
     }).join('');
 
     return `
-        <tr class="${rowClass}">
-            <td class="results-position">${positionBadge}</td>
-            <td class="results-player-name">${player.playerName}</td>
-            ${player.carryover > 0 ? `<td class="is-center results-carry">${player.carryover}</td>` : ''}
-            ${gameCells}
-            <td class="is-center">${player.average}</td>
-            <td class="is-center results-scratch">${player.scratchTotal || player.total}</td>
-            <td class="is-center results-total">${player.total}</td>
-        </tr>
+        <article class="results-row-card ${rowClass}">
+            <div class="results-player-block">
+                <span class="results-position">${positionBadge}</span>
+                <span class="results-player-name">${escapeHtml(player.playerName)}</span>
+            </div>
+            <div class="results-score-wrap">${gameCells}</div>
+            <div class="results-summary-wrap">
+                ${player.carryover > 0 ? `<span class="results-summary-pill results-carry"><small>Carry</small>${player.carryover}</span>` : ''}
+                <span class="results-summary-pill"><small>Avg</small>${player.average}</span>
+                <span class="results-summary-pill results-scratch"><small>Scratch</small>${player.scratchTotal || player.total}</span>
+                <span class="results-summary-pill results-total"><small>Total</small>${player.total}</span>
+            </div>
+        </article>
     `;
 }
 
@@ -235,7 +229,7 @@ function renderEmptyStage(stage, stageIndex) {
             <div class="results-stage-header">
                 <h2 class="results-stage-title is-muted">
                     <span class="results-stage-icon">${icon}</span>
-                    <span>${stage.stageName}</span>
+                    <span>${escapeHtml(stage.stageName)}</span>
                 </h2>
                 <div class="results-stage-meta">${stage.games} games</div>
             </div>

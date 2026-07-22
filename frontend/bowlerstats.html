@@ -5,12 +5,43 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Player Stats - Revolution Rumble</title>
         <meta name="description" content="Browse bowler profiles and tournament statistics."/>
-        <link rel="stylesheet" href="static/css/packages/navbar.css" />
         <link rel="stylesheet" href="static/css/packages/presets.css" />
         <link rel="stylesheet" href="static/css/mainfiles/bowlerstats.css" />
     </head>
-    <body>
-        <special-header></special-header>
+    <body class="public-page">
+        <header class="site-header" data-site-nav>
+                    <div class="container nav">
+                        <a class="brand" href="/" aria-label="Revolution Rumble home">
+                            <span class="brand-mark" aria-hidden="true"><img src="/static/images/whitebghighres.png" alt="" /></span>
+                            <span class="brand-copy"><span class="brand-kicker">Revolution Bowling Supplies</span><span class="brand-name">Revolution Rumble Tour</span></span>
+                        </a>
+                        <nav class="desktop-nav" aria-label="Primary navigation">
+                            <a href="/" data-nav="home">Home</a>
+                            <a href="/events" data-nav="events">Events</a>
+                            <a href="/results" data-nav="results">Results</a>
+                            <a href="/player-stats" data-nav="stats">Player Stats</a>
+                            <a href="/register" data-nav="registration">Registration</a>
+                        </nav>
+                        <a class="portal-link" href="/bowler-hub" data-nav="portal">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 13.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm-8 7c1.6-3.2 4.27-4.8 8-4.8s6.4 1.6 8 4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                            Bowler Hub
+                        </a>
+                        <button class="hamburger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                            <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="menu-line menu-line-top" d="M4 7h16"/><path class="menu-line menu-line-middle" d="M4 12h16"/><path class="menu-line menu-line-bottom" d="M4 17h16"/></svg>
+                        </button>
+                        <nav id="mobileMenu" class="mobile-menu" aria-label="Mobile navigation" hidden>
+                            <div class="mobile-menu-content">
+                                <span class="mobile-menu-kicker">Navigate the tour</span>
+                                <a href="/" data-nav="home"><span>Home</span></a>
+                                <a href="/events" data-nav="events"><span>Events</span></a>
+                                <a href="/results" data-nav="results"><span>Results</span></a>
+                                <a href="/player-stats" data-nav="stats"><span>Player Stats</span></a>
+                                <a href="/register" data-nav="registration"><span>Registration</span></a>
+                                <a class="mobile-portal" href="/bowler-hub" data-nav="portal"><span>Bowler Hub</span></a>
+                            </div>
+                        </nav>
+                    </div>
+                </header>
 
         <div class="page-header">
             <h1>Player Stats</h1>

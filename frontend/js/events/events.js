@@ -54,7 +54,7 @@ async function loadEvents() {
         console.error('Failed to load events:', error);
         document.getElementById('empty-state').style.display = 'block';
         document.getElementById('empty-state').innerHTML = `
-            <div class="empty-state-icon">⚠️</div>
+            <div class="empty-state-icon">${rrIcon('alert', 'ui-icon-lg')} Unable to load</div>
             <h3>Unable to Load Events</h3>
             <p>Please try again later.</p>
         `;
@@ -107,17 +107,17 @@ function renderEventCard(tournament) {
 
     let metaItems = [];
     if (tournament.maxParticipants) {
-        metaItems.push(`<div class="event-meta-item">👥 Max ${tournament.maxParticipants} players</div>`);
+        metaItems.push(`<div class="event-meta-item">${rrIcon('players')} Max ${tournament.maxParticipants} players</div>`);
     }
     if (tournament.registrationDeadline && !isPast) {
         const regDate = new Date(tournament.registrationDeadline).toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric' 
         });
-        metaItems.push(`<div class="event-meta-item">⏰ Register by ${regDate}</div>`);
+        metaItems.push(`<div class="event-meta-item">${rrIcon('clock')} Register by ${regDate}</div>`);
     }
     if (hasSquads) {
-        metaItems.push(`<div class="event-meta-item">🎯 ${tournament.squads.length} squad${tournament.squads.length > 1 ? 's' : ''}</div>`);
+        metaItems.push(`<div class="event-meta-item">${rrIcon('target')} ${tournament.squads.length} squad${tournament.squads.length > 1 ? 's' : ''}</div>`);
     }
 
     return `
@@ -131,7 +131,7 @@ function renderEventCard(tournament) {
             </div>
             
             <h3 class="event-name">${tournament.name}</h3>
-            <div class="event-location">📍 ${tournament.location}</div>
+            <div class="event-location">${rrIcon('location')} ${tournament.location}</div>
             
             ${tournament.description ? `<p class="event-description">${tournament.description}</p>` : ''}
             
@@ -146,7 +146,7 @@ function renderEventCard(tournament) {
                             ? `<a href="/register" class="btn-action btn-primary">Register Now</a>`
                             : `<button class="btn-action btn-disabled" disabled>Registration Closed</button>`
                 }
-                ${hasSquads ? `<a href="/squads?id=${tournament._id}" class="btn-action btn-secondary">View Squads</a>` : `<a href="/playerstats" class="btn-action btn-secondary">Player Stats</a>`}
+                ${hasSquads ? `<a href="/squads?id=${tournament._id}" class="btn-action btn-secondary">View Squads</a>` : `<a href="/player-stats" class="btn-action btn-secondary">Player Stats</a>`}
             </div>
         </div>
     `;

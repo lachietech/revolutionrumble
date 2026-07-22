@@ -1,186 +1,234 @@
 /* Email Templates */
 
 .admin-page-email .admin-surface {
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-    padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 .admin-page-email .card-header {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .admin-page-email .card-header h2 {
-    margin: 0 0 8px;
+  margin: 0 0 8px;
 }
 
 .admin-page-email .form-group {
-    margin-bottom: 18px;
+  margin-bottom: 18px;
 }
 
 .admin-page-email input,
 .admin-page-email textarea {
-    width: 100%;
-    padding: 14px 16px;
-    background: rgba(255, 252, 245, 0.9);
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(255, 252, 245, 0.9);
 }
 
 .admin-page-email textarea {
-    min-height: 280px;
-    resize: vertical;
+  min-height: 280px;
+  resize: vertical;
 }
 
 .help-text {
-    font-size: 0.85rem;
-    color: #6b6458;
-    margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #6b6458;
+  margin-top: 0.5rem;
 }
 
 .button-group {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .btn-outline {
-    background: rgba(255, 252, 245, 0.92);
-    color: #6d1f11;
-    border: 1px solid rgba(179, 54, 31, 0.28);
+  background: rgba(255, 252, 245, 0.92);
+  color: #6d1f11;
+  border: 1px solid rgba(179, 54, 31, 0.28);
 }
 
 .btn-outline:hover {
-    background: rgba(247, 232, 220, 0.94);
+  background: rgba(247, 232, 220, 0.94);
 }
 
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(44, 33, 24, 0.58);
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    box-sizing: border-box;
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(44, 33, 24, 0.58);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .modal-content {
-    background-color: #fffaf2;
-    border: 1px solid #d8ccb3;
-    padding: 2rem;
-    border-radius: 18px;
-    max-width: 980px;
-    width: min(100%, 980px);
-    max-height: 90vh;
-    overflow-y: auto;
-    position: relative;
-    box-shadow: var(--admin-shadow);
+  background-color: #fffaf2;
+  border: 1px solid #d8ccb3;
+  padding: 2rem;
+  border-radius: 18px;
+  max-width: 980px;
+  width: min(100%, 980px);
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: var(--admin-shadow);
 }
 
 .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #d8ccb3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #d8ccb3;
 }
 
 .modal-header h2 {
-    margin: 0;
+  margin: 0;
 }
 
 .close-btn {
-    background: none;
-    border: none;
-    color: #7a7263;
-    font-size: 2rem;
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  background: none;
+  border: none;
+  color: #7a7263;
+  font-size: 2rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-btn:hover {
-    color: #312c24;
+  color: #312c24;
 }
 
 .preview-section {
-    margin-bottom: 2rem;
+  margin-bottom: 2rem;
 }
 
 .preview-section h3 {
-    margin-bottom: 0.5rem;
-    color: #9f2e18;
+  margin-bottom: 0.5rem;
+  color: #9f2e18;
 }
 
 .preview-box {
-    background: #fffdf8;
-    padding: 1rem;
-    border-radius: 12px;
-    border: 1px solid #d8ccb3;
-    color: #28251e;
+  background: #fffdf8;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid #d8ccb3;
+  color: #28251e;
 }
 
 .preview-html {
-    background: white;
-    color: #000;
+  background: white;
+  color: #000;
 }
 
 .preview-text {
-    white-space: pre-wrap;
-    font-family: monospace;
+  white-space: pre-wrap;
+  font-family: monospace;
 }
 
 .notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 1rem 1.5rem;
-    border-radius: 12px;
-    background: #fff8ec;
-    border: 1px solid #d8ccb3;
-    border-left: 4px solid #b3361f;
-    color: #2f2a23;
-    box-shadow: var(--admin-shadow);
-    z-index: 2000;
-    max-width: 400px;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  background: #fff8ec;
+  border: 1px solid #d8ccb3;
+  border-left: 4px solid #b3361f;
+  color: #2f2a23;
+  box-shadow: var(--admin-shadow);
+  z-index: 2000;
+  max-width: 400px;
 }
 
 .notification-success {
-    border-left-color: #1a6f63;
+  border-left-color: #1a6f63;
 }
 
 .notification-error {
-    border-left-color: #b3361f;
+  border-left-color: #b3361f;
 }
 
 @media (max-width: 768px) {
-    .modal-content {
-        width: 100%;
-        padding: 1.25rem;
-    }
+  .modal-content {
+    width: 100%;
+    padding: 1.25rem;
+  }
 
-    .modal-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-    }
+  .modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
 
-    .button-group {
-        flex-direction: column;
-    }
+  .button-group {
+    flex-direction: column;
+  }
 
-    .button-group .btn {
-        width: 100%;
-    }
+  .button-group .btn {
+    width: 100%;
+  }
+}
+
+/* Email editor and modal */
+.admin-page-email input,
+.admin-page-email textarea {
+  background: rgba(2, 10, 18, 0.56);
+}
+.btn-outline {
+  border: 0;
+  background: rgba(139, 205, 231, 0.075);
+  color: var(--blue-300);
+  box-shadow: none;
+}
+.modal {
+  background: rgba(1, 7, 13, 0.76);
+  backdrop-filter: blur(8px);
+}
+.modal-content {
+  border: 0;
+  border-radius: 28px;
+  background: linear-gradient(150deg, #132b40, #07121f);
+  color: var(--admin-ink);
+  box-shadow: 0 34px 100px rgba(0, 4, 12, 0.48);
+}
+.modal-header {
+  border-color: var(--admin-border);
+}
+.close-btn {
+  color: #8ba0b1;
+}
+.preview-section h3 {
+  color: var(--blue-300);
+}
+.preview-box {
+  border: 0;
+  background: rgba(2, 10, 18, 0.5);
+  color: #dce8ef;
+}
+.preview-html {
+  background: #eaf0f3;
+  color: #111;
+}
+.notification {
+  border: 0;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #173149, #091624);
+  color: #eaf3f8;
+  box-shadow: var(--admin-shadow);
 }
