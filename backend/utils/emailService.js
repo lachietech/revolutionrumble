@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { escapeHtml } from './html.js';
 import EmailTemplate from '../models/EmailTemplate.js';
 
 // Create email transporter using Resend
@@ -70,7 +71,7 @@ export const sendRegistrationConfirmation = async ({ to, bowler, tournament, squ
                             <li><strong>Tournament:</strong> {{tournamentName}}</li>
                             <li><strong>Location:</strong> {{tournamentLocation}}</li>
                             <li><strong>Date:</strong> {{tournamentDate}}</li>
-                            <li><strong>Entry Fee:</strong> ${{entryFee}}</li>
+                            <li><strong>Entry Fee:</strong> \${{entryFee}}</li>
                             <li><strong>Selected Squads:</strong> {{squadsList}}</li>
                         </ul>
                         
@@ -96,7 +97,7 @@ REGISTRATION DETAILS:
 - Tournament: {{tournamentName}}
 - Location: {{tournamentLocation}}
 - Date: {{tournamentDate}}
-- Entry Fee: ${{entryFee}}
+- Entry Fee: \${{entryFee}}
 - Selected Squads: {{squadsList}}
 
 PAYMENT INFORMATION:
@@ -134,7 +135,7 @@ The Revolution Rumble Team
         
         // Replace variables in subject and body
         const subject = replaceVariables(template.subject, templateData);
-        const htmlBody = replaceVariables(template.htmlBody, templateData);
+        const htmlBody = replaceVariables(template.htmlBody, Object.fromEntries(Object.entries(templateData).map(([key, value]) => [key, escapeHtml(value)])));
         const textBody = replaceVariables(template.textBody, templateData);
         
         // Send email

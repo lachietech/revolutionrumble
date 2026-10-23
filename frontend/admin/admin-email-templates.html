@@ -108,7 +108,7 @@
                     </div>
                     <div class="preview-section">
                         <h3>HTML Preview:</h3>
-                        <div id="previewHtml" class="preview-box preview-html"></div>
+                        <iframe id="previewHtml" class="preview-box preview-html" title="Email preview" sandbox="" style="width:100%;min-height:400px"></iframe>
                     </div>
                     <div class="preview-section">
                         <h3>Plain Text Preview:</h3>
@@ -121,6 +121,7 @@
         <div id="notification" class="notification" style="display: none;"></div>
     </main>
 
-    <script src="../js/admin/admin-email-templates.js"></script>
+    <script src="/js/utils/html-utils.js"></script>
+        <script src="../js/admin/admin-email-templates.js"></script>
 </body>
 </html>

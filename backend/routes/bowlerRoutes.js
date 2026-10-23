@@ -3,6 +3,8 @@ import Bowler from '../models/Bowler.js';
 import Registration from '../models/Registration.js';
 import TournamentResult from '../models/TournamentResult.js';
 import crypto from 'crypto';
+import { hashOtp, validateOtp } from '../utils/otp.js';
+import { regenerateSession, saveSession } from '../utils/session.js';
 import { 
     validateObjectId, 
     sanitizeEmail, 
@@ -21,7 +23,7 @@ import {
 } from '../middleware/resend.js';
 import { 
     requireBowlerAuth,
-    requireAdmin
+    requireAdminApi
 } from '../middleware/auth.js';
 
 const router = Router();
@@ -78,13 +80,13 @@ router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
             bowler = new Bowler({
                 email: sanitizedEmail,
                 playerName: '', // Will be filled in later
-                otpCode,
+                otpCode: hashOtp(otpCode),
                 otpExpires,
                 otpAttempts: 0
             });
         } else {
             // Update existing bowler with new OTP
-            bowler.otpCode = otpCode;
+            bowler.otpCode = hashOtp(otpCode);
             bowler.otpExpires = otpExpires;
             bowler.otpAttempts = 0;
         }
@@ -94,7 +96,7 @@ router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
         // Send OTP via Resend
         try {
             const resendClient = getResendClient();
-            await resendClient.emails.send({
+            const delivery = await resendClient.emails.send({
                 from: 'Revolution Rumble Verification <rrotpverification@nielseninnovations.com>',
                 to: sanitizedEmail,
                 subject: 'Your Revolution Rumble Login Code',
@@ -111,6 +113,7 @@ router.post('/bowlers/request-otp', otpRequestLimiter, async (req, res) => {
                 `
             });
 
+            if (delivery.error) throw new Error('OTP delivery failed');
             return res.send({ success: true, message: 'OTP sent to your email' });
         } catch (emailError) {
             console.error('❌ Failed to send OTP email:', emailError);
@@ -129,50 +132,46 @@ router.post('/bowlers/verify-otp', otpVerifyLimiter, async (req, res) => {
         
         // Validate and sanitize inputs
         const sanitizedEmail = sanitizeEmail(email);
-        const sanitizedOtp = sanitizeString(otp, 6);
+        const sanitizedOtp = validateOtp(otp);
         
         if (!sanitizedEmail || !sanitizedOtp || sanitizedOtp.length !== 6) {
             return res.status(400).send({ error: 'Valid email and 6-digit OTP required' });
         }
 
-        const bowler = await Bowler.findOne({ email: sanitizedEmail });
+        const bowler = await Bowler.findOneAndUpdate(
+            { email: sanitizedEmail, otpExpires: { $gt: new Date() }, otpAttempts: { $lt: 5 } },
+            { $inc: { otpAttempts: 1 } },
+            { new: true }
+        );
         if (!bowler) {
-            return res.status(404).send({ error: 'Email not found' });
-        }
-
-        // Check if OTP is expired
-        if (!bowler.otpExpires || bowler.otpExpires < new Date()) {
-            return res.status(400).send({ error: 'OTP expired. Please request a new code.' });
-        }
-
-        // Check attempts (max 5)
-        if (bowler.otpAttempts >= 5) {
-            return res.status(429).send({ error: 'Too many failed attempts. Please request a new code.' });
+            return res.status(400).send({ error: 'Code expired or attempt limit reached. Please request a new code.' });
         }
 
         // Verify OTP
-        if (bowler.otpCode !== sanitizedOtp) {
-            bowler.otpAttempts += 1;
-            await bowler.save();
+        if (bowler.otpCode !== hashOtp(sanitizedOtp)) {
             return res.status(400).send({ error: 'Invalid OTP code' });
         }
 
         // Success! Clear OTP and set session
-        bowler.otpCode = undefined;
-        bowler.otpExpires = undefined;
-        bowler.otpAttempts = 0;
-        bowler.lastLogin = new Date();
-        if (!bowler.claimedAt) {
-            bowler.claimedAt = new Date();
-        }
-        await bowler.save();
+        const consumed = await Bowler.findOneAndUpdate(
+            { _id: bowler._id, otpCode: bowler.otpCode, otpExpires: { $gt: new Date() } },
+            {
+                $unset: { otpCode: '', otpExpires: '' },
+                $set: { otpAttempts: 0, lastLogin: new Date(), claimedAt: bowler.claimedAt || new Date() }
+            }
+        );
+        if (!consumed) return res.status(400).send({ error: 'OTP already used or expired' });
 
         // Set session
+        await regenerateSession(req);
         req.session.bowlerId = bowler._id.toString();
         req.session.bowlerEmail = bowler.email;
+        const csrfToken = req.csrfToken();
+        await saveSession(req);
 
         return res.send({
             success: true,
+            csrfToken,
             bowler: {
                 _id: bowler._id,
                 email: bowler.email,
@@ -416,7 +415,7 @@ router.get('/bowlers/:id/history', generalWriteLimiter, async (req, res) => {
 });
 
 // POST create/update tournament result (admin only)
-router.post('/results', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.post('/results', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const { bowlerId, tournamentId, registrationId, squadResults, finalPosition, totalParticipants } = req.body;
 
@@ -548,7 +547,7 @@ async function updateBowlerStats(bowlerId) {
 }
 
 // POST admin utility to sync all bowler stats from results
-router.post('/bowlers/sync-stats', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.post('/bowlers/sync-stats', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const bowlers = await Bowler.find();
         let syncedCount = 0;
@@ -568,7 +567,7 @@ router.post('/bowlers/sync-stats', strictWriteLimiter, requireAdmin, async (req,
 });
 
 // POST admin utility to sync bowler names to all registrations
-router.post('/bowlers/sync-names', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.post('/bowlers/sync-names', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const bowlers = await Bowler.find();
         let updatedCount = 0;
@@ -591,7 +590,7 @@ router.post('/bowlers/sync-names', strictWriteLimiter, requireAdmin, async (req,
 });
 
 // GET diagnostic route to check bowler sync status
-router.get('/bowlers/check-sync/:email', generalWriteLimiter, requireAdmin, async (req, res) => {
+router.get('/bowlers/check-sync/:email', generalWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         // Sanitize email parameter
         const sanitizedEmail = sanitizeEmail(req.params.email);
@@ -680,7 +679,7 @@ router.get('/bowlers/check-sync/:email', generalWriteLimiter, requireAdmin, asyn
 });
 
 // POST fix/link results to bowler by email match
-router.post('/bowlers/link-results/:bowlerId', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.post('/bowlers/link-results/:bowlerId', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const bowlerId = validateObjectId(req.params.bowlerId);
         if (!bowlerId) {
@@ -736,7 +735,7 @@ router.post('/bowlers/link-results/:bowlerId', strictWriteLimiter, requireAdmin,
 });
 
 // POST find and fix bowler by name (for cases where results have wrong name)
-router.post('/bowlers/fix-by-name', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.post('/bowlers/fix-by-name', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const { searchName, correctEmail } = req.body;
         
@@ -797,7 +796,7 @@ router.post('/bowlers/fix-by-name', strictWriteLimiter, requireAdmin, async (req
 });
 
 // POST force sync specific email (temporary debug route - remove in production)
-router.post('/bowlers/force-sync', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.post('/bowlers/force-sync', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const { email } = req.body;
         
@@ -830,27 +829,11 @@ router.post('/bowlers/force-sync', strictWriteLimiter, requireAdmin, async (req,
             { $set: { bowler: bowler._id } }
         );
         
-        // Method 2: Link results by matching tournament IDs (for results without registration link)
-        const resultUpdate2 = await TournamentResult.updateMany(
-            { 
-                tournament: { $in: tournamentIds },
-                $or: [
-                    { bowler: { $exists: false } },
-                    { bowler: null }
-                ]
-            },
-            { $set: { bowler: bowler._id } }
-        );
-        
-        // Method 3: Also update any results that already have wrong bowler but match registrations
-        const resultUpdate3 = await TournamentResult.updateMany(
-            { 
-                tournament: { $in: tournamentIds },
-                bowler: { $ne: bowler._id }
-            },
-            { $set: { bowler: bowler._id } }
-        );
-        
+        // Tournament membership alone does not establish result ownership.
+        // Preserve the response fields without relinking unrelated players.
+        const resultUpdate2 = { modifiedCount: 0 };
+        const resultUpdate3 = { modifiedCount: 0 };
+
         // Update stats
         await updateBowlerStats(bowler._id);
         

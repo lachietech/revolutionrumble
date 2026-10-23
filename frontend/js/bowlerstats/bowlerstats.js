@@ -100,8 +100,8 @@ function renderBowlers() {
         return `
             <a href="/bowler-hub" class="bowler-card">
                 ${rankBadge}
-                <div class="bowler-name">${displayName}</div>
-                ${nickname ? `<div class="bowler-nickname">${nickname}</div>` : ''}
+                <div class="bowler-name">${escapeHtml(displayName)}</div>
+                ${nickname ? `<div class="bowler-nickname">${escapeHtml(nickname)}</div>` : ''}
                 <div class="bowler-stats">
                     <div class="stat-item">
                         <div class="stat-value">${tournamentAvg}</div>
@@ -121,7 +121,7 @@ function renderBowlers() {
                     </div>
                 </div>
                 <div class="bowler-meta">
-                    <span>${handLabel}</span>
+                    <span>${escapeHtml(handLabel)}</span>
                     <span>View Profile &rarr;</span>
                 </div>
             </a>

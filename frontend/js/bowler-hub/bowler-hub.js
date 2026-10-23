@@ -346,7 +346,7 @@ async function saveProfile(e) {
             messageDiv.innerHTML = `<div class="success-message">✓ Profile updated successfully!</div>`;
             setTimeout(() => toggleEditProfile(), 1500);
         } else {
-            messageDiv.innerHTML = `<div class="error-message">❌ ${data.error || 'Failed to update profile'}</div>`;
+            messageDiv.innerHTML = `<div class="error-message">❌ ${escapeHtml(data.error || 'Failed to update profile')}</div>`;
         }
     } catch (error) {
         messageDiv.innerHTML = `<div class="error-message">❌ Network error. Please try again.</div>`;
@@ -417,7 +417,7 @@ async function loadRegistrations() {
                         ${reg.assignedSquads.map(squad => {
                             const squadDate = new Date(squad.date);
                             const dateStr = squadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                            return `<span class="squad-badge">${squad.name} - ${dateStr} ${squad.time || ''}</span>`;
+                            return `<span class="squad-badge">${escapeHtml(squad.name)} - ${dateStr} ${escapeHtml(squad.time || '')}</span>`;
                         }).join('')}
                     </div>
                 `
@@ -428,7 +428,7 @@ async function loadRegistrations() {
                     <button onclick="editRegistration('${reg._id}', '${tournament._id}')" class="btn btn-secondary">
                         Edit Squads
                     </button>
-                    <button onclick="cancelRegistration('${reg._id}', '${tournament.name}')" class="btn btn-danger">
+                    <button data-tournament-name="${escapeHtml(tournament.name)}" onclick="cancelRegistration('${reg._id}', this.dataset.tournamentName)" class="btn btn-danger">
                         Cancel Registration
                     </button>
                 </div>
@@ -438,10 +438,10 @@ async function loadRegistrations() {
                 <div class="registration-card" id="reg-card-${reg._id}">
                     <div class="registration-header">
                         <div>
-                            <div class="registration-title">${tournament.name}</div>
+                            <div class="registration-title">${escapeHtml(tournament.name)}</div>
                             <div class="registration-meta">
                                 <span>${rrIcon('calendar')} ${formattedDate}</span>
-                                <span>${rrIcon('location')} ${tournament.location}</span>
+                                <span>${rrIcon('location')} ${escapeHtml(tournament.location)}</span>
                             </div>
                         </div>
                         <span class="registration-status ${statusClass}">${statusText}</span>
@@ -538,11 +538,11 @@ async function editRegistration(regId, tournamentId) {
                         />
                         <div style="flex:1">
                             <div style="font-weight:600;color:var(--text-primary)">
-                                ${squad.name}
+                                ${escapeHtml(squad.name)}
                                 ${squad.isQualifying ? '<span style="background:#f59e0b;color:#000;padding:2px 6px;border-radius:4px;font-size:0.75rem;margin-left:8px">QUALIFYING</span>' : ''}
                             </div>
                             <div style="font-size:0.85rem;color:var(--muted)">
-                                ${dateStr} ${squad.time || ''} • ${squad.available}/${squad.capacity} spots ${isSelected ? '(currently selected)' : ''}
+                                ${dateStr} ${escapeHtml(squad.time || '')} • ${squad.available}/${squad.capacity} spots ${isSelected ? '(currently selected)' : ''}
                             </div>
                         </div>
                     </label>
@@ -618,7 +618,7 @@ async function saveSquadChanges(regId) {
                 loadRegistrations();
             }, 1000);
         } else {
-            msgDiv.innerHTML = `<span style="color:#ef4444">❌ ${data.error || 'Failed to update squads'}</span>`;
+            msgDiv.innerHTML = `<span style="color:#ef4444">❌ ${escapeHtml(data.error || 'Failed to update squads')}</span>`;
         }
     } catch (error) {
         msgDiv.innerHTML = '<span style="color:#ef4444">❌ Network error</span>';
@@ -709,7 +709,7 @@ document.getElementById('email-form').addEventListener('submit', async (e) => {
             document.getElementById('otp-step').style.display = 'block';
             document.getElementById('otp-input').focus();
         } else {
-            messageDiv.innerHTML = `<div class="error-message">❌ ${data.error || 'Failed to send code'}</div>`;
+            messageDiv.innerHTML = `<div class="error-message">❌ ${escapeHtml(data.error || 'Failed to send code')}</div>`;
         }
     } catch (error) {
         messageDiv.innerHTML = `<div class="error-message">❌ Network error. Please try again.</div>`;
@@ -748,12 +748,13 @@ document.getElementById('otp-form').addEventListener('submit', async (e) => {
         const data = await response.json();
         
         if (response.ok) {
+            csrfToken = data.csrfToken;
             currentBowler = data.bowler;
             currentBowlerId = data.bowler._id;
             messageDiv.innerHTML = `<div class="success-message">✓ Login successful! Loading...</div>`;
             setTimeout(() => loadBowlerHub(), 500);
         } else {
-            messageDiv.innerHTML = `<div class="error-message">❌ ${data.error || 'Invalid code'}</div>`;
+            messageDiv.innerHTML = `<div class="error-message">❌ ${escapeHtml(data.error || 'Invalid code')}</div>`;
         }
     } catch (error) {
         messageDiv.innerHTML = `<div class="error-message">❌ Network error. Please try again.</div>`;

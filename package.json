@@ -6,9 +6,10 @@
   "type": "module",
   "scripts": {
     "check": "node scripts/check-syntax.js",
-    "test": "npm run check",
+    "test:browser": "node scripts/check-browser.js",
+    "test": "npm run check && node --test tests/*.test.js",
     "start": "node backend/server.js",
-    "dev": "nodemon backend/server.js"
+    "dev": "node --watch backend/server.js"
   },
   "author": "",
   "license": "ISC",
@@ -22,8 +23,7 @@
     "express-rate-limit": "^8.5.2",
     "express-session": "^1.18.1",
     "mongoose": "^8.24.1",
-    "nodemailer": "^9.0.1",
-    "nodemon": "^1.14.10",
+    "nodemailer": "^10.2.1",
     "resend": "^6.14.0"
   },
   "overrides": {

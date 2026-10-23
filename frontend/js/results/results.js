@@ -15,11 +15,7 @@ function renderResultsState(message, variant = 'default') {
     return `<div class="results-empty-state${toneClass}"><p>${message}</p></div>`;
 }
 
-function escapeHtml(value) {
-    const div = document.createElement('div');
-    div.textContent = value ?? '';
-    return div.innerHTML;
-}
+
 
 async function init() {
     await loadTournaments();

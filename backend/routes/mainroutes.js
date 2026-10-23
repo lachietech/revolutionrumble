@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import crypto from 'crypto';
+import { hashOtp, validateOtp } from '../utils/otp.js';
+import { regenerateSession, saveSession, destroySession } from '../utils/session.js';
 import AdminSession from '../models/AdminSession.js';
 import {
     pageViewLimiter,
+    otpRequestLimiter,
     otpVerifyLimiter
 } from '../middleware/ratelimiters.js';
 import { 
@@ -80,7 +83,7 @@ router.get('/admin/email-options', otpVerifyLimiter, async (req, res) => {
 });
 
 // Request admin OTP
-router.post('/admin/request-otp', otpVerifyLimiter, async (req, res) => {
+router.post('/admin/request-otp', otpRequestLimiter, async (req, res) => {
     try {
         const { emailIndex } = req.body;
         if (emailIndex === undefined) {
@@ -88,7 +91,7 @@ router.post('/admin/request-otp', otpVerifyLimiter, async (req, res) => {
         }
 
         const allowedEmails = getAllowedAdminEmails();
-        const email = allowedEmails[emailIndex];
+        const email = Number.isInteger(emailIndex) && emailIndex >= 0 ? allowedEmails[emailIndex] : null;
         
         if (!email) {
             return res.status(400).send({ error: 'Invalid email selection' });
@@ -103,16 +106,17 @@ router.post('/admin/request-otp', otpVerifyLimiter, async (req, res) => {
             { email: email },
             {
                 email: email,
-                otpCode,
+                otpCode: hashOtp(otpCode),
                 otpExpires,
-                otpAttempts: 0
+                otpAttempts: 0,
+                createdAt: new Date()
             },
             { upsert: true, new: true }
         );
 
         // Send OTP via Resend
         const resendClient = getResendClient();
-        await resendClient.emails.send({
+        const delivery = await resendClient.emails.send({
             from: 'Revolution Rumble Admin <rradmin@nielseninnovations.com>',
             to: email,
             subject: 'Your Admin Login Code',
@@ -129,6 +133,7 @@ router.post('/admin/request-otp', otpVerifyLimiter, async (req, res) => {
             `
         });
 
+        if (delivery.error) throw new Error('OTP delivery failed');
         return res.send({ success: true, message: 'OTP sent to email' });
     } catch (error) {
         console.error('Admin OTP request error:', error);
@@ -140,7 +145,8 @@ router.post('/admin/request-otp', otpVerifyLimiter, async (req, res) => {
 router.post('/admin/verify-otp', otpVerifyLimiter, async (req, res) => {
     try {
         const { emailIndex, otp } = req.body;
-        if (emailIndex === undefined || !otp) {
+        const sanitizedOtp = validateOtp(otp);
+        if (!Number.isInteger(emailIndex) || emailIndex < 0 || !sanitizedOtp) {
             return res.status(400).send({ error: 'Email selection and OTP required' });
         }
 
@@ -152,26 +158,16 @@ router.post('/admin/verify-otp', otpVerifyLimiter, async (req, res) => {
         }
 
         // Find admin session
-        const session = await AdminSession.findOne({ email: email });
+        const session = await AdminSession.findOneAndUpdate(
+            { email, otpExpires: { $gt: new Date() }, otpAttempts: { $lt: 5 } },
+            { $inc: { otpAttempts: 1 } },
+            { new: true }
+        );
         if (!session) {
             return res.status(401).send({ error: 'No OTP found. Please request a new code.' });
         }
 
-        // Check if OTP has expired
-        if (new Date() > session.otpExpires) {
-            await AdminSession.deleteOne({ _id: session._id });
-            return res.status(401).send({ error: 'OTP expired. Please request a new code.' });
-        }
-
-        // Check attempt limit
-        if (session.otpAttempts >= 5) {
-            await AdminSession.deleteOne({ _id: session._id });
-            return res.status(429).send({ error: 'Too many failed attempts. Please request a new code.' });
-        }
-
-        if (session.otpCode !== otp.trim()) {
-            session.otpAttempts += 1;
-            await session.save();
+        if (session.otpCode !== hashOtp(sanitizedOtp)) {
             return res.status(401).send({
                 error: 'Invalid OTP',
                 attemptsRemaining: 5 - session.otpAttempts
@@ -179,13 +175,16 @@ router.post('/admin/verify-otp', otpVerifyLimiter, async (req, res) => {
         }
 
         // Success - delete session and create admin session
-        await AdminSession.deleteOne({ _id: session._id });
-
+        const consumed = await AdminSession.findOneAndDelete({
+            _id: session._id, otpCode: session.otpCode, otpExpires: { $gt: new Date() }
+        });
+        if (!consumed) return res.status(401).send({ error: 'OTP already used or expired' });
+        await regenerateSession(req);
         req.session.isAdmin = true;
         req.session.adminEmail = email;
 
         try {
-            await req.session.save();
+            await saveSession(req);
             return res.send({ success: true, redirect: '/admin/tournaments' });
         } catch (err) {
             console.error('Session save error:', err);
@@ -198,9 +197,12 @@ router.post('/admin/verify-otp', otpVerifyLimiter, async (req, res) => {
 });
 
 // Admin logout
-router.get('/admin/logout', otpVerifyLimiter, async (req, res) => {
-    await req.session.destroy();
-    return res.redirect('/');
+router.post('/admin/logout', otpVerifyLimiter, async (req, res, next) => {
+    try {
+        await destroySession(req);
+        res.clearCookie('connect.sid');
+        return res.redirect('/');
+    } catch (error) { next(error); }
 });
 
 // Admin sub-pages (protected)

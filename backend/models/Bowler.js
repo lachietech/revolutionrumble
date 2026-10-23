@@ -11,7 +11,7 @@ const bowlerSchema = new mongoose.Schema({
     },
     playerName: {
         type: String,
-        required: true
+        default: ''
     },
     phone: String,
     gender: {

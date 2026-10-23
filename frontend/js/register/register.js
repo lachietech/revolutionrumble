@@ -22,11 +22,7 @@ let reservationData = {};
 let currentSigninEmail = {};
 
 // Helper function to escape HTML and prevent XSS
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+
 
 async function ensureCsrfToken() {
     if (csrfToken) return csrfToken;
@@ -209,7 +205,7 @@ function renderSquadSelection(tournament) {
                     />
                     <div class="squad-info">
                         <div class="squad-name">
-                            ${squad.name}
+                            ${escapeHtml(squad.name)}
                             ${squad.isQualifying ? '<span class="qualifying-badge">QUALIFYING</span>' : ''}
                         </div>
                         <div class="squad-details">
@@ -276,10 +272,10 @@ function renderTournamentCard(tournament) {
                 <div class="tournament-card">
                     <div class="tournament-header">
                         <div class="tournament-info">
-                            <h2>${tournament.name}</h2>
+                            <h2>${escapeHtml(tournament.name)}</h2>
                             <div class="tournament-meta">
                                 <div class="meta-item">${rrIcon('calendar')} ${formattedDate}</div>
-                                <div class="meta-item">${rrIcon('location')} ${tournament.location}</div>
+                                <div class="meta-item">${rrIcon('location')} ${escapeHtml(tournament.location)}</div>
                             </div>
                         </div>
                         <div class="spots-info">
@@ -287,7 +283,7 @@ function renderTournamentCard(tournament) {
                             <div class="spots-label">Registration Closed</div>
                         </div>
                     </div>
-                    ${tournament.description ? `<p style="color:var(--muted);margin-top:16px">${tournament.description}</p>` : ''}
+                    ${tournament.description ? `<p style="color:var(--muted);margin-top:16px">${escapeHtml(tournament.description)}</p>` : ''}
                     <div class="closed-notice">
                         This tournament has reached maximum capacity.
                     </div>
@@ -301,10 +297,10 @@ function renderTournamentCard(tournament) {
             <div class="tournament-card">
                 <div class="tournament-header">
                     <div class="tournament-info">
-                        <h2>${tournament.name}</h2>
+                        <h2>${escapeHtml(tournament.name)}</h2>
                         <div class="tournament-meta">
                             <div class="meta-item">${rrIcon('calendar')} ${formattedDate}</div>
-                            <div class="meta-item">${rrIcon('location')} ${tournament.location}</div>
+                            <div class="meta-item">${rrIcon('location')} ${escapeHtml(tournament.location)}</div>
                             ${tournament.registrationDeadline ? `<div class="meta-item">${rrIcon('clock')} Register by ${new Date(tournament.registrationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
                         </div>
                     </div>
@@ -316,7 +312,7 @@ function renderTournamentCard(tournament) {
                     ` : ''}
                 </div>
 
-                ${tournament.description ? `<p style="color:var(--muted);margin-top:16px">${tournament.description}</p>` : ''}
+                ${tournament.description ? `<p style="color:var(--muted);margin-top:16px">${escapeHtml(tournament.description)}</p>` : ''}
                 ${deadlineWarning}
                 
                 ${tournament.squadsData && tournament.squadsData.squads && tournament.squadsData.squads.length > 0 ? `
@@ -625,7 +621,7 @@ async function handleSubmit(e, tournament) {
     } catch (error) {
         messageDiv.innerHTML = `
             <div class="error-message">
-                ❌ ${error.message}
+                ❌ ${escapeHtml(error.message)}
             </div>
         `;
     } finally {
@@ -855,7 +851,7 @@ async function requestOTP(tournamentId) {
             document.getElementById(`signin-otp-${tournamentId}`).focus();
             msgDiv.innerHTML = '';
         } else {
-            msgDiv.innerHTML = `<span style="color:#f87171">${data.error || 'Failed to send code'}</span>`;
+            msgDiv.innerHTML = `<span style="color:#f87171">${escapeHtml(data.error || 'Failed to send code')}</span>`;
         }
     } catch (error) {
         msgDiv.innerHTML = '<span style="color:#f87171">Network error</span>';
@@ -900,6 +896,7 @@ async function verifyOTP(tournamentId) {
         if (response.ok) {
             msgDiv.innerHTML = '<span style="color:#4ade80">✓ Verified! Loading your info...</span>';
             
+            csrfToken = data.csrfToken;
             // Fetch full bowler details
             const bowlerRes = await fetch(`/api/bowlers/${data.bowler._id}`, {
                 credentials: 'same-origin'
@@ -941,7 +938,7 @@ async function verifyOTP(tournamentId) {
             // Scroll to squad selection
             document.getElementById(`form-${tournamentId}`).scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else {
-            msgDiv.innerHTML = `<span style="color:#f87171">${data.error || 'Invalid code'}</span>`;
+            msgDiv.innerHTML = `<span style="color:#f87171">${escapeHtml(data.error || 'Invalid code')}</span>`;
         }
     } catch (error) {
         msgDiv.innerHTML = '<span style="color:#f87171">Network error</span>';

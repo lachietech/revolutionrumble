@@ -27,7 +27,7 @@ async function loadTournamentsForFilter() {
         regFilterSelect.innerHTML = '<option value="">All Tournaments</option>' +
             tournaments.map((tournament) => {
                 const date = new Date(tournament.startDate || tournament.date).toLocaleDateString();
-                return `<option value="${tournament._id}">${tournament.name} (${date})</option>`;
+                return `<option value="${tournament._id}">${escapeHtml(tournament.name)} (${date})</option>`;
             }).join('');
     } catch (error) {
         console.error('Error loading tournaments:', error);
@@ -121,14 +121,14 @@ function renderRegistrationTableRow(registration, tournamentsById) {
         <tr>
             <td>
                 <div class="registration-player">
-                    <strong>${registration.playerName}</strong>
+                    <strong>${escapeHtml(registration.playerName)}</strong>
                     ${renderGenderBadge(registration.gender)}
                     ${registration.averageScore ? `<span class="registration-meta">Average: ${registration.averageScore}</span>` : ''}
                 </div>
             </td>
-            <td>${registration.tournament?.name || 'N/A'}</td>
-            <td><div class="registration-squads">${squadNames.length ? squadNames.join('<br>') : 'None assigned'}</div></td>
-            <td><div class="registration-contact">${registration.email}<br>${registration.phone}</div></td>
+            <td>${escapeHtml(registration.tournament?.name || 'N/A')}</td>
+            <td><div class="registration-squads">${squadNames.length ? squadNames.map(escapeHtml).join('<br>') : 'None assigned'}</div></td>
+            <td><div class="registration-contact">${escapeHtml(registration.email)}<br>${escapeHtml(registration.phone)}</div></td>
             <td>
                 <select class="registration-status-select" onchange="updateRegistrationStatus('${registration._id}', this.value)">
                     <option value="pending" ${registration.status === 'pending' ? 'selected' : ''}>Pending</option>
@@ -157,7 +157,7 @@ function renderRegistrationCard(registration, tournamentsById) {
         <article class="registration-card">
             <div class="registration-card-header">
                 <div class="registration-player">
-                    <strong>${registration.playerName}</strong>
+                    <strong>${escapeHtml(registration.playerName)}</strong>
                     ${renderGenderBadge(registration.gender)}
                     ${registration.averageScore ? `<span class="registration-meta">Average: ${registration.averageScore}</span>` : ''}
                 </div>
@@ -165,15 +165,15 @@ function renderRegistrationCard(registration, tournamentsById) {
             </div>
             <div class="registration-card-row">
                 <span class="registration-card-label">Tournament</span>
-                <span class="registration-card-value">${registration.tournament?.name || 'N/A'}</span>
+                <span class="registration-card-value">${escapeHtml(registration.tournament?.name || 'N/A')}</span>
             </div>
             <div class="registration-card-row">
                 <span class="registration-card-label">Squads</span>
-                <span class="registration-card-value">${squadNames.length ? squadNames.join(', ') : 'None assigned'}</span>
+                <span class="registration-card-value">${squadNames.length ? squadNames.map(escapeHtml).join(', ') : 'None assigned'}</span>
             </div>
             <div class="registration-card-row">
                 <span class="registration-card-label">Contact</span>
-                <span class="registration-card-value">${registration.email}<br>${registration.phone}</span>
+                <span class="registration-card-value">${escapeHtml(registration.email)}<br>${escapeHtml(registration.phone)}</span>
             </div>
             <div class="registration-card-row">
                 <span class="registration-card-label">Status</span>
@@ -303,7 +303,7 @@ async function exportRegistrations() {
         ]);
 
         const csvContent = [headers, ...rows]
-            .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+            .map((row) => row.map((cell) => `"${String(/^[=+@\-\t\r\n]/.test(String(cell)) ? "'" + cell : cell).replace(/"/g, '""')}"`).join(','))
             .join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv' });

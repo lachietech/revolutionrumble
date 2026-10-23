@@ -240,19 +240,31 @@
                                                             </div>
                                                         </div>
 
-                                                        <div clas…1415 tokens truncated…                    </div>
-                                                                <div class="form-group">
-                                                                    <label for="stageTriPointsLoss">Points for Low Score</label>
-                                                                    <input type="number" id="stageTriPointsLoss" min="0" value="0" />
-                                                                </div>
-                                                            </div>
-                                                            <label class="checkbox-row">
-                                                                <input type="checkbox" id="stageTriIncludePinfall" checked />
-                                                                <span>Blend pinfall into tri-matchplay standings</span>
-                                                            </label>
-                                                        </div>
+                                                        <div class="stage-type-fields" data-stage-type-fields="round_robin" hidden>
+    <p>Each bowler plays every other bowler. The draw determines the game count.</p>
+    <input type="hidden" id="stageMatchesPerBowler" value="0" />
+    <div class="stage-type-grid">
+        <div class="form-group"><label for="stageMatchFormat">Match Format</label>
+            <select id="stageMatchFormat"><option value="single-game">Single Game</option><option value="best-of-3">Best of 3</option><option value="best-of-5">Best of 5</option><option value="total-pinfall-2">Total Pinfall (2 Games)</option><option value="total-pinfall-3">Total Pinfall (3 Games)</option></select>
+        </div>
+        <div class="form-group"><label for="stagePositionRoundInterval">Position Round Interval</label><input type="number" id="stagePositionRoundInterval" value="0" min="0" /></div>
+        <div class="form-group"><label for="stagePointsWin">Points for Win</label><input type="number" id="stagePointsWin" value="30" min="0" /></div>
+        <div class="form-group"><label for="stagePointsTie">Points for Tie</label><input type="number" id="stagePointsTie" value="15" min="0" /></div>
+        <div class="form-group"><label for="stagePointsLoss">Points for Loss</label><input type="number" id="stagePointsLoss" value="0" min="0" /></div>
+    </div>
+    <label class="checkbox-row"><input type="checkbox" id="stageIncludePinfall" checked /><span>Include pinfall in matchplay standings</span></label>
+</div>
+<div class="stage-type-fields" data-stage-type-fields="tri_matchplay" hidden>
+    <div class="stage-type-grid">
+        <div class="form-group"><label for="stageTriRounds">Tri Rounds</label><input type="number" id="stageTriRounds" value="8" min="0" /></div>
+        <div class="form-group"><label for="stageTriPointsWin">Points for High Score</label><input type="number" id="stageTriPointsWin" value="30" min="0" /></div>
+        <div class="form-group"><label for="stageTriPointsMiddle">Points for Middle Score</label><input type="number" id="stageTriPointsMiddle" value="15" min="0" /></div>
+        <div class="form-group"><label for="stageTriPointsLoss">Points for Low Score</label><input type="number" id="stageTriPointsLoss" value="0" min="0" /></div>
+    </div>
+    <label class="checkbox-row"><input type="checkbox" id="stageTriIncludePinfall" checked /><span>Blend pinfall into tri-matchplay standings</span></label>
+</div>
 
-                                                        <div class="stage-type-fields" data-stage-type-fields="elimination" hidden>
+<div class="stage-type-fields" data-stage-type-fields="elimination" hidden>
                                                             <div class="stage-type-grid">
                                                                 <div class="form-group">
                                                                     <label for="stageEliminationStyle">Elimination Style</label>
@@ -464,6 +476,7 @@
             </div>
         </main>
 
+        <script src="/js/utils/html-utils.js"></script>
         <script src="/js/admin/admin-tournaments.js"></script>
     </body>
 </html>

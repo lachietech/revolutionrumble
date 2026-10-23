@@ -19,7 +19,7 @@ export function validateObjectId(id) {
         return null;
     }
     
-    return sanitized;
+    return sanitized.toLowerCase();
 }
 
 /**
@@ -53,6 +53,7 @@ export function sanitizeEmail(email) {
     }
     
     const sanitized = email.toLowerCase().trim();
+    if (/[\s<>(),;:\\"\[\]\x00-\x1f\x7f]/.test(sanitized) || sanitized.split('@').length !== 2) return null;
     
     // Length check first (RFC 5321)
     if (sanitized.length > 254 || sanitized.length < 3) {
@@ -81,8 +82,8 @@ export function sanitizeEmail(email) {
         return null;
     }
     
-    // Remove any MongoDB operators
-    return sanitized.replace(/\$/g, '');
+    // Preserve the exact mailbox; scalar strings are safe as MongoDB query values.
+    return sanitized;
 }
 
 /**
@@ -149,9 +150,10 @@ export function validateGender(gender) {
  * @returns {number|null} - Valid integer or null
  */
 export function validateInteger(value, min = 0, max = 999999) {
-    const num = parseInt(value, 10);
+    if (typeof value !== 'number' && (typeof value !== 'string' || !/^-?\d+$/.test(value.trim()))) return null;
+    const num = Number(value);
     
-    if (isNaN(num) || num < min || num > max) {
+    if (!Number.isSafeInteger(num) || num < min || num > max) {
         return null;
     }
     
@@ -200,7 +202,7 @@ export function validateObjectIdArray(ids) {
         return [];
     }
     
-    return ids
+    return [...new Set(ids
         .map(id => validateObjectId(id))
-        .filter(id => id !== null);
+        .filter(id => id !== null))];
 }

@@ -1,10 +1,5 @@
 // Helper function to escape HTML and prevent XSS
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+
 
 // CSRF token for secure requests
 let csrfToken = null;
@@ -1658,7 +1653,7 @@ async function loadTournaments() {
                     const startDate = new Date(t.startDate || t.date).toLocaleDateString();
                     const endDate = new Date(t.endDate || t.date).toLocaleDateString();
                     const dateRange = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
-                    return `<option value="${t._id}">${t.name} (${dateRange})</option>`;
+                    return `<option value="${t._id}">${escapeHtml(t.name)} (${dateRange})</option>`;
                 }).join('');
         }
 
@@ -1669,7 +1664,7 @@ async function loadTournaments() {
                     const startDate = new Date(t.startDate || t.date).toLocaleDateString();
                     const endDate = new Date(t.endDate || t.date).toLocaleDateString();
                     const dateRange = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
-                    return `<option value="${t._id}">${t.name} (${dateRange})</option>`;
+                    return `<option value="${t._id}">${escapeHtml(t.name)} (${dateRange})</option>`;
                 }).join('');
         }
 
@@ -1735,9 +1730,9 @@ async function loadTournaments() {
             return `
                 <div class="tournament-item">
                     <div class="tournament-info">
-                        <h4>${t.name}</h4>
-                        <p>${dateStr} • ${t.location} • <span class="status-badge ${statusClass}">${t.status}</span></p>
-                        ${t.description ? `<p style="margin-top:4px">${t.description}</p>` : ''}
+                        <h4>${escapeHtml(t.name)}</h4>
+                        <p>${dateStr} • ${escapeHtml(t.location)} • <span class="status-badge ${statusClass}">${t.status}</span></p>
+                        ${t.description ? `<p style="margin-top:4px">${escapeHtml(t.description)}</p>` : ''}
                         <p style="margin-top:4px;font-size:.9rem">${registrationStatus}</p>
                         ${squadCount > 0 ? `<p style="margin-top:4px;font-size:.85rem;color:#9bacbd">${squadCount} squad${squadCount !== 1 ? 's' : ''} configured</p>` : ''}
                         ${formatInfo}
@@ -1887,21 +1882,21 @@ async function loadRegistrations() {
                                     const squad = tournament.squads.find(s => s._id === squadId);
                                     return squad ? squad.name : 'Unknown';
                                 });
-                                squadInfo = squadNames.join('<br>');
+                                squadInfo = squadNames.map(escapeHtml).join('<br>');
                             }
                         }
 
                         return `
                         <tr style="border-bottom:1px solid rgba(255,255,255,.03)">
                             <td style="padding:10px 8px">
-                                <strong>${r.playerName}</strong>
+                                <strong>${escapeHtml(r.playerName)}</strong>
                                 ${r.averageScore ? `<br><span style="font-size:.8rem;color:#b9c6d8">Avg: ${r.averageScore}</span>` : ''}
                             </td>
-                            <td style="padding:10px 8px;font-size:.9rem">${r.tournament?.name || 'N/A'}</td>
+                            <td style="padding:10px 8px;font-size:.9rem">${escapeHtml(r.tournament?.name || 'N/A')}</td>
                             <td style="padding:10px 8px;font-size:.85rem">${squadInfo}</td>
                             <td style="padding:10px 8px;font-size:.85rem">
-                                ${r.email}<br>
-                                ${r.phone}
+                                ${escapeHtml(r.email)}<br>
+                                ${escapeHtml(r.phone)}
                             </td>
                             <td style="padding:10px 8px">
                                 <select onchange="updateRegistrationStatus('${r._id}', this.value)" style="font-size:.8rem;padding:4px 6px">
@@ -2100,7 +2095,7 @@ function renderSquadResults(registrations) {
 
         html += `
             <div style="border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:16px;background:rgba(255,255,255,.02)">
-                <h3 style="margin:0 0 16px;color:var(--blue-500)">${squad.name}</h3>
+                <h3 style="margin:0 0 16px;color:var(--blue-500)">${escapeHtml(squad.name)}</h3>
                 <table style="width:100%;border-collapse:collapse">
                     <thead>
                         <tr style="border-bottom:1px solid rgba(255,255,255,.08)">
@@ -2169,7 +2164,7 @@ function renderResultRow(registration, squadId) {
     return `
         <tr id="${rowId}" style="border-bottom:1px solid rgba(255,255,255,.03)">
             <td style="padding:8px">
-                <strong>${registration.playerName}</strong>
+                <strong>${escapeHtml(registration.playerName)}</strong>
                 ${registration.averageScore ? `<br><span style="font-size:.8rem;color:#b9c6d8">Avg: ${registration.averageScore}</span>` : ''}
             </td>
             ${gameInputs}

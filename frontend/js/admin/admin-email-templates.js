@@ -150,7 +150,7 @@ async function previewTemplate() {
             const preview = await response.json();
             
             document.getElementById('previewSubject').textContent = preview.subject;
-            document.getElementById('previewHtml').innerHTML = preview.htmlBody;
+            document.getElementById('previewHtml').srcdoc = preview.htmlBody;
             document.getElementById('previewText').textContent = preview.textBody;
             
             document.getElementById('previewModal').style.display = 'flex';

@@ -11,7 +11,7 @@ import {
     strictWriteLimiter
 } from '../middleware/ratelimiters.js';
 import { 
-    requireAdmin 
+    requireAdminApi
 } from '../middleware/auth.js';
 
 const router = Router();
@@ -44,7 +44,7 @@ router.get('/tournaments/:id', generalWriteLimiter, async (req, res) => {
 });
 
 // POST create new tournament (admin only)
-router.post('/tournaments', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.post('/tournaments', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const tournament = new Tournament(req.body);
         await tournament.save();
@@ -55,7 +55,7 @@ router.post('/tournaments', strictWriteLimiter, requireAdmin, async (req, res) =
 });
 
 // PUT update tournament (admin only)
-router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.put('/tournaments/:id', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
@@ -146,7 +146,7 @@ router.put('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res
 });
 
 // POST manually open registration for a tournament (admin only)
-router.post('/tournaments/:id/open-registration', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.post('/tournaments/:id/open-registration', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
@@ -171,7 +171,7 @@ router.post('/tournaments/:id/open-registration', strictWriteLimiter, requireAdm
 });
 
 // POST manually close registration for a tournament (admin only)
-router.post('/tournaments/:id/close-registration', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.post('/tournaments/:id/close-registration', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);
@@ -196,7 +196,7 @@ router.post('/tournaments/:id/close-registration', strictWriteLimiter, requireAd
 });
 
 // DELETE tournament (admin only)
-router.delete('/tournaments/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.delete('/tournaments/:id', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         // Validate tournament ID
         const tournamentId = validateObjectId(req.params.id);

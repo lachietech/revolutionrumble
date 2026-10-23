@@ -130,10 +130,10 @@ function renderEventCard(tournament) {
                 <span class="status-badge ${statusClass}">${statusText}</span>
             </div>
             
-            <h3 class="event-name">${tournament.name}</h3>
-            <div class="event-location">${rrIcon('location')} ${tournament.location}</div>
+            <h3 class="event-name">${escapeHtml(tournament.name)}</h3>
+            <div class="event-location">${rrIcon('location')} ${escapeHtml(tournament.location)}</div>
             
-            ${tournament.description ? `<p class="event-description">${tournament.description}</p>` : ''}
+            ${tournament.description ? `<p class="event-description">${escapeHtml(tournament.description)}</p>` : ''}
             
             ${metaItems.length > 0 ? `<div class="event-meta">${metaItems.join('')}</div>` : ''}
             

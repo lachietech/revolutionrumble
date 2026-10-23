@@ -21,7 +21,6 @@ import {
     registrationLimiter
 } from '../middleware/ratelimiters.js';
 import {
-    requireAdmin,
     requireAdminApi
 } from '../middleware/auth.js';
 
@@ -222,6 +221,7 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
 // GET check reservation status
 router.get('/reservations/:sessionId', generalWriteLimiter, async (req, res) => {
     try {
+        if (req.params.sessionId !== req.session.reservationId) return res.status(403).send({ error: 'Reservation belongs to another session' });
         const reservation = await SpotReservation.findOne({
             sessionId: req.params.sessionId,
             expiresAt: { $gt: new Date() }
@@ -246,6 +246,7 @@ router.get('/reservations/:sessionId', generalWriteLimiter, async (req, res) => 
 // DELETE release reservation
 router.delete('/reservations/:sessionId', reservationLimiter, async (req, res) => {
     try {
+        if (req.params.sessionId !== req.session.reservationId) return res.status(403).send({ error: 'Reservation belongs to another session' });
         await SpotReservation.deleteOne({ sessionId: req.params.sessionId });
         return res.send({ success: true, message: 'Reservation released' });
     } catch (error) {
@@ -483,7 +484,7 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
 });
 
 // GET all registrations (admin only - with optional tournament filter)
-router.get('/registrations', generalWriteLimiter, requireAdmin, async (req, res) => {
+router.get('/registrations', generalWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const filter = {};
         if (req.query.tournamentId) {
@@ -510,7 +511,7 @@ router.get('/registrations', generalWriteLimiter, requireAdmin, async (req, res)
 });
 
 // GET single registration (admin only)
-router.get('/registrations/:id', generalWriteLimiter, requireAdmin, async (req, res) => {
+router.get('/registrations/:id', generalWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         // Validate registration ID
         const registrationId = validateObjectId(req.params.id);
@@ -685,14 +686,12 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
             });
             await bowler.save();
         } else {
-            // Update existing bowler
-            bowler.playerName = sanitizedName;
-            bowler.phone = sanitizedPhone;
-            if (validGender) {
+            // Guest entries must never modify someone else's profile.
+            if (req.session.isAdmin || req.session.bowlerId === bowler._id.toString()) {
+                bowler.playerName = sanitizedName;
+                bowler.phone = sanitizedPhone;
                 bowler.gender = validGender;
-            }
-            if (validAverage) {
-                bowler.currentAverage = validAverage;
+                if (validAverage !== null) bowler.currentAverage = validAverage;
             }
             
             // Add tournament to history if not already there
@@ -767,7 +766,7 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
 });
 
 // PUT update registration status (admin only)
-router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.put('/registrations/:id', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         const { status, notes, stageScores, currentStage, carryoverToNextStage } = req.body;
         
@@ -891,7 +890,7 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, r
 });
 
 // PUT update payment status (admin only)
-router.put('/registrations/:id/payment-status', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.put('/registrations/:id/payment-status', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         // Validate registration ID
         const registrationId = validateObjectId(req.params.id);
@@ -943,13 +942,13 @@ router.put('/registrations/:id/squads', generalWriteLimiter, async (req, res) =>
 
         // Verify this registration belongs to the authenticated bowler
         const bowler = await Bowler.findById(req.session.bowlerId);
-        if (registration.email !== bowler.email) {
+        if (!bowler || registration.email !== bowler.email) {
             return res.status(403).send({ error: 'You can only modify your own registrations' });
         }
 
         // Only allow squad changes for upcoming tournaments
         const tournament = await Tournament.findById(registration.tournament);
-        if (tournament.status !== 'upcoming') {
+        if (!tournament || tournament.status !== 'upcoming') {
             return res.status(400).send({ error: 'Cannot modify registration for tournaments that have started or completed' });
         }
 
@@ -957,6 +956,17 @@ router.put('/registrations/:id/squads', generalWriteLimiter, async (req, res) =>
         
         // Validate and sanitize squad IDs
         const validSquads = validateObjectIdArray(assignedSquads);
+        if (!Array.isArray(assignedSquads) || validSquads.length !== assignedSquads.length) {
+            return res.status(400).send({ error: 'Invalid or duplicate squad selections' });
+        }
+        if (tournament.squads.length && !validSquads.length) {
+            return res.status(400).send({ error: 'Please select at least one squad' });
+        }
+        const qualifyingCount = validSquads.filter(id => tournament.squads.id(id)?.isQualifying).length;
+        const required = tournament.squadsRequiredToQualify || 0;
+        if (qualifyingCount < required || (required > 0 && tournament.allowReentry === false && qualifyingCount > required)) {
+            return res.status(400).send({ error: 'Squad selection does not meet tournament qualifying requirements' });
+        }
 
         // Validate squad availability
         if (validSquads && validSquads.length > 0) {
@@ -993,7 +1003,6 @@ router.put('/registrations/:id/squads', generalWriteLimiter, async (req, res) =>
         registration.assignedSquads = validSquads || [];
         await registration.save();
         await registration.populate('tournament');
-        await registration.populate('assignedSquads');
 
         return res.send(registration);
     } catch (error) {
@@ -1022,13 +1031,13 @@ router.delete('/registrations/:id/cancel', generalWriteLimiter, async (req, res)
 
         // Verify this registration belongs to the authenticated bowler
         const bowler = await Bowler.findById(req.session.bowlerId);
-        if (registration.email !== bowler.email) {
+        if (!bowler || registration.email !== bowler.email) {
             return res.status(403).send({ error: 'You can only cancel your own registrations' });
         }
 
         // Only allow cancellation for upcoming tournaments
         const tournament = await Tournament.findById(registration.tournament);
-        if (tournament.status !== 'upcoming') {
+        if (!tournament || tournament.status !== 'upcoming') {
             return res.status(400).send({ error: 'Cannot cancel registration for tournaments that have started or completed' });
         }
 
@@ -1041,7 +1050,7 @@ router.delete('/registrations/:id/cancel', generalWriteLimiter, async (req, res)
 });
 
 // DELETE registration (admin only)
-router.delete('/registrations/:id', strictWriteLimiter, requireAdmin, async (req, res) => {
+router.delete('/registrations/:id', strictWriteLimiter, requireAdminApi, async (req, res) => {
     try {
         // Validate registration ID
         const registrationId = validateObjectId(req.params.id);
