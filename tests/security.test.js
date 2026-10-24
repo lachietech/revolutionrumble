@@ -1,8 +1,6 @@
 import { test, before, after, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import session from 'express-session';
-import { readFileSync } from 'node:fs';
-import vm from 'node:vm';
 import nodemailer from 'nodemailer';
 import { createApp } from '../backend/app.js';
 import Bowler from '../backend/models/Bowler.js';
@@ -11,6 +9,7 @@ import Tournament from '../backend/models/Tournament.js';
 import Registration from '../backend/models/Registration.js';
 import TournamentResult from '../backend/models/TournamentResult.js';
 import EmailTemplate from '../backend/models/EmailTemplate.js';
+import SpotReservation from '../backend/models/SpotReservation.js';
 import { getResendClient } from '../backend/middleware/resend.js';
 import * as limiters from '../backend/middleware/ratelimiters.js';
 import { sanitizeEmail, validateInteger, validateObjectIdArray } from '../backend/middleware/validation.js';
@@ -186,40 +185,6 @@ test('default confirmation email renders fees and escapes user HTML', async () =
     assert.ok(sent.html.includes('&lt;img'));
 });
 
-test('admin and public rendering escape stored player markup', () => {
-    const payload = '<img src=x onerror=alert(1)>"';
-    const elements = new Map();
-    const document = {
-        addEventListener() {},
-        getElementById(id) {
-            if (!elements.has(id)) elements.set(id, { value: '', style: {}, addEventListener() {}, innerHTML: '' });
-            return elements.get(id);
-        }
-    };
-    const context = vm.createContext({ document, window: {}, fetch: () => new Promise(() => {}), console });
-    vm.runInContext(readFileSync('frontend/js/utils/html-utils.js', 'utf8'), context);
-    vm.runInContext(readFileSync('frontend/js/admin/admin-registrations.js', 'utf8'), context);
-    context.registrationFixture = { _id: id, playerName: payload, email: payload, phone: payload, tournament: { _id: tournamentId, name: payload }, assignedSquads: [] };
-    for (const renderer of ['renderRegistrationTableRow', 'renderRegistrationCard']) {
-        const html = vm.runInContext(`${renderer}(registrationFixture, {})`, context);
-        assert.ok(!html.includes('<img'));
-        assert.ok(html.includes('&lt;img'));
-    }
-    const stats = vm.createContext({ document, fetch: () => new Promise(() => {}), console });
-    vm.runInContext(readFileSync('frontend/js/utils/html-utils.js', 'utf8'), stats);
-    vm.runInContext(readFileSync('frontend/js/bowlerstats/bowlerstats.js', 'utf8'), stats);
-    stats.payload = payload;
-    vm.runInContext('filteredBowlers = [{ playerName: payload, nickname: payload }]; renderBowlers();', stats);
-    assert.ok(!document.getElementById('bowlers-grid').innerHTML.includes('<img'));
-    const results = vm.createContext({ document, window: {}, fetch: () => new Promise(() => {}), console });
-    vm.runInContext(readFileSync('frontend/js/utils/html-utils.js', 'utf8'), results);
-    vm.runInContext(readFileSync('frontend/js/admin/admin-results.js', 'utf8'), results);
-    results.registrationFixture = context.registrationFixture;
-    const row = vm.runInContext('currentTournamentForResults = { format: {} }; renderPlayerStageRow(registrationFixture, 0, 3, false)', results);
-    assert.ok(!row.includes('<img'));
-    assert.ok(row.includes('&lt;img'));
-});
-
 test('force-sync leaves other bowlers results in the same tournament untouched', async () => {
     const owner = { _id: id, email: 'owner@example.com', playerName: 'Owner' };
     const otherId = '507f1f77bcf86cd799439099';
@@ -254,4 +219,44 @@ test('admin sign-out uses CSRF-protected POST and destroys authentication', asyn
     assert.equal((await request('/admin/logout', user, undefined, 'GET')).status, 404);
     assert.equal((await request('/admin/logout', user, {})).status, 302);
     assert.equal((await request('/api/registrations', user, undefined, 'GET')).status, 403);
+});
+
+test('React routes preserve legacy aliases and unknown APIs stay JSON', async () => {
+    const user = await client({ isAdmin: true });
+    for (const [from, to] of [['/events.html', '/events'], ['/admin-results.html', '/admin/results'], ['/results?tab=stats', '/player-stats']]) {
+        const response = await request(from, user, undefined, 'GET');
+        assert.equal(response.status, 301);
+        assert.equal(response.headers.get('location'), to);
+    }
+    const missing = await request('/api/does-not-exist', user, undefined, 'GET');
+    assert.equal(missing.status, 404);
+    assert.match(missing.headers.get('content-type'), /json/);
+    assert.equal((await request('/src/App.jsx', user, undefined, 'GET')).status, 404);
+    assert.deepEqual(await (await request('/api/admin/session', user, undefined, 'GET')).json(), { authenticated: true });
+});
+
+test('score writes preserve zeroes, allow clearing, and reject misaligned bonus arrays', async () => {
+    const user = await client({ isAdmin: true });
+    const registration = { stageScores: [], save: async () => {}, populate: async () => {} };
+    mock.method(Registration, 'findById', async () => registration);
+    let response = await request(`/api/registrations/${id}`, user, { stageScores: { stageIndex: 0, scores: [0, 200, 210], bonusPins: [0, 30, 0], handicap: 0 } }, 'PUT');
+    assert.equal(response.status, 200);
+    assert.deepEqual(registration.stageScores[0].scores, [0, 200, 210]);
+    response = await request(`/api/registrations/${id}`, user, { stageScores: { stageIndex: 0, scores: [200], bonusPins: [30, 0] } }, 'PUT');
+    assert.equal(response.status, 400);
+    response = await request(`/api/registrations/${id}`, user, { stageScores: { stageIndex: 0, scores: [], bonusPins: [] } }, 'PUT');
+    assert.equal(response.status, 200);
+    assert.deepEqual(registration.stageScores[0].scores, []);
+});
+
+test('reservations reject full squads before creating a hold', async () => {
+    const user = await client();
+    const squadId = '507f1f77bcf86cd799439013';
+    const tournament = new Tournament({ _id: tournamentId, name: 'Fixture', location: 'Test', startDate: '2099-01-01', squads: [{ _id: squadId, name: 'A', date: '2099-01-01', time: '09:00', capacity: 2, isQualifying: true }] });
+    mock.method(Tournament, 'findById', async () => tournament);
+    mock.method(Registration, 'countDocuments', async () => 1);
+    mock.method(SpotReservation, 'countDocuments', async () => 1);
+    const response = await request('/api/reservations', user, { tournamentId, squads: [squadId] });
+    assert.equal(response.status, 409);
+    assert.match((await response.json()).error, /full/);
 });

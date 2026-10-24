@@ -1,3 +1,4 @@
+import { buildStageDraw, getStageGameCount, getPlayerMatchups, includesPinfall } from '../../shared/scoring.js';
 import { Router } from 'express';
 import Registration from '../models/Registration.js';
 import Tournament from '../models/Tournament.js';
@@ -27,144 +28,6 @@ import {
 
 const router = Router();
 
-function getStageScoreTotal(registration, stageIndex) {
-    const stageScore = registration.stageScores?.find((score) => score.stageIndex === stageIndex);
-    if (!stageScore?.scores?.length) return null;
-    const scratchTotal = stageScore.scores.reduce((sum, score) => sum + score, 0);
-    const bonusTotal = stageScore.bonusPins?.reduce((sum, bonus) => sum + bonus, 0) || 0;
-    const handicapTotal = (stageScore.handicap || 0) * stageScore.scores.length;
-    return scratchTotal + bonusTotal + handicapTotal + (stageScore.carryover || 0);
-}
-
-function seedStagePlayers(players, stageIndex, allRegistrations = players) {
-    if (stageIndex <= 0) {
-        return [...players]
-            .sort((a, b) => a.playerName.localeCompare(b.playerName))
-            .map((player, index) => ({ ...player, seed: index + 1 }));
-    }
-
-    return [...players]
-        .map((player) => ({
-            ...player,
-            previousStageTotal: getStageScoreTotal(
-                allRegistrations.find((registration) => registration._id.toString() === player._id.toString()) || player,
-                stageIndex - 1
-            )
-        }))
-        .sort((a, b) => (b.previousStageTotal ?? -1) - (a.previousStageTotal ?? -1) || a.playerName.localeCompare(b.playerName))
-        .map((player, index) => ({ ...player, seed: index + 1 }));
-}
-
-function buildRoundRobinDraw(players) {
-    const seededPlayers = [...players];
-    const rotation = seededPlayers.length % 2 === 1 ? [...seededPlayers, null] : [...seededPlayers];
-    const rounds = Math.max(0, rotation.length - 1);
-    const matchupsByPlayer = new Map(seededPlayers.map((player) => [player._id.toString(), []]));
-
-    for (let round = 0; round < rounds; round++) {
-        for (let index = 0; index < rotation.length / 2; index++) {
-            const home = rotation[index];
-            const away = rotation[rotation.length - 1 - index];
-            if (!home || !away) continue;
-
-            const label = `Round ${round + 1}: #${home.seed} ${home.playerName} vs #${away.seed} ${away.playerName}`;
-            matchupsByPlayer.get(home._id.toString())?.push({
-                label,
-                opponentName: away.playerName,
-                opponentSeed: away.seed
-            });
-            matchupsByPlayer.get(away._id.toString())?.push({
-                label,
-                opponentName: home.playerName,
-                opponentSeed: home.seed
-            });
-        }
-
-        rotation.splice(1, 0, rotation.pop());
-    }
-
-    return {
-        games: Math.max(0, seededPlayers.length - 1),
-        seededPlayers,
-        matchupsByPlayer
-    };
-}
-
-function buildStepladderDraw(stage, players) {
-    const finalists = Math.min(Number(stage.stageConfig?.finalists) || players.length, players.length);
-    const seededPlayers = [...players].slice(0, finalists);
-    const games = Math.max(0, finalists - 1);
-    const matchupsByPlayer = new Map(seededPlayers.map((player) => [player._id.toString(), []]));
-
-    for (let gameIndex = 0; gameIndex < games; gameIndex++) {
-        const lowerSeedNumber = finalists - gameIndex;
-        const challengerSeedNumber = lowerSeedNumber - 1;
-        const lowerPlayer = seededPlayers.find((player) => player.seed === lowerSeedNumber);
-        const challenger = seededPlayers.find((player) => player.seed === challengerSeedNumber);
-        const lowerName = lowerPlayer?.playerName || `Seed ${lowerSeedNumber}`;
-        const challengerName = challenger?.playerName || `Seed ${challengerSeedNumber}`;
-        const opponentLabel = gameIndex === 0 ? `#${lowerSeedNumber} ${lowerName}` : `Winner of Match ${gameIndex}`;
-        const label = gameIndex === 0
-            ? `Match 1: #${lowerSeedNumber} ${lowerName} vs #${challengerSeedNumber} ${challengerName}`
-            : `Match ${gameIndex + 1}: Winner of Match ${gameIndex} vs #${challengerSeedNumber} ${challengerName}`;
-
-        if (lowerPlayer) {
-            matchupsByPlayer.get(lowerPlayer._id.toString())?.push({
-                label,
-                opponentName: challengerName,
-                opponentSeed: challengerSeedNumber
-            });
-        }
-
-        if (challenger) {
-            matchupsByPlayer.get(challenger._id.toString())?.push({
-                label,
-                opponentName: opponentLabel,
-                opponentSeed: gameIndex === 0 ? lowerSeedNumber : null
-            });
-        }
-
-        seededPlayers
-            .filter((player) => player.seed > challengerSeedNumber && player._id.toString() !== lowerPlayer?._id.toString())
-            .forEach((player) => {
-                matchupsByPlayer.get(player._id.toString())?.push({
-                    label: `If advances: ${label}`,
-                    opponentName: challengerName,
-                    opponentSeed: challengerSeedNumber
-                });
-            });
-    }
-
-    return {
-        games,
-        seededPlayers,
-        matchupsByPlayer
-    };
-}
-
-function buildStageDraw(stage, players, stageIndex, allRegistrations = players) {
-    const seededPlayers = seedStagePlayers(players, stageIndex, allRegistrations);
-    if (stage.type === 'round_robin') return buildRoundRobinDraw(seededPlayers);
-    if (stage.type === 'stepladder') return buildStepladderDraw(stage, seededPlayers);
-    return {
-        games: Number(stage.games) || 1,
-        seededPlayers,
-        matchupsByPlayer: new Map()
-    };
-}
-
-function getStageGameCount(stage, playerCount, draw) {
-    if (draw?.games !== undefined) return Math.max(1, draw.games);
-    if (stage.type === 'round_robin') return Math.max(1, playerCount - 1);
-    if (stage.type === 'stepladder') return Math.max(1, Math.min(Number(stage.stageConfig?.finalists) || playerCount, playerCount) - 1);
-    if (stage.type === 'tri_matchplay') return Number(stage.stageConfig?.triRounds) || Number(stage.games) || 1;
-    return Number(stage.games) || 1;
-}
-
-function getPlayerMatchups(draw, registrationId) {
-    return draw?.matchupsByPlayer?.get(registrationId.toString()) || [];
-}
-
 // POST create spot reservation (holds spots for 10 minutes)
 router.post('/reservations', reservationLimiter, async (req, res) => {
     try {
@@ -182,6 +45,31 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
             sessionId = crypto.randomBytes(16).toString('hex');
             req.session.reservationId = sessionId;
         }
+
+        const tournament = await Tournament.findById(validTournamentId);
+        if (!tournament) return res.status(404).send({ error: 'Tournament not found' });
+        const now = new Date();
+        if (tournament.status !== 'upcoming' || tournament.registrationManuallyClosed ||
+            (!tournament.registrationManuallyOpened && tournament.registrationOpenDate && tournament.registrationOpenDate > now) ||
+            (tournament.registrationDeadline && tournament.registrationDeadline < now)) {
+            return res.status(400).send({ error: 'This tournament is not accepting registrations' });
+        }
+        if (!Array.isArray(squads) || validSquads.length !== squads.length) {
+            return res.status(400).send({ error: 'Invalid or duplicate squad selections' });
+        }
+        const selected = validSquads.map(id => tournament.squads.id(id));
+        if (selected.some(squad => !squad || !squad.isQualifying)) return res.status(400).send({ error: 'Select valid qualifying squads' });
+        const required = tournament.squads.length ? tournament.squadsRequiredToQualify : 0;
+        if (selected.length < required || (tournament.allowReentry === false && selected.length > required)) {
+            return res.status(400).send({ error: 'Squad selection does not meet the qualifying requirements' });
+        }
+        for (const squad of selected) {
+            const [registered, reserved] = await Promise.all([
+                Registration.countDocuments({ tournament: validTournamentId, status: { $in: ['pending', 'confirmed'] }, assignedSquads: squad._id }),
+                SpotReservation.countDocuments({ tournament: validTournamentId, squads: squad._id, sessionId: { $ne: sessionId }, expiresAt: { $gt: now } })
+            ]);
+            if (registered + reserved >= squad.capacity) return res.status(409).send({ error: `${squad.name} is full. Choose another squad.` });
+        }
         
         // Check if session already has an active reservation
         const existingReservation = await SpotReservation.findOne({
@@ -191,6 +79,8 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
         });
         
         if (existingReservation) {
+            existingReservation.squads = validSquads;
+            await existingReservation.save();
             return res.send({
                 reservation: existingReservation,
                 message: 'Using existing reservation'
@@ -330,7 +220,7 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
                     const isCurrentlyInStage = (reg.currentStage || 0) === stageIndex;
                     return hasScoresInStage || isCurrentlyInStage;
                 });
-                const draw = buildStageDraw(stage, stageEntrants, stageIndex, registrations);
+                const draw = buildStageDraw(stage, stageEntrants, stageIndex, registrations, tournament);
                 const drawPlayersById = new Map(draw.seededPlayers.map(player => [player._id.toString(), player]));
 
                 const stagePlayers = registrations
@@ -347,14 +237,14 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
                         let totalHandicap = 0;
                         
                         if (tournament.format?.useHandicap) {
-                            const baseScore = tournament.format.handicapBase || 220;
-                            const handicapPct = tournament.format.handicapPercentage || 90;
-                            const avgScore = reg.averageScore || 180;
+                            const baseScore = tournament.format.handicapBase ?? 200;
+                            const handicapPct = tournament.format.handicapPercentage ?? 90;
+                            const avgScore = reg.averageScore ?? 180;
                             const handicapPerGame = avgScore < baseScore ? Math.round((baseScore - avgScore) * (handicapPct / 100)) : 0;
                             
                             // Female bonus only if NOT separate divisions
                             const femaleBonus = (reg.gender === 'female' && !tournament.format.separateDivisions) 
-                                ? (tournament.format.femaleHandicapPins || 8) 
+                                ? (tournament.format.femaleHandicapPins ?? 8)
                                 : 0;
                             
                             totalHandicapPerGame = handicapPerGame + femaleBonus;
@@ -365,7 +255,7 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
                         const totalBonus = stageScore.bonusPins ? stageScore.bonusPins.reduce((sum, b) => sum + b, 0) : 0;
                         
                         // Grand total with handicap, bonus, and carryover
-                        const grandTotal = scratchTotal + totalHandicap + totalBonus + (stageScore.carryover || 0);
+                        const grandTotal = (includesPinfall(tournament, stageIndex) ? scratchTotal + totalHandicap : 0) + totalBonus + (stageScore.carryover || 0);
                         const avg = stageScore.scores.length > 0 ? scratchTotal / stageScore.scores.length : 0;
 
                         return {
@@ -426,14 +316,14 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
                     let totalHandicap = 0;
                     
                     if (tournament.format?.useHandicap) {
-                        const baseScore = tournament.format.handicapBase || 220;
-                        const handicapPct = tournament.format.handicapPercentage || 90;
-                        const avgScore = reg.averageScore || 180;
+                        const baseScore = tournament.format.handicapBase ?? 200;
+                        const handicapPct = tournament.format.handicapPercentage ?? 90;
+                        const avgScore = reg.averageScore ?? 180;
                         const handicapPerGame = avgScore < baseScore ? Math.round((baseScore - avgScore) * (handicapPct / 100)) : 0;
                         
                         // Female bonus only if NOT separate divisions
                         const femaleBonus = (reg.gender === 'female' && !tournament.format.separateDivisions) 
-                            ? (tournament.format.femaleHandicapPins || 8) 
+                            ? (tournament.format.femaleHandicapPins ?? 8)
                             : 0;
                         
                         totalHandicapPerGame = handicapPerGame + femaleBonus;
@@ -444,7 +334,7 @@ router.get('/tournaments/:tournamentId/results', generalWriteLimiter, async (req
                     const totalBonus = stageScore.bonusPins ? stageScore.bonusPins.reduce((sum, b) => sum + b, 0) : 0;
                     
                     // Grand total with handicap and bonus
-                    const grandTotal = scratchTotal + totalHandicap + totalBonus;
+                    const grandTotal = (includesPinfall(tournament, 0) ? scratchTotal + totalHandicap : 0) + totalBonus;
                     const avg = stageScore.scores.length > 0 ? scratchTotal / stageScore.scores.length : 0;
 
                     return {
@@ -616,7 +506,14 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
                     assignedSquads: sanitizedSquadId
                 });
 
-                if (registrationsWithSquad >= squad.capacity) {
+                const reservedByOthers = await SpotReservation.countDocuments({
+                    tournament: validTournamentId,
+                    squads: sanitizedSquadId,
+                    sessionId: { $ne: req.session.reservationId || '' },
+                    expiresAt: { $gt: new Date() }
+                });
+
+                if (registrationsWithSquad + reservedByOthers >= squad.capacity) {
                     return res.status(400).send({ error: `Squad "${squad.name}" is full. Please select different squads.` });
                 }
             }
@@ -725,6 +622,11 @@ router.post('/registrations', registrationLimiter, async (req, res) => {
         });
 
         await registration.save();
+
+        if (req.session.reservationId) {
+            await SpotReservation.deleteOne({ sessionId: req.session.reservationId, tournament: validTournamentId })
+                .catch(() => console.error('Could not release completed registration reservation'));
+        }
         
         const populated = await Registration.findById(registration._id)
             .populate('tournament', 'name date location')
@@ -811,7 +713,7 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdminApi, async (req
             }
             
             // Validate scores array
-            if (!Array.isArray(scores) || scores.length === 0 || scores.length > 50) {
+            if (!Array.isArray(scores) || scores.length > 50) {
                 return res.status(400).send({ error: 'Invalid scores array' });
             }
             
@@ -825,6 +727,9 @@ router.put('/registrations/:id', strictWriteLimiter, requireAdminApi, async (req
             const validBonusPins = Array.isArray(bonusPins) 
                 ? bonusPins.map(bp => validateInteger(bp, -100, 100)).filter(b => b !== null)
                 : [];
+            if (bonusPins !== undefined && (!Array.isArray(bonusPins) || validBonusPins.length !== bonusPins.length || bonusPins.length !== scores.length)) {
+                return res.status(400).send({ error: 'Bonus values must match the game scores' });
+            }
             
             // Validate handicap
             const validHandicap = validateInteger(handicap, 0, 200) || 0;

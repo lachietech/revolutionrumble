@@ -3,7 +3,7 @@ import { readdirSync, statSync } from 'fs';
 import path from 'path';
 
 const root = process.cwd();
-const ignoredDirs = new Set(['node_modules', '.git', '.agents']);
+const ignoredDirs = new Set(['node_modules', '.git', '.agents', 'dist']);
 
 function collectJsFiles(dir) {
     const entries = readdirSync(dir);

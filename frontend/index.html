@@ -1,124 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>The Revolution Rumble - Home</title>
-        <link rel="icon" src="static/images/whitebghighres.png" />
-        <meta name="description" content="The Revolution Rumble - regional bowling tournament hub. Register, view highlights, partners, results and top players." />
-        <link rel="stylesheet" href="static/css/packages/presets.css" />
-        <link rel="stylesheet" href="static/css/mainfiles/index.css" />
-        <link rel="preload" as="image" href="static/images/whitelines.jpg" />
-    </head>
-
-    <body class="public-page">
-        <!-- ===================== HEADER ===================== -->
-        <header class="site-header" data-site-nav>
-            <div class="container nav">
-                <a class="brand" href="/" aria-label="Revolution Rumble home">
-                    <span class="brand-mark" aria-hidden="true"><img src="/static/images/whitebghighres.png" alt="" /></span>
-                    <span class="brand-copy"><span class="brand-kicker">Revolution Bowling Supplies</span><span class="brand-name">Revolution Rumble Tour</span></span>
-                </a>
-                <nav class="desktop-nav" aria-label="Primary navigation">
-                    <a href="/" data-nav="home">Home</a>
-                    <a href="/events" data-nav="events">Events</a>
-                    <a href="/results" data-nav="results">Results</a>
-                    <a href="/player-stats" data-nav="stats">Player Stats</a>
-                    <a href="/register" data-nav="registration">Registration</a>
-                </nav>
-                <a class="portal-link" href="/bowler-hub" data-nav="portal">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 13.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm-8 7c1.6-3.2 4.27-4.8 8-4.8s6.4 1.6 8 4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                    Bowler Hub
-                </a>
-                <button class="hamburger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
-                    <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="menu-line menu-line-top" d="M4 7h16"/><path class="menu-line menu-line-middle" d="M4 12h16"/><path class="menu-line menu-line-bottom" d="M4 17h16"/></svg>
-                </button>
-                <nav id="mobileMenu" class="mobile-menu" aria-label="Mobile navigation" hidden>
-                    <div class="mobile-menu-content">
-                        <span class="mobile-menu-kicker">Navigate the tour</span>
-                        <a href="/" data-nav="home"><span>Home</span></a>
-                        <a href="/events" data-nav="events"><span>Events</span></a>
-                        <a href="/results" data-nav="results"><span>Results</span></a>
-                        <a href="/player-stats" data-nav="stats"><span>Player Stats</span></a>
-                        <a href="/register" data-nav="registration"><span>Registration</span></a>
-                        <a class="mobile-portal" href="/bowler-hub" data-nav="portal"><span>Bowler Hub</span></a>
-                    </div>
-                </nav>
-            </div>
-        </header>
-
-        <!-- ===================== HERO ===================== -->
-        <section class="hero">
-            <div class="container hero-grid">
-                <div class="hero-copy">
-                    <h1 class="h1">Bowl bold.<br /><span>Make noise.</span></h1>
-                    <p class="sub">A fresh regional tour for competitive bowlers, packed houses, and the frames everyone remembers.</p>
-                    <div class="hero-actions">
-                        <a class="btn" href="/register">Claim your spot <span aria-hidden="true">&rarr;</span></a>
-                        <a class="hero-link" href="/events">Explore the tour <span aria-hidden="true">&rarr;</span></a>
-                    </div>
-                </div>
-
-                <div class="hero-visual">
-                    <div class="media-swap" id="heroSwap" aria-live="polite">
-                        <button class="skip-btn" type="button" aria-label="Skip video">Skip</button>
-
-                        <!-- Autoplay on mobile usually requires muted + playsinline -->
-                        <video
-                            id="introVideo"
-                            src="static/images/callvideo.mp4"
-                            preload="metadata"
-                            poster="static/images/whitebghighres.png"
-                            playsinline
-                            muted
-                            autoplay>
-                            <!-- Fallback text -->
-                            Your browser does not support the video tag.
-                        </video>
-
-                        <!-- The image we end on -->
-                        <img id="endImage" src="static/images/whitebghighres.png" alt="Revolution Rumble Tenpin Tour" loading="eager" />
-                    </div>
-                    <div class="countdown-panel">
-                        <div class="eyebrow">Next event starts in</div>
-                        <div class="countdown" id="countdown" aria-live="polite">
-                            <div class="timebox">
-                                <div class="num" id="m">00</div>
-                                <div class="label">Months</div>
-                            </div>
-                            <div class="timebox">
-                                <div class="num" id="d">00</div>
-                                <div class="label">Days</div>
-                            </div>
-                            <div class="timebox">
-                                <div class="num" id="h">00</div>
-                                <div class="label">Hours</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ===================== PARTNER STRIP ===================== -->
-        <section id="partners" class="section partners">
-            <div>
-                <p class="partner-kicker">Tour partners &amp; host centres</p>
-                <div class="list" style="text-align:center;margin-bottom:18px">
-                    <div class="partner"><img style="max-height: 100%; max-width: 90%;" src="static/images/Revolution Bowling Supplies - white logo.png" alt=""></div>
-                    <div class="partner"><img style="max-height: 70%; max-width: 90%;" src="static/images/favicon.png" alt=""></div>
-                    <div class="partner"><img style="max-height: 80%; max-width: 90%;" src="static/images/Loganlogo.png" alt=""></div>
-                    <div class="partner"><img style="max-height: 100%; max-width: 95%;" src="static/images/ashmorelogo.png" alt=""></div>
-                    <div class="partner"><img style="max-height: 100%; max-width: 100%;" src="static/images/ballinalogo.png" alt=""></div>
-                </div>
-            </div>
-        </section>
-        <special-footer></special-footer>
-        <!-- ===================== JS ===================== -->
-        <script src="/js/utils/html-utils.js"></script>
-        <script src="js/global/navbar.js"></script>
-        <script src="js/global/headerfooter.js"></script>
-        <script src="js/index/hero.js"></script>
-        <script src="js/index/countdown.js"></script>
-    </body>
+﻿<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#09131d" />
+    <meta
+      name="description"
+      content="Bowl bold. Make noise. Explore Revolution Rumble tournaments, enter your squads, follow results, and manage your Bowler Hub."
+    />
+    <link rel="icon" href="/static/images/rumble-mark.svg" />
+    <title>Revolution Rumble Tour</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript
+      >Please enable JavaScript to use the Revolution Rumble tournament
+      app.</noscript
+    >
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

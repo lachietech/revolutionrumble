@@ -10,9 +10,11 @@ import registrationRoutes from './routes/registrationRoutes.js';
 import bowlerRoutes from './routes/bowlerRoutes.js';
 import emailTemplateRoutes from './routes/emailTemplateRoutes.js';
 
+import { mountFrontend } from './frontend.js';
+
 import { requireAdmin } from './middleware/auth.js';
 
-export function createApp({ store, sessionSecret, isProduction = false, trustProxy = 0 }) {
+export function createApp({ store, sessionSecret, isProduction = false, trustProxy = 0, frontendMiddleware = null }) {
     const app = express();
     app.disable('x-powered-by');
     app.set('trust proxy', trustProxy);
@@ -47,7 +49,7 @@ export function createApp({ store, sessionSecret, isProduction = false, trustPro
     }));
 
     const frontendRoot = path.join(import.meta.dirname, '../frontend');
-    app.get('/favicon.ico', (req, res) => res.sendFile(path.join(frontendRoot, 'static/images/favicon.png')));
+    app.get('/favicon.ico', (req, res) => res.type('image/svg+xml').sendFile(path.join(frontendRoot, 'static/images/rumble-mark.svg')));
     app.use((req, res, next) => {
         // Static HTML aliases must enforce the same authorization as their page routes.
         let staticPath;
@@ -59,19 +61,7 @@ export function createApp({ store, sessionSecret, isProduction = false, trustPro
         }
         next();
     });
-    app.use(express.static(frontendRoot, {
-        etag: true,
-        maxAge: isProduction ? '1d' : 0
-    }));
-
-    app.use((req, res, next) => {
-        const originalSendFile = res.sendFile.bind(res);
-        res.sendFile = (filePath, ...args) => {
-            const normalized = path.isAbsolute(filePath) ? filePath : path.join(frontendRoot, filePath);
-            return originalSendFile(normalized, ...args);
-        };
-        next();
-    });
+    app.use('/static', express.static(path.join(frontendRoot, 'static'), { maxAge: isProduction ? '1d' : 0 }));
 
     const csrfProtection = csurf({
         value: (req) => req.headers['x-csrf-token'] || req.body?._csrf
@@ -83,6 +73,9 @@ export function createApp({ store, sessionSecret, isProduction = false, trustPro
     app.use('/api', registrationRoutes);
     app.use('/api', bowlerRoutes);
     app.use('/api', emailTemplateRoutes);
+
+    app.use('/api', (req, res) => res.status(404).send({ error: 'API endpoint not found' }));
+    mountFrontend(app, frontendMiddleware);
 
     app.use((err, req, res, next) => {
         if (err && err.code === 'EBADCSRFTOKEN') {

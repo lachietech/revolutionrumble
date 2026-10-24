@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import MongoStore from 'connect-mongo';
 import { createApp } from './app.js';
+import { createDevelopmentFrontend } from './frontend.js';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const rawSessionSecret = process.env.SECRET_KEY || '';
@@ -25,11 +26,13 @@ try {
         ttl: 24 * 60 * 60,
         autoRemove: 'native'
     });
+    const frontend = process.argv.includes('--dev') ? await createDevelopmentFrontend() : null;
     const app = createApp({
         store,
         sessionSecret: rawSessionSecret.length >= 32 ? rawSessionSecret : crypto.randomBytes(32).toString('hex'),
         isProduction,
-        trustProxy
+        trustProxy,
+        frontendMiddleware: frontend?.middleware
     });
     app.listen(port, '0.0.0.0', () => console.log(`Server started on port ${port}`))
         .on('error', async () => {

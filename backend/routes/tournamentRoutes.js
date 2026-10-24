@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Tournament from '../models/Tournament.js';
 import Registration from '../models/Registration.js';
 import SpotReservation from '../models/SpotReservation.js';
+import { planAdvancement } from '../utils/advancement.js';
 import { 
     validateObjectId 
 } from '../middleware/validation.js';
@@ -15,6 +16,27 @@ import {
 } from '../middleware/auth.js';
 
 const router = Router();
+
+// Advance exactly one completed stage per request. Avoid one HTTP write per bowler.
+router.post('/tournaments/:id/advance', strictWriteLimiter, requireAdminApi, async (req, res) => {
+    const id = validateObjectId(req.params.id);
+    const { stageIndex } = req.body;
+    if (!id || !Number.isInteger(stageIndex) || stageIndex < 0) return res.status(400).send({ error: 'Valid tournament and stage required' });
+    try {
+        const tournament = await Tournament.findById(id).lean();
+        if (!tournament) return res.status(404).send({ error: 'Tournament not found' });
+        const registrations = await Registration.find({ tournament: id, status: { $in: ['pending', 'confirmed'] } }).lean();
+        const plan = planAdvancement(tournament, registrations, stageIndex);
+        const result = await Registration.bulkWrite(plan.map(entry => ({ updateOne: {
+            filter: { _id: entry.registrationId, currentStage: stageIndex },
+            update: { $set: { currentStage: entry.currentStage, stageScores: entry.stageScores } }
+        } })));
+        if (result.matchedCount !== plan.length) return res.status(409).send({ error: 'The stage changed while advancing. Refresh the scores before continuing.' });
+        return res.send({ advancedCount: plan.length });
+    } catch (error) {
+        return res.status(400).send({ error: error.message || 'Unable to advance this stage' });
+    }
+});
 
 // GET all tournaments
 router.get('/tournaments', generalWriteLimiter, async (req, res) => {
@@ -92,7 +114,7 @@ router.put('/tournaments/:id', strictWriteLimiter, requireAdminApi, async (req, 
         if (req.body.entryFee !== undefined && typeof req.body.entryFee === 'number') {
             updateData.entryFee = req.body.entryFee;
         }
-        if (req.body.maxParticipants !== undefined && typeof req.body.maxParticipants === 'number') {
+        if (req.body.maxParticipants === null || typeof req.body.maxParticipants === 'number') {
             updateData.maxParticipants = req.body.maxParticipants;
         }
         if (req.body.squadsRequiredToQualify !== undefined && typeof req.body.squadsRequiredToQualify === 'number') {
@@ -133,6 +155,10 @@ router.put('/tournaments/:id', strictWriteLimiter, requireAdminApi, async (req, 
             updateData.squads = req.body.squads;
         }
         
+        if (updateData.startDate) updateData.date = updateData.startDate;
+        if (updateData.startDate && updateData.endDate && new Date(updateData.endDate) < new Date(updateData.startDate)) {
+            return res.status(400).send({ error: 'End date must be on or after the start date' });
+        }
         const tournament = await Tournament.findByIdAndUpdate(
             tournamentId,
             { $set: updateData },

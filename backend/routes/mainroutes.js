@@ -12,59 +12,10 @@ import {
     getResendClient 
 } from '../middleware/resend.js';
 import { 
-    getAllowedAdminEmails,
-    requireAdmin
+    getAllowedAdminEmails
 } from '../middleware/auth.js';
 
 const router = Router();
-
-// Home page
-router.get('/', pageViewLimiter, (req, res) => {
-    return res.sendFile('index.html');
-});
-
-router.get('/register', pageViewLimiter, (req, res) => {
-    return res.sendFile('register.html');
-});
-
-router.get('/player-stats', pageViewLimiter, (req, res) => {
-    return res.sendFile('bowlerstats.html');
-});
-
-router.get('/playerstats', pageViewLimiter, (req, res) => {
-    return res.redirect(301, '/player-stats');
-});
-
-router.get('/bowlerstats', pageViewLimiter, (req, res) => {
-    return res.redirect(301, '/player-stats');
-});
-
-router.get('/bowler-hub', pageViewLimiter, (req, res) => {
-    return res.sendFile('bowler-hub.html');
-});
-
-router.get('/results', pageViewLimiter, (req, res) => {
-    if (req.query.tab === 'stats') {
-        return res.redirect(301, '/player-stats');
-    }
-    return res.sendFile('results.html');
-});
-
-router.get('/events', pageViewLimiter, (req, res) => {
-    return res.sendFile('events.html');
-});
-
-router.get('/squads', pageViewLimiter, (req, res) => {
-    return res.sendFile('squads.html');
-});
-
-// Admin login page
-router.get('/admin', pageViewLimiter, (req, res) => {
-    return res.redirect('/admin/login');
-});
-router.get('/admin/login', pageViewLimiter, (req, res) => {
-    return res.sendFile('admin-login.html');
-});
 
 // Get CSRF token (public endpoint)
 router.get('/api/csrf-token', pageViewLimiter, async (req, res) => {
@@ -201,25 +152,10 @@ router.post('/admin/logout', otpVerifyLimiter, async (req, res, next) => {
     try {
         await destroySession(req);
         res.clearCookie('connect.sid');
-        return res.redirect('/');
+        return req.get('accept')?.includes('application/json') ? res.send({ success: true }) : res.redirect('/');
     } catch (error) { next(error); }
 });
 
-// Admin sub-pages (protected)
-router.get('/admin/tournaments', pageViewLimiter, requireAdmin, (req, res) => {
-    return res.sendFile('admin-tournaments.html');
-});
-
-router.get('/admin/registrations', pageViewLimiter, requireAdmin, (req, res) => {
-    return res.sendFile('admin-registrations.html');
-});
-
-router.get('/admin/results', pageViewLimiter, requireAdmin, (req, res) => {
-    return res.sendFile('admin-results.html');
-});
-
-router.get('/admin/email-templates', pageViewLimiter, requireAdmin, (req, res) => {
-    return res.sendFile('admin/admin-email-templates.html');
-});
+router.get('/api/admin/session', (req, res) => res.send({ authenticated: Boolean(req.session?.isAdmin) }));
 
 export default router;

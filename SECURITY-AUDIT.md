@@ -2,6 +2,11 @@
 
 Date: 23 October 2026
 
+Migration note (24 October 2026): this document records the audit of the former
+HTML frontend. The React migration retains the backend protections and replaces
+the legacy rendering checks with React escaping, routing, scoring, and desktop/mobile
+workflow tests. See README.md for current commands and verification boundaries.
+
 Reviewed the local Express/Mongoose application, authentication and authorization,
 public registrations, result maintenance, frontend rendering, email templates,
 dependency tree, and available checks. Implemented fixes in the working tree.
