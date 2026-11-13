@@ -39,6 +39,49 @@ Dates are displayed in Australia/Brisbane. Tournament editor dates and times are
 
 ## Verification
 
+### VisitPulse analytics
+
+Copy the `VITE_VISITPULSE_*` settings from `.env.example` into the root `.env`
+or your build environment. This site's destination username is
+`revolutionbowlingsupplies`; it must be an active VisitPulse portal account.
+Tracking stays disabled until both values are provided.
+Vite reads the root environment file; only `VITE_*` values are exposed to the browser.
+Restart development or rebuild and deploy production after changing these values.
+
+The central VisitPulse operator must add this username and every exact website
+origin (including separate apex/www origins and any desired localhost ports) to
+`VISITPULSE_SITES`, preserving all existing registrations, then deploy that backend
+before this frontend. Do not add tracker origins to the portal's `TRUSTED_ORIGINS`.
+Merge this entry into the existing central `VISITPULSE_SITES` JSON object (do not
+replace other accounts' entries):
+
+```json
+{
+  "revolutionbowlingsupplies": [
+    "https://revolutionrumble.com.au",
+    "https://www.revolutionrumble.com.au"
+  ]
+}
+```
+
+If that username already has other sites, retain them in its array too. Origins
+have no trailing slash. Local development origins require separate registration.
+
+The current site CSP permits the collector; if a hosting proxy adds `connect-src`,
+allow `https://personal-website-53mf.onrender.com` there.
+
+The supplied tracker records the initial page and pathname navigation once, honours
+GPC/DNT, omits credentials, and fails silently without retries. Query/filter changes
+are not new page views. Event IDs use `/events/:id`, unknown paths use `/not-found`,
+and titles are fixed labels so personal details are not sent. If a consent flow is
+introduced, gate tracking on its decision before enabling it.
+
+After deployment, use browser Network tools to confirm a POST returns **202** with
+`{"ok":true}`, navigate to another page, and refresh the matching account's
+`/clientportal/visitpulse` report. Verify a second account cannot see the visit.
+GPC or DNT should suppress POSTs; an unavailable collector must not affect the site.
+See `VisitPulse-integration pack/API.md` for rejection codes and troubleshooting.
+
 ```sh
 npm test              # JavaScript checks, production build, security and scoring tests
 npm run test:browser  # Desktop/mobile Edge checks and fixture-backed user workflows

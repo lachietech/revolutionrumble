@@ -10,6 +10,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { api, resetCsrf } from "./api.js";
+import { trackNavigation } from "./analytics.js";
 import { useAction, useResource } from "./hooks.js";
 import { Empty, Icon, Notice, Resource } from "./components.jsx";
 import {
@@ -39,6 +40,9 @@ const links = [
 function Layout() {
   const location = useLocation();
   const [menu, setMenu] = useState(false);
+  useEffect(() => {
+    void trackNavigation(location);
+  }, [location.pathname, location.search]);
   useEffect(() => {
     setMenu(false);
     window.scrollTo(0, 0);

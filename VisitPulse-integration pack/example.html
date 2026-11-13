@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>VisitPulse example</title></head>
+<body>
+<h1>VisitPulse integration example</h1>
+<script type="module">
+  import { createVisitPulse } from './visitpulse-tracker.js';
+  const analytics = createVisitPulse({
+    endpoint: 'https://personal-website-53mf.onrender.com/clientportal/api/analytics/v1/events',
+    username: 'nielseninnovations', // Replace with this website owner's registered account.
+  });
+  analytics.start();
+</script>
+</body>
+</html>
